@@ -1,3 +1,0 @@
-/home/user/Repositories/github/network-analyzer/osidecoder/build/GCC_13_Without_Qt-Debug/CMakeFiles/osidecoder.dir
-/home/user/Repositories/github/network-analyzer/osidecoder/build/GCC_13_Without_Qt-Debug/CMakeFiles/edit_cache.dir
-/home/user/Repositories/github/network-analyzer/osidecoder/build/GCC_13_Without_Qt-Debug/CMakeFiles/rebuild_cache.dir

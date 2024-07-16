@@ -1,8 +1,0 @@
-# ninja log v5
-0	5	0	clean	a31eedcededa8236
-1	124	1720705180306873215	CMakeFiles/osidecoder.dir/src/ip/ip4parser.cpp.o	432da9ea841fd5e1
-1	202	1720705180382871387	CMakeFiles/osidecoder.dir/src/ip/ip6parser.cpp.o	2cb27e0963d95605
-1	257	1720705180438870038	CMakeFiles/osidecoder.dir/src/packetbase.cpp.o	8367106a2c7a888f
-2	414	1720705180594866285	CMakeFiles/osidecoder.dir/src/pppoe/PPPoELayer.cpp.o	ba368818848062d2
-0	649	1720705180830860605	CMakeFiles/osidecoder.dir/src/decoderbase.cpp.o	db0113f79c6539e9
-0	692	1720705180874859545	CMakeFiles/osidecoder.dir/src/decoder.cpp.o	fe61f0e52241c2b2
