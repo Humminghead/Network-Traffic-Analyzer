@@ -2,9 +2,9 @@
 
 #include <PPPoELayer.h>
 #include <PppTypes.h>
-#include <ip4parser.h>
-#include <ip6parser.h>
-#include <ipparseresult.h>
+#include <ip/ip4parser.h>
+#include <ip/ip6parser.h>
+#include <ip/ipparseresult.h>
 #include <linux/mpls.h>
 #include <net/ethernet.h>
 #include <netinet/ip.h>

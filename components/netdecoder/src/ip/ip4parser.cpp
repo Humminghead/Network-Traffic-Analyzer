@@ -1,7 +1,7 @@
 #include <netinet/ip.h>
 
-#include "ip4parser.h"
-#include "ipparseresult.h"
+#include "ip/ip4parser.h"
+#include "ip/ipparseresult.h"
 
 namespace Nwa::Network
 {

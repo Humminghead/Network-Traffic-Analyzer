@@ -1,8 +1,8 @@
-#include "ip6parser.h"
+#include "ip/ip6parser.h"
 
 #include <netinet/ip6.h>
 
-#include "ipparseresult.h"
+#include "ip/ipparseresult.h"
 #include "packetbase.h"
 
 namespace Nwa::Network
