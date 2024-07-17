@@ -26,7 +26,7 @@ class NetDecoderCompleteTest : public ::testing::Test {
 constexpr std::array<uint8_t, 14>
     ethHdr{0xcc, 0x03, 0x04, 0xdc, 0x00, 0x10, 0xcc, 0x04, 0x04, 0xdc, 0x00, 0x10, 0x88, 0x47};
 
-TEST_F(NetDecoderCompleteTest, decoder_treat_eth_nullptr_test) {
+TEST_F(NetDecoderCompleteTest, handle_eth_nullptr_test) {
     auto &decoder = this->getDecoder();
 
     const uint8_t *data = nullptr;
@@ -39,7 +39,7 @@ TEST_F(NetDecoderCompleteTest, decoder_treat_eth_nullptr_test) {
     ASSERT_EQ(size, 0);
 }
 
-TEST_F(NetDecoderCompleteTest, decoder_treat_vlan_nullptr_test) {
+TEST_F(NetDecoderCompleteTest, handle_vlan_nullptr_test) {
     auto &decoder = this->getDecoder();
 
     const uint8_t *data = nullptr;
@@ -54,7 +54,7 @@ TEST_F(NetDecoderCompleteTest, decoder_treat_vlan_nullptr_test) {
     ASSERT_EQ(size, 0);
 }
 
-TEST_F(NetDecoderCompleteTest, decoder_treat_pppoe_nullptr_test) {
+TEST_F(NetDecoderCompleteTest, handle_pppoe_nullptr_test) {
     auto &decoder = this->getDecoder();
 
     const uint8_t *data = nullptr;
@@ -67,7 +67,7 @@ TEST_F(NetDecoderCompleteTest, decoder_treat_pppoe_nullptr_test) {
     ASSERT_EQ(size, 0);
 }
 
-TEST_F(NetDecoderCompleteTest, decoder_treat_mpls_nullptr_test) {
+TEST_F(NetDecoderCompleteTest, handle_mpls_nullptr_test) {
     auto &decoder = this->getDecoder();
 
     const uint8_t *data = nullptr;
@@ -81,7 +81,7 @@ TEST_F(NetDecoderCompleteTest, decoder_treat_mpls_nullptr_test) {
     ASSERT_EQ(size, 0);
 }
 
-TEST_F(NetDecoderCompleteTest, decoder_treat_ip_nullptr_test) {
+TEST_F(NetDecoderCompleteTest, handle_ip_nullptr_test) {
     auto &decoder = this->getDecoder();
 
     const uint8_t *data = nullptr;
@@ -95,7 +95,7 @@ TEST_F(NetDecoderCompleteTest, decoder_treat_ip_nullptr_test) {
     ASSERT_EQ(size, 0);
 }
 
-TEST_F(NetDecoderCompleteTest, decoder_treat_udp_nullptr_test) {
+TEST_F(NetDecoderCompleteTest, handle_udp_nullptr_test) {
     auto &decoder = this->getDecoder();
 
     const uint8_t *data = nullptr;
@@ -108,7 +108,7 @@ TEST_F(NetDecoderCompleteTest, decoder_treat_udp_nullptr_test) {
     ASSERT_EQ(size, 0);
 }
 
-TEST_F(NetDecoderCompleteTest, decoder_treat_tcp_nullptr_test) {
+TEST_F(NetDecoderCompleteTest, handle_tcp_nullptr_test) {
     auto &decoder = this->getDecoder();
 
     const uint8_t *data = nullptr;
@@ -121,7 +121,7 @@ TEST_F(NetDecoderCompleteTest, decoder_treat_tcp_nullptr_test) {
     ASSERT_EQ(size, 0);
 }
 
-TEST_F(NetDecoderCompleteTest, decoder_treat_gtp_nullptr_test) {
+TEST_F(NetDecoderCompleteTest, handle_gtp_nullptr_test) {
     auto &decoder = this->getDecoder();
 
     const uint8_t *data = nullptr;
@@ -141,7 +141,7 @@ TEST_F(NetDecoderCompleteTest, decoder_treat_gtp_nullptr_test) {
     Type: MPLS label switched packet (0x8847)
 */
 
-TEST_F(NetDecoderCompleteTest, decoder_treat_eth_test) {
+TEST_F(NetDecoderCompleteTest, handle_eth_test) {
     auto &decoder = this->getDecoder();
 
     const uint8_t *data = ethHdr.data();
@@ -177,7 +177,7 @@ TEST_F(NetDecoderCompleteTest, decoder_treat_eth_test) {
  */
 constexpr std::array<uint8_t, 8> vlanHdr{0x00, 0x01, 0x81, 0x00, 0x00, 0x14, 0x08, 0x00};
 
-TEST_F(NetDecoderCompleteTest, decoder_treat_vlan_test) {
+TEST_F(NetDecoderCompleteTest, handle_vlan_test) {
     auto &decoder = this->getDecoder();
 
     const uint8_t *data = vlanHdr.data();
@@ -210,7 +210,7 @@ TEST_F(NetDecoderCompleteTest, decoder_treat_vlan_test) {
  */
 constexpr std::array<uint8_t, 8> pppoeHdr{0x11, 0x00, 0x1b, 0x26, 0x05, 0x7a, 0x00, 0x21};
 
-TEST_F(NetDecoderCompleteTest, decoder_treat_pppoe_test) {
+TEST_F(NetDecoderCompleteTest, handle_pppoe_test) {
     auto &decoder = this->getDecoder();
 
     const uint8_t *data = pppoeHdr.data();
@@ -237,7 +237,7 @@ TEST_F(NetDecoderCompleteTest, decoder_treat_pppoe_test) {
 */
 constexpr std::array<uint8_t, 8> mplsHdr{0x00, 0x01, 0x01, 0xff, 0x00, 0x00, 0x00, 0x00};
 
-TEST_F(NetDecoderCompleteTest, decoder_treat_mpls_test) {
+TEST_F(NetDecoderCompleteTest, handle_mpls_test) {
     auto &decoder = this->getDecoder();
 
     const uint8_t *data = mplsHdr.data();
@@ -294,7 +294,7 @@ constexpr std::array<uint8_t, 52> ip4Hdr{0x45, 0x00, 0x00, 0x34, 0xb1, 0x17, 0x4
                                          0x3e, 0x08, 0xa4, 0x27, 0x94, 0x34, 0x80, 0x10, 0x3a, 0x02, 0x05, 0xfe, 0x00,
                                          0x00, 0x01, 0x01, 0x08, 0x0a, 0xa7, 0x05, 0x2c, 0xc1, 0xe1, 0x6d, 0xf0, 0x0f};
 
-TEST_F(NetDecoderCompleteTest, decoder_treat_ip4_test) {
+TEST_F(NetDecoderCompleteTest, handle_ip4_test) {
     auto &decoder = this->getDecoder();
 
     const uint8_t *data = ip4Hdr.data();
@@ -379,7 +379,7 @@ constexpr std::array<uint8_t, 124> ip6Hdr{
     0x26, 0x07, 0xf2, 0xc0, 0xf0, 0x0f, 0xb0, 0x01, 0x00, 0x00, 0x00, 0x00, 0xfa, 0xce, 0xb0, 0x0c};
 // clang-format on
 
-TEST_F(NetDecoderCompleteTest, decoder_treat_ip6_test) {
+TEST_F(NetDecoderCompleteTest, handle_ip6_test) {
     using Ip6AddrP = std::array<uint8_t, 16> *;
     auto &decoder = this->getDecoder();
 
@@ -391,8 +391,6 @@ TEST_F(NetDecoderCompleteTest, decoder_treat_ip6_test) {
     const struct ip6_hdr *tIp6H{(const struct ip6_hdr *)ip6Hdr.data()};
 
     ASSERT_TRUE(status);
-    // ASSERT_EQ(packet.tm, 1);
-    // ASSERT_EQ(packet.tm_ns, 2);
     ASSERT_FALSE(packet.ip6Header == nullptr);
     ASSERT_TRUE(std::equal(
         std::begin(*(Ip6AddrP)&packet.ip6Header->ip6_src),
@@ -422,7 +420,7 @@ TEST_F(NetDecoderCompleteTest, decoder_treat_ip6_test) {
 */
 constexpr std::array<uint8_t, 8> udpHdr{0x88, 0xd0, 0x48, 0x89, 0x00, 0x1c, 0xc6, 0x43};
 
-TEST_F(NetDecoderCompleteTest, decoder_treat_udp_test) {
+TEST_F(NetDecoderCompleteTest, handle_udp_test) {
     auto &decoder = this->getDecoder();
 
     const uint8_t *data = udpHdr.data();
@@ -468,7 +466,7 @@ TEST_F(NetDecoderCompleteTest, decoder_treat_udp_test) {
 constexpr std::array<uint8_t, 32> tcpHdr{0x01, 0xbb, 0xc8, 0x32, 0xcf, 0x0f, 0x6a, 0xca, 0x26, 0xaa, 0xee,
                                          0xce, 0x80, 0x10, 0x0a, 0xd5, 0x40, 0x0b, 0x00, 0x00, 0x01, 0x01,
                                          0x08, 0x0a, 0xc8, 0xb7, 0xbd, 0x88, 0x03, 0x59, 0xed, 0xa8};
-TEST_F(NetDecoderCompleteTest, decoder_treat_tcp_test) {
+TEST_F(NetDecoderCompleteTest, handle_tcp_test) {
     auto &decoder = this->getDecoder();
 
     const uint8_t *data = tcpHdr.data();
@@ -515,7 +513,7 @@ TEST_F(NetDecoderCompleteTest, decoder_treat_tcp_test) {
  */
 constexpr std::array<uint8_t, 98> gtpHdr{0x30, 0xff, 0x00, 0x51, 0x80, 0xfc, 0xe1, 0x35};
 
-TEST_F(NetDecoderCompleteTest, decoder_treat_gtp_test) {
+TEST_F(NetDecoderCompleteTest, handle_gtp_test) {
     auto &decoder = this->getDecoder();
 
     const uint8_t *data = gtpHdr.data();
@@ -550,7 +548,7 @@ constexpr std::array<uint8_t, 28> sctpHdr{0x40, 0x00, 0x0b, 0x80, 0x00, 0x01, 0x
                                           0x18, 0x82, 0x00, 0x03, 0x00, 0x5b, 0x28, 0x02, 0x43, 0x45,
                                           0x00, 0x00, 0xa0, 0xbd, 0x00, 0x00, 0x00, 0x07};
 
-TEST_F(NetDecoderCompleteTest, decoder_treat_sctp_test) {
+TEST_F(NetDecoderCompleteTest, handle_sctp_test) {
     auto &decoder = this->getDecoder();
 
     const uint8_t *data = sctpHdr.data();
