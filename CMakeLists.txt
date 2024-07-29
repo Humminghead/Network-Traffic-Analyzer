@@ -6,6 +6,7 @@ project(NetWorkAnalyzer VERSION 0.0.0 LANGUAGES CXX)
 ###############################################################################
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/components/handlers/pcap/cmake/FindPCAP.cmake")
 
 ###############################################################################
 #                            Global variables
@@ -18,12 +19,15 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 ###############################################################################
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/components/netdecoder)
+add_subdirectory(${CMAKE_SOURCE_DIR}/components/handlers/pcap)
+
 
 ###############################################################################
 #                             Applications
 ###############################################################################
 
-# add_subdirectory(src/sniffer)
+add_subdirectory(analysers/demo)
+
 
 ###############################################################################
 #                              Unit test

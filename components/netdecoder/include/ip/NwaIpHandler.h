@@ -10,12 +10,13 @@ namespace Nwa::Network {
 struct Ip4 {};
 struct Ip6 {};
 
-class IpHandlerBase {
+template<class HandlerResult>
+class HandlerBase {
   public:
-    virtual ~IpHandlerBase() = default;
+    virtual ~HandlerBase() = default;
 
-    virtual std::pair<bool, std::unique_ptr<IpHandlerResult>> Handle(const uint8_t *, size_t) const = 0;
-    virtual const IpVersion GetHandlerType() const = 0;
+    virtual std::pair<bool, std::unique_ptr<HandlerResult>> Handle(const uint8_t *, size_t) const = 0;
+    // virtual const IpVersion GetHandlerType() const = 0;
 };
 
 template <typename Ip> class IpHandler;

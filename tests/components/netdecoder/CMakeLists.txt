@@ -23,8 +23,8 @@ add_executable(${TARGET_NAME} ip/ip4handler_test.cpp)
 # GenerateXml(${TARGET_NAME})
 
 #IP6
-# set (TARGET_NAME netdecoder_ip6parser_test)
-# add_executable(${TARGET_NAME} ip/ip6parser_test.cpp ip/samples_ip6_packets.h)
+set (TARGET_NAME netdecoder_ip6parser_test)
+add_executable(${TARGET_NAME} ip/ip6parser_test.cpp ip/samples_ip6_packets.h)
 # GenerateXml(${TARGET_NAME})
 
 #IP assembly
