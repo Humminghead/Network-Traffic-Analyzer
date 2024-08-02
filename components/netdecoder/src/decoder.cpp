@@ -11,10 +11,20 @@
 #include "sctp/sctp.h"
 #include "shift.h"
 
+#include "ip/NwaIpHandler.h"
+
 /*type + code + checksum + id + seq + timestamp*/
 constexpr size_t IcmpShift = sizeof(struct icmphdr) + sizeof(uint64_t);
 
 namespace Nwa::Network {
+
+struct NetDecoder::Impl {
+    IpHandler<Ip4> m_Ip4h;
+    IpHandler<Ip6> m_Ip6h;
+};
+
+NetDecoder::NetDecoder() : NetDecoderBase(), m_Impl{std::make_unique<Impl>()} {}
+
 bool NetDecoder::HandleEth(const uint8_t *&d, size_t &sz, PacketBase &packet) noexcept {
     if (!DecodeEth(d, sz, packet.ethHeader))
         return false;

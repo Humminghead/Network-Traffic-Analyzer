@@ -18,7 +18,7 @@ namespace Nwa::Network {
 
 // https://www.tcpdump.org/manpages/pcap_open_live.3pcap.html
 static constexpr size_t DefaultSnaplen{128 * 1024 * 1024};
-static constexpr std::string_view FileExtensionRegex("(\\.[pcaPCA]{3,4})");
+static constexpr std::string_view FileExtensionRegex("(\\.[pcangPCANG]{4,6})");
 
 struct HandlerPcap::Impl {
     pcap_t *m_PcapFdPtr{nullptr};

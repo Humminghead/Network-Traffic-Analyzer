@@ -1,4 +1,3 @@
-#include "packetbase.h"
 #include <GetOptPP/ConsoleKeyOption.h>
 #include <GetOptPP/ConsoleOptionsHandler.h>
 #include <HandlerPcap.h>
@@ -6,7 +5,6 @@
 #include <filesystem>
 #include <fstream>
 #include <ip/NwaIp6Handler.h>
-#include <mutex>
 #include <pcap/pcap.h>
 #include <string.h> //strlen
 #include <thread>
@@ -119,16 +117,10 @@ int main(int argc, char **argv) {
         handler->SetCallback(
             [/*ip = std::move(Network::IpHandler<Network::Ip6>{})*/](const timeval t, const uint8_t *d, const size_t sz) {
                 auto ip = Network::IpHandler<Network::Ip6>{};
-                auto ipph = Network::Ip6PayloadHandler();
                 auto nd = Network::NetDecoder{};
-                size_t tsz= sz;
-                auto ndres = nd.FullProcessing(0,d,tsz);
-                // auto ip1 = ip;
+
                 auto [ok,iph] = ip.Handle(d + 14, sz - 14);
 
-                if (iph->GetPayloadProtocolVirt() == 44) {
-                    auto hl = ipph.Handle(iph->GetPayloadDataVirt(),iph->GetPayloadLenghtVirt());
-                }
                 return false;
             });
         auto worker = std::jthread([handler](std::stop_token st) {

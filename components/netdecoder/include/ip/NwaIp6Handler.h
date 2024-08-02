@@ -1,86 +1,87 @@
 #pragma once
 
 #include "ip/NwaIpHandler.h"
-#include <netinet/ip6.h>
 #include <memory>
+#include <netinet/ip6.h>
 
 namespace Nwa::Network {
-class Ip6PayloadHandler : public HandlerBase<IpHandlerResult> {
-  public:
-    std::pair<bool, std::unique_ptr<IpHandlerResult>> Handle(const uint8_t *data, size_t len) const override {
-        size_t parsed_bytes = 0;
-        uint8_t next_hdr = 0;
+bool CheckData(const Ip6PrivateFields &f) noexcept {
+    if (!f.m_NextData)
+        return false;
 
-        // Hop-by-Hop is restricted to appear immediately after an IPv6 header only
-        // https://www.iana.org/assignments/ipv6-parameters/ipv6-parameters.xhtml
-        // IPv6 Extension Header Types
-        for (uint32_t hl = 0; len >= sizeof(ip6_ext); parsed_bytes += hl, len -= hl) {
-            const ip6_ext *ex_hdr = reinterpret_cast<const ip6_ext *>(data + parsed_bytes);
+    if (f.m_NextDataSize < sizeof(ip6_ext))
+        return false;
 
-            hl = (ex_hdr->ip6e_len + 1) * 8;
-            switch (next_hdr) {
-                case IPPROTO_HOPOPTS:
-                case IPPROTO_DSTOPTS:
-                case IPPROTO_ROUTING:
-                case IPPROTO_MH:
-                case 139 /*Host Identity Protocol*/:
-                    if (len < hl)
-                        return {false, nullptr};
-                    break;
-                case IPPROTO_FRAGMENT: {                    
-                    auto frag_hdr = data + parsed_bytes;
-                    hl = sizeof(ip6_frag);
-                    if (len < hl)
-                        return {false, nullptr};
-                    const ip6_frag *fr_hdr =
-                        reinterpret_cast<const ip6_frag *>(data + parsed_bytes); //Указатель на заголовок фрагмента
-                    auto fragment_id = ntohl(fr_hdr->ip6f_ident);
-                    auto fragment_offset = ntohs(fr_hdr->ip6f_offlg & IP6F_OFF_MASK);
-                    auto fragment_more = (fr_hdr->ip6f_offlg & IP6F_MORE_FRAG) ? 1 : 0;
-                } break;
-                case IPPROTO_AH: { /*51 Authentication Header*/
-                    hl = (ex_hdr->ip6e_len + 2) * 4;
-                    if (len < hl)
-                        return {false, nullptr};
-                    auto hdr_len = parsed_bytes + hl;
-                    if (len == hl || next_hdr == IPPROTO_NONE) { /*AH may be applied alone*/
-                        auto payload = data + hdr_len;
-                        auto payload_len = hl;
-                        return {true, nullptr};
-                    }
-                } break;
-                    // RFC 8200 #4.5: Encapsulating Security Payload не относится к заголовкам расширения
-                    // (ipv6-ext-headers) и должен обрабатываться как Upper-Layer header (payload); Здесь его место в
-                    // default.
-                    //            case IPPROTO_ESP: /*50 Encapsulating Security Payload*/
-                    //                //Пока оставлю так, но надо esp разбирать. теоретически за ним еще могут быть
-                    //                //заголовки. Размер esp зависит от метода шифрования
-                    // case 140:  // Shim6 Protocol - неизвестно что это ???
-                case IPPROTO_NONE: {
-                    auto payload_proto = next_hdr;
-                    auto hdr_len = parsed_bytes + hl;
-                    auto payload = nullptr;
-                    auto payload_len = 0;
-                    return {true, nullptr};
-                }
-                default: // Upper-Layer protocol
-                    return {true, nullptr};
-            }
-            next_hdr = ex_hdr->ip6e_nxt;
-            auto payload_proto = next_hdr;
-            auto hdr_len = parsed_bytes + hl;
-            auto payload_len = len - hl;
-            auto payload = payload_len ? data + hdr_len : nullptr;
-        }
-        return {true, nullptr};
+    return true;
+}
+
+void ShiftPayloadIpv6(Ip6PrivateFields &f, const size_t shift) noexcept {
+    f.m_NextDataSize -= shift;
+    f.m_NextDataSize == 0 ? f.m_NextData = nullptr : f.m_NextData += shift;
+}
+
+Result<HandlerResult> HandleExtensionsIp6(Ip6PrivateFields &f) {
+    if (IPPROTO_NONE == f.m_NextProtocol)
+        return {true, std::make_unique<Ip6HandlerResult>(std::move(f))};
+
+    if (bool isValid = CheckData(f); !isValid)
+        return {false, std::make_unique<Ip6HandlerResult>(std::move(f))};
+
+    // https://datatracker.ietf.org/doc/html/rfc2460#page-7
+    if (const auto &next = f.m_NextProtocol; IPPROTO_HOPOPTS == next) {
+        const auto *ext = reinterpret_cast<const ip6_hbh *>(f.m_NextData);
+        const auto tLen = ext->ip6h_len == 0 ? 8 : (ext->ip6h_len * 8) + 8;
+        f.m_NextProtocol = ext->ip6h_nxt;
+        ShiftPayloadIpv6(f, tLen);
+        return HandleExtensionsIp6(f);
+    } else if (IPPROTO_ROUTING == next) {
+        const auto *ext = reinterpret_cast<const ip6_rthdr *>(f.m_NextData);
+
+        f.m_NextProtocol = ext->ip6r_nxt;
+        auto tLen = (ext->ip6r_len * 8) // length in units of 8 octets
+                    + sizeof(ip6_rthdr) // first 4 fields
+                    + 4;                // first segment, flags, reserved
+        ShiftPayloadIpv6(f, tLen);
+
+        return HandleExtensionsIp6(f);
+    } else if (IPPROTO_FRAGMENT == next) {
+        if (f.m_NextDataSize < sizeof(ip6_frag))
+            return {false, std::make_unique<Ip6HandlerResult>(std::move(f))};
+
+        const auto *header = reinterpret_cast<const ip6_frag *>(f.m_NextData);
+
+        f.m_NextProtocol = header->ip6f_nxt;
+
+        ShiftPayloadIpv6(f, sizeof(ip6_frag));
+
+        f.m_fragmentId = ntohl(header->ip6f_ident);
+        f.m_fragmentOffset = ntohs(header->ip6f_offlg & IP6F_OFF_MASK);
+        f.m_fragmentMoreFlag = (header->ip6f_offlg & IP6F_MORE_FRAG) ? true : false;
+
+        return HandleExtensionsIp6(f);
+    } else if (IPPROTO_DSTOPTS == next) {
+        const auto *ext = reinterpret_cast<const ip6_dest *>(f.m_NextData);
+
+        const auto tLen = ext->ip6d_len == 0 ? 8 : (ext->ip6d_len * 8) + 8;
+        f.m_NextProtocol = ext->ip6d_nxt;
+        ShiftPayloadIpv6(f, tLen);
+
+        return HandleExtensionsIp6(f);
     }
-};
+    ///\todo Maybe it doesnt necessary to do
+    /// Authentication
+    /// Encapsulating Security Payload
 
-template <>
-class IpHandler<Ip6> : public HandlerBase<IpHandlerResult> /*, public ChainHandlerBase<Ip6PayloadHandler>*/ {
+    return {true, std::make_unique<Ip6HandlerResult>(std::move(f))};
+}
+
+template <> class IpHandler<Ip6> : HandlerBase<HandlerResult> {
   public:
-    std::pair<bool, std::unique_ptr<IpHandlerResult>> Handle(const uint8_t *d, size_t sz) const override {
-        if (!d || sz < sizeof(ip6_hdr))
+    Result<HandlerResult> Handle(const uint8_t *d, size_t sz) const override {
+        if (d == nullptr)
+            return {false, nullptr};
+
+        if (sz < sizeof(ip6_hdr))
             return {false, nullptr};
 
         if (const auto version = d[0] >> 4; version != static_cast<decltype(version)>(IpVersion::Ip6))
@@ -96,17 +97,16 @@ class IpHandler<Ip6> : public HandlerBase<IpHandlerResult> /*, public ChainHandl
 
         f.m_totalLen = sz;
 
-        f.m_payloadProtocol = header->ip6_nxt;
+        f.m_NextProtocol = header->ip6_nxt;
 
-        if (f.m_payloadLen = ntohs(header->ip6_plen); f.m_payloadLen == 0)
+        f.m_NextDataSize = ntohs(header->ip6_plen);
+
+        if (f.m_NextDataSize > f.m_totalLen)
             return {false, std::make_unique<Ip6HandlerResult>(std::move(f))};
 
-        if (f.m_payloadLen > f.m_totalLen)
-            return {false, nullptr};
+        f.m_NextData = f.m_NextDataSize > 0 ? d + sizeof(struct ip6_hdr) : nullptr;
 
-        f.m_payloadDataPtr = f.m_payloadLen > 0 ? d + sizeof(struct ip6_hdr) : nullptr;
-
-        return {true, std::make_unique<Ip6HandlerResult>(std::move(f))};
+        return HandleExtensionsIp6(f);
     }
 };
 

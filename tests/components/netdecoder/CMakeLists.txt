@@ -14,17 +14,17 @@ link_libraries(
 
 #Full
 set (TARGET_NAME netdecoder_complete_test)
-add_executable(${TARGET_NAME} netdecoder_complete_test.cpp)
+add_executable(${TARGET_NAME} NwaDecoderFullTest.cpp)
 # GenerateXml(${TARGET_NAME})
 
 #IP4
 set (TARGET_NAME netdecoder_ip4handler_test)
-add_executable(${TARGET_NAME} ip/ip4handler_test.cpp)
+add_executable(${TARGET_NAME} ip/NwaIp4HandlerTest.cpp)
 # GenerateXml(${TARGET_NAME})
 
 #IP6
 set (TARGET_NAME netdecoder_ip6parser_test)
-add_executable(${TARGET_NAME} ip/ip6parser_test.cpp ip/samples_ip6_packets.h)
+add_executable(${TARGET_NAME} ip/NwaIp6HandlerTest.cpp)
 # GenerateXml(${TARGET_NAME})
 
 #IP assembly

@@ -2,13 +2,16 @@
 
 #include "decoderbase.h"
 
+#include <functional>
+#include <memory>
+
 namespace Nwa::Network {
 
 class NetDecoder : protected NetDecoderBase {
   public:
     using Result = std::tuple<bool, PacketBase>;
 
-    NetDecoder() : NetDecoderBase() {}
+    NetDecoder();
     virtual ~NetDecoder() = default;
 
     virtual bool HandleEth(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
@@ -34,5 +37,9 @@ class NetDecoder : protected NetDecoderBase {
     virtual Result HandleGtp(const uint8_t *&d, size_t &size) noexcept;
     virtual Result FullProcessing(const uint16_t type, const uint8_t *&d, size_t &size) noexcept;
     virtual Result ProcessTransportLayers(const uint8_t *&d, size_t &size) noexcept;
+
+  private:
+    struct Impl;
+    std::unique_ptr<Impl, std::function<void(Impl *)>> m_Impl;
 };
 } // namespace Nwa::Network

@@ -10,26 +10,41 @@
 
 namespace Nwa::Network {
 
-struct IpHandlerResult {
-    virtual ~IpHandlerResult() = default;
+struct IpFragment {
+    virtual ~IpFragment() = default;
 
-    virtual const size_t GetPayloadLenghtVirt() const = 0;
-    virtual const uint8_t *GetPayloadDataVirt() const = 0;
-    virtual const uint8_t GetPayloadProtocolVirt() const = 0;
     virtual const uint32_t GetFragmentIdVirt() const = 0;
     virtual const uint16_t GetFragmentOffsetVirt() const = 0;
     virtual const bool GetFragmentMoreFlagVirt() const = 0;
-    virtual const size_t GetHeaderLenVirt() const = 0;
-    virtual const size_t GetHeaderTotalLenVirt() const = 0;
-    virtual const IpVersion GetIpProtocolVersionVirt() const = 0;
     virtual const bool GetIsFragmentedFlagVirt() const = 0;
+};
+
+struct HandlerResultIp4 {
+    virtual ~HandlerResultIp4() = default;
+
     virtual const uint32_t GetSrcAddressIp4Virt() const = 0;
     virtual const uint32_t GetDstAddressIp4Virt() const = 0;
+};
+
+struct HandlerResultIp6 {
+    virtual ~HandlerResultIp6() = default;
+
     virtual const in6_addr GetSrcAddressIp6Virt() const = 0;
     virtual const in6_addr GetDstAddressIp6Virt() const = 0;
 };
 
-struct IpHandlerResultDefaults : public IpHandlerResult {
+struct HandlerResult : HandlerResultIp4, HandlerResultIp6, IpFragment {
+    virtual ~HandlerResult() = default;
+
+    virtual const size_t GetPayloadLenghtVirt() const = 0;
+    virtual const uint8_t *GetPayloadDataVirt() const = 0;
+    virtual const uint8_t GetPayloadProtocolVirt() const = 0;
+    virtual const size_t GetHeaderLenVirt() const = 0;
+    virtual const size_t GetHeaderTotalLenVirt() const = 0;
+    virtual const IpVersion GetIpProtocolVersionVirt() const = 0;
+};
+
+struct IpHandlerResultDefaults : public HandlerResult {
     const uint8_t *GetPayloadData(const uint8_t *) const { return nullptr; }
     const size_t GetPayloadLenght(const uint8_t *) const { return 0; }
     const uint8_t GetPayloadProtocol() const { return 0; };
@@ -77,7 +92,7 @@ template <class Res, class Super = IpHandlerResultDefaults> struct IpVirtualResu
 
 struct Ip4PrivateFields {
     bool m_fragmentMoreFlag{false};
-    IpVersion m_ipProtoVersion{IpVersion::Unknown};
+    IpVersion m_ipProtoVersion{IpVersion::Ip4};
     uint8_t m_payloadProtocol{0};
     uint16_t m_fragmentId{0};
     uint16_t m_fragmentOffset{0};
@@ -105,11 +120,14 @@ struct Ip4HandlerResult : public IpVirtualResult<Ip4HandlerResult>, private Ip4P
 };
 
 struct Ip6PrivateFields {
-    uint8_t m_payloadProtocol{0};
-    const uint8_t *m_payloadDataPtr{nullptr};
     size_t m_totalLen{0};
-    size_t m_payloadLen{0};
+    size_t m_NextDataSize{0};
+    uint32_t m_fragmentId{0};
+    uint16_t m_fragmentOffset{0};
+    uint8_t m_NextProtocol{0};
     IpVersion m_ipProtoVersion{IpVersion::Ip6};
+    bool m_fragmentMoreFlag{false};
+    const uint8_t *m_NextData{nullptr};
     in6_addr m_SourceAddr{};
     in6_addr m_DestAddr{};
 };
@@ -117,14 +135,18 @@ struct Ip6PrivateFields {
 struct Ip6HandlerResult : public IpVirtualResult<Ip6HandlerResult>, private Ip6PrivateFields {
     Ip6HandlerResult(Ip6PrivateFields &&fields) : Ip6PrivateFields{std::move(fields)} {}
 
-    const uint8_t *GetPayloadData() const { return m_payloadDataPtr; }
-    const size_t GetPayloadLenght() const { return m_payloadLen; }
-    const uint8_t GetPayloadProtocol() const { return m_payloadProtocol; }
+    const uint8_t *GetPayloadData() const { return m_NextData; }
+    const size_t GetPayloadLenght() const { return m_NextDataSize; }
+    const uint8_t GetPayloadProtocol() const { return m_NextProtocol; }
     const uint8_t GetHeaderLen() const { return sizeof(struct ip6_hdr); };
     const IpVersion GetIpProtocolVersion() const { return m_ipProtoVersion; }
     const size_t GetHeaderTotalLen() const { return m_totalLen; };
     const in6_addr GetSrcAddressIp6() const { return m_SourceAddr; }
     const in6_addr GetDstAddressIp6() const { return m_DestAddr; }
+    const bool GetIsFragmentedFlag() const { return m_fragmentMoreFlag == true || m_fragmentId != 0; }
+    virtual const uint32_t GetFragmentId() const { return m_fragmentId; }
+    virtual const uint16_t GetFragmentOffset() const { return m_fragmentOffset; }
+    virtual const bool GetFragmentMoreFlag() const { return m_fragmentMoreFlag; }
 };
 } // namespace Nwa::Network
 

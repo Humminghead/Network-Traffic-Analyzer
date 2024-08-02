@@ -3,7 +3,7 @@
 namespace Nwa::Network {
 
 auto IpHandler<Ip4>::HandlePrivate(const uint8_t *d, size_t sz) const
-    -> std::pair<bool, std::unique_ptr<IpHandlerResult>> {
+    -> std::pair<bool, std::unique_ptr<HandlerResult>> {
     if (!d || sz < sizeof(struct iphdr))
         return {false, nullptr};
 
