@@ -18,10 +18,11 @@ namespace Nwa::Network {
 
 // https://www.tcpdump.org/manpages/pcap_open_live.3pcap.html
 static constexpr size_t DefaultSnaplen{128 * 1024 * 1024};
-static constexpr std::string_view FileExtensionRegex("(\\.[pcangPCANG]{4,6})");
+static constexpr std::string_view FileExtensionRegex("(\\.[pcangPCANG]{3,6})");
 
 struct HandlerPcap::Impl {
     pcap_t *m_PcapFdPtr{nullptr};
+    bool m_Opened{false};
     bool m_Stop{false};
     Json::Objects::JsonObjectPcap mConfig;
     // https://www.man7.org/linux/man-pages/man3/pcap_open_live.3pcap.html
@@ -40,21 +41,21 @@ HandlerPcap::HandlerPcap(const Nwa::Json::Objects::JsonObjectPcap &config)
 }
 
 HandlerPcap::~HandlerPcap() noexcept {
-    if (m_Impl->m_PcapFdPtr) {
-        pcap_close(m_Impl->m_PcapFdPtr);
-        m_Impl->m_PcapFdPtr = nullptr;
-    }
+    Close();
 }
 
 void HandlerPcap::Open() {
     this->OpenPcap();
 }
 
-void HandlerPcap::Stop() {
+void HandlerPcap::Close() {
     if (!m_Impl->m_Stop) {
-        pcap_breakloop(m_Impl->m_PcapFdPtr);
         m_Impl->m_Stop = true;
+        pcap_breakloop(m_Impl->m_PcapFdPtr);
+        pcap_close(m_Impl->m_PcapFdPtr);
+        m_Impl->m_PcapFdPtr = nullptr;
     }
+    m_Impl->m_Opened = false;
 }
 
 void HandlerPcap::SetCallback(std::function<CallBackFunctionType> &&f) {
@@ -67,33 +68,46 @@ auto HandlerPcap::GetCallback() -> std::function<CallBackFunctionType> {
 
 void HandlerPcap::Loop() {
     while (!m_Impl->m_Stop) {
-        if (auto ret = pcap_dispatch(
-                m_Impl->m_PcapFdPtr,
-                -1,
-                [](u_char *user, const pcap_pkthdr *pkth, const uint8_t *data) {
-                    auto sniffer = reinterpret_cast<HandlerPcap *>(user);
-
-                    if (auto &cb = sniffer->m_Impl->m_Callback; cb)
-                        cb(
-                            timeval{
-                                pkth->ts.tv_sec,                //
-                                pkth->ts.tv_usec},              //
-                            data,                               //
-                            static_cast<size_t>(pkth->caplen)); //
-
-                    struct pcap_stat ps {};
-                    pcap_stats(sniffer->m_Impl->m_PcapFdPtr, &ps);
-                },
-                reinterpret_cast<u_char *>(this));
-            ret == 0) {
+        if (!this->SingleShot())
             break;
-        } else if (ret == -1) {
-            throw std::runtime_error("Pcap error: " + std::string{pcap_geterr(m_Impl->m_PcapFdPtr)});
-        }
     }
 }
 
+bool HandlerPcap::SingleShot() {    
+    if (auto ret = pcap_dispatch(
+            m_Impl->m_PcapFdPtr,
+            -1,
+            [](u_char *user, const pcap_pkthdr *pkth, const uint8_t *data) {
+                auto sniffer = reinterpret_cast<HandlerPcap *>(user);
+
+                if (auto &cb = sniffer->m_Impl->m_Callback; cb)
+                    cb(
+                        timeval{
+                            pkth->ts.tv_sec,                //
+                            pkth->ts.tv_usec},              //
+                        data,                               //
+                        static_cast<size_t>(pkth->caplen)); //
+
+                struct pcap_stat ps {};
+                pcap_stats(sniffer->m_Impl->m_PcapFdPtr, &ps);
+            },
+            reinterpret_cast<u_char *>(this));
+        ret == 0) {
+        if (m_Impl->m_BreakOnEmtyDispatchFlag) {
+            m_Impl->m_Stop = true;
+            return false;
+        }
+    } else if (ret == -1) {
+        m_Impl->m_Stop = true;
+        throw std::runtime_error("Pcap error: " + std::string{pcap_geterr(m_Impl->m_PcapFdPtr)});
+    }    
+    return true;
+}
+
 void HandlerPcap::OpenPcap() {
+    if (m_Impl->m_Opened)
+        return;
+
     if (const auto &src = m_Impl->mConfig.m_Device; src.empty()) {
         throw std::runtime_error("Empty source!");
     }
@@ -131,5 +145,7 @@ void HandlerPcap::OpenPcap() {
         }
         pcap_freecode(&m_Impl->m_PcapBpfProgram);
     }
+
+    m_Impl->m_Opened = true;
 }
 } // namespace Nwa::Network

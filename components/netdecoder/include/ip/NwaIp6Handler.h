@@ -5,7 +5,7 @@
 #include <netinet/ip6.h>
 
 namespace Nwa::Network {
-bool CheckData(const Ip6PrivateFields &f) noexcept {
+static bool CheckData(const Ip6PrivateFields &f) noexcept {
     if (!f.m_NextData)
         return false;
 
@@ -15,12 +15,12 @@ bool CheckData(const Ip6PrivateFields &f) noexcept {
     return true;
 }
 
-void ShiftPayloadIpv6(Ip6PrivateFields &f, const size_t shift) noexcept {
+static void ShiftPayloadIpv6(Ip6PrivateFields &f, const size_t shift) noexcept {
     f.m_NextDataSize -= shift;
     f.m_NextDataSize == 0 ? f.m_NextData = nullptr : f.m_NextData += shift;
 }
 
-Result<HandlerResult> HandleExtensionsIp6(Ip6PrivateFields &f) {
+static Result<HandlerResult> HandleExtensionsIp6(Ip6PrivateFields &f) {
     if (IPPROTO_NONE == f.m_NextProtocol)
         return {true, std::make_unique<Ip6HandlerResult>(std::move(f))};
 
@@ -75,7 +75,7 @@ Result<HandlerResult> HandleExtensionsIp6(Ip6PrivateFields &f) {
     return {true, std::make_unique<Ip6HandlerResult>(std::move(f))};
 }
 
-template <> class IpHandler<Ip6> : HandlerBase<HandlerResult> {
+template <> class IpHandler<Ip6> : public HandlerBase<HandlerResult> {
   public:
     Result<HandlerResult> Handle(const uint8_t *d, size_t sz) const override {
         if (d == nullptr)

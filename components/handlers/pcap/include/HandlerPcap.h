@@ -22,15 +22,20 @@ class HandlerPcap : public HandlerAbstract {
     void Open() override;
 
     /*!
-     * \brief Stop
+     * \brief Close
      */
-    void Stop() override;
+    void Close() override;
 
     /*!
      * \brief Loop
      * \param stop
      */
     void Loop() override;
+
+    /*!
+     * \brief SingleShot
+     */
+    bool SingleShot() override;
 
     /*!
      * \brief SetCallback
