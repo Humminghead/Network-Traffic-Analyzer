@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.11)
 #------------------------------------------------------------------
 #
 #------------------------------------------------------------------
-include (FetchContent)
+# include (FetchContent)
 
 # FetchContent_Declare(
 #   NlohmannJson
@@ -11,11 +11,11 @@ include (FetchContent)
 #   GIT_TAG v3.11.3
 # )
 
-FetchContent_Declare(
-  GetOpt
-  GIT_REPOSITORY https://github.com/Humminghead/GetoptPlusPlus.git
-  GIT_TAG dd2837
-)
+# FetchContent_Declare(
+#   GetOpt
+#   GIT_REPOSITORY https://github.com/Humminghead/GetoptPlusPlus.git
+#   GIT_TAG dd2837
+# )
 
 # FetchContent_Declare(
 #   PcapPP
@@ -24,10 +24,10 @@ FetchContent_Declare(
 # )
 
 # FetchContent_MakeAvailable(NlohmannJson)
-FetchContent_MakeAvailable(GetOpt)
+# FetchContent_MakeAvailable(GetOpt)
 # FetchContent_MakeAvailable(PcapPP)
 
-find_package(GetOptPP)
+# find_package(GetOptPP)
 
 #------------------------------------------------------------------
 #

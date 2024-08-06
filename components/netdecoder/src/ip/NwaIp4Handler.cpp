@@ -1,9 +1,8 @@
-#pragma once
+#include "ip/NwaIp4Handler.h"
 
 namespace Nwa::Network {
 
-auto IpHandler<Ip4>::HandlePrivate(const uint8_t *d, size_t sz) const
-    -> std::pair<bool, std::unique_ptr<HandlerResult>> {
+auto IpHandler<Ip4>::HandlePrivate(const uint8_t *d, size_t sz) const -> Result<HandlerResult>{
     if (!d || sz < sizeof(struct iphdr))
         return {false, nullptr};
 
@@ -40,5 +39,6 @@ auto IpHandler<Ip4>::HandlePrivate(const uint8_t *d, size_t sz) const
 
     return {true, std::make_unique<Ip4HandlerResult>(std::move(r))};
 }
+
 
 } // namespace Nwa::Network
