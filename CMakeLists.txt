@@ -48,6 +48,7 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/components/handlers/pcap)
 #                             Applications
 ###############################################################################
 add_subdirectory(analysers/demo)
+add_subdirectory(applications/capture)
 
 ###############################################################################
 #                              Unit test
