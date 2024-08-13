@@ -20,7 +20,7 @@ class Ip6ParserTest : public ::testing::Test {
 };
 
 TEST_F(Ip6ParserTest, parseIp6IcmpPacket0) {
-    using namespace Nwa::Network;
+    using namespace Nta::Network;
     IpHandler<Ip6> handler;
 
     uint8_t *data = (uint8_t *)ip6_icmp_pkt.data();
@@ -44,7 +44,7 @@ TEST_F(Ip6ParserTest, parseIp6FirstFrPacket) {
     uint8_t *data = (uint8_t *)ip6_frag1_esp_pkt.data();
     size_t len = ip6_frag1_esp_pkt.size();
 
-    using namespace Nwa::Network;
+    using namespace Nta::Network;
     IpHandler<Ip6> handler;
     auto [ok, res] = handler.Handle(data, len);
 
@@ -64,7 +64,7 @@ TEST_F(Ip6ParserTest, parseIp6LastFrPacket) {
     uint8_t *data = (uint8_t *)ip6_frag2_esp_pkt.data();
     size_t len = ip6_frag2_esp_pkt.size();
 
-    using namespace Nwa::Network;
+    using namespace Nta::Network;
     IpHandler<Ip6> handler;
     auto [ok, res] = handler.Handle(data, len);
 
@@ -84,7 +84,7 @@ TEST_F(Ip6ParserTest, parseIp6NoExtHdrToredoPacket) {
     uint8_t *data = (uint8_t *)ip6_no_next_hdr_pkt.data();
     size_t len = ip6_no_next_hdr_pkt.size();
 
-    using namespace Nwa::Network;
+    using namespace Nta::Network;
     IpHandler<Ip6> handler;
     auto [ok, res] = handler.Handle(data, len);
 
@@ -103,7 +103,7 @@ TEST_F(Ip6ParserTest, parseIp6HopAndNoExtHdrPacket) {
     uint8_t *data = (uint8_t *)ip6_hop_none_pkt.data();
     size_t len = ip6_hop_none_pkt.size();
 
-    using namespace Nwa::Network;
+    using namespace Nta::Network;
     IpHandler<Ip6> handler;
     auto [ok, res] = handler.Handle(data, len);
 
@@ -122,7 +122,7 @@ TEST_F(Ip6ParserTest, parseIp6NullData) {
     uint8_t *data = nullptr;
     size_t len = std::numeric_limits<size_t>::max();
 
-    using namespace Nwa::Network;
+    using namespace Nta::Network;
     IpHandler<Ip6> handler;
     auto [ok, res] = handler.Handle(data, len);
 

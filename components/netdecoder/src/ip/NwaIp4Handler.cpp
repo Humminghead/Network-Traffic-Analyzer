@@ -1,6 +1,6 @@
 #include "ip/NwaIp4Handler.h"
 
-namespace Nwa::Network {
+namespace Nta::Network {
 
 auto IpHandler<Ip4>::HandlePrivate(const uint8_t *d, size_t sz) const -> Result<HandlerResult>{
     if (!d || sz < sizeof(struct iphdr))
@@ -41,4 +41,4 @@ auto IpHandler<Ip4>::HandlePrivate(const uint8_t *d, size_t sz) const -> Result<
 }
 
 
-} // namespace Nwa::Network
+} // namespace Nta::Network

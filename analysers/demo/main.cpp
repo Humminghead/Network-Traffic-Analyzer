@@ -73,7 +73,7 @@ class DecodeTask : public Poco::Runnable {
     size_t m_Size{0};
 };
 
-using namespace Nwa;
+using namespace Nta;
 
 int main(int argc, char **argv) {
     bool helpInvoked{false};

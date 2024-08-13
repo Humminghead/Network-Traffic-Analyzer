@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace Nwa::Network
+namespace Nta::Network
 {
 struct EthStat {
     virtual ~EthStat() = default;

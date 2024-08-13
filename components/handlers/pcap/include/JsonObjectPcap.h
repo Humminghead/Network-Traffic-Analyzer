@@ -3,14 +3,14 @@
 #include <nlohmann/json.hpp>
 #include <string>
 
-namespace Nwa::Utility::Json {
+namespace Nta::Utility::Json {
 template <typename ValueType>
 static inline void tryGetValue(const nlohmann::json &j, const std::string &name, ValueType &value) noexcept {
     value = j.contains(name) ? j.at(name).get_to(value) : value;
 }
-} // namespace Nwa::Utility::Json
+} // namespace Nta::Utility::Json
 
-namespace Nwa::Json::Objects {
+namespace Nta::Json::Objects {
 struct JsonObjectPcap {
     std::string m_Device{};
     std::string m_BpfFilter{};
@@ -43,4 +43,4 @@ struct JsonObjectPcap {
     Utility::Json::tryGetValue(j, "filter", p.m_BpfFilter);
     Utility::Json::tryGetValue(j, "promiscuous", p.m_PromiscuousMode);
 }
-} // namespace Nwa::Json::Objects
+} // namespace Nta::Json::Objects

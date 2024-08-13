@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <string.h>
 
-namespace Nwa::Network {
+namespace Nta::Network {
 
 struct PppoeHeader;
 
@@ -50,4 +50,4 @@ class PPPoELayer : public Layer {
     PppoeHeader *getPPPoEHeader() const;
     PPPoECode getHeaderCode() const;
 };
-} // namespace Nwa::Network
+} // namespace Nta::Network

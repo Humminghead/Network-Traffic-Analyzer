@@ -11,7 +11,7 @@ struct ip6_frag;
 struct udphdr;
 struct tcphdr;
 
-namespace Nwa::Network {
+namespace Nta::Network {
 
 struct SctpHdr;
 struct Gtp1Hdr;
@@ -51,4 +51,4 @@ class NetDecoderBase {
         ~ptr_impl();
     } d;
 };
-} // namespace Nwa::Network
+} // namespace Nta::Network

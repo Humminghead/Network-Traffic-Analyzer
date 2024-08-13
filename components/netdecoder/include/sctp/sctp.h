@@ -2,7 +2,7 @@
 
 #include <linux/types.h>
 
-namespace Nwa::Network {
+namespace Nta::Network {
 
 enum class ChunkType : __u8 {
     DATA = 0,
@@ -42,4 +42,4 @@ struct SctpChunkHdr {
     __u8 flags;
     __be16 length;
 } __attribute__((packed));
-} // namespace Nwa::Nwa::Network
+} // namespace Nta::Nta::Network

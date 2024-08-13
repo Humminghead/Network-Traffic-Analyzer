@@ -14,7 +14,7 @@
 #include <pcap/vlan.h>
 #include <regex>
 
-namespace Nwa::Network {
+namespace Nta::Network {
 
 // https://www.tcpdump.org/manpages/pcap_open_live.3pcap.html
 static constexpr size_t DefaultSnaplen{128 * 1024 * 1024};
@@ -35,7 +35,7 @@ struct HandlerPcap::Impl {
     // PcapHandler::Source mSource{PcapHandler::Source::Unset};
 };
 
-HandlerPcap::HandlerPcap(const Nwa::Json::Objects::JsonObjectPcap &config)
+HandlerPcap::HandlerPcap(const Nta::Json::Objects::JsonObjectPcap &config)
     : m_Impl{new HandlerPcap::Impl(), [](auto p) { delete p; }} {
     m_Impl->mConfig = config;
 }
@@ -148,4 +148,4 @@ void HandlerPcap::OpenPcap() {
 
     m_Impl->m_Opened = true;
 }
-} // namespace Nwa::Network
+} // namespace Nta::Network

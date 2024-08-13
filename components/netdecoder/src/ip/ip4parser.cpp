@@ -3,7 +3,7 @@
 #include "ip/ip4parser.h"
 #include "ip/ipparseresult.h"
 
-namespace Nwa::Network
+namespace Nta::Network
 {
 bool HandleIp4(const uint8_t* data, size_t len, IpParseResult& res)
 {

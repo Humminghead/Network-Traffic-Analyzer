@@ -1,7 +1,7 @@
 #include "PPPoELayer.h"
 #include "PppoeHeader.h"
 
-namespace Nwa::Network {
+namespace Nta::Network {
 
 PPPoELayer::PPPoELayer(const uint8_t *data, size_t size, Layer *prevLayer, Layer *nextLayer)
     : Layer(data, size, prevLayer, nextLayer) {
@@ -23,4 +23,4 @@ size_t PPPoELayer::getLayerPayloadSize() const {
 PPPoECode PPPoELayer::getHeaderCode() const {
     return static_cast<PPPoECode>(getPPPoEHeader()->code);
 }
-} // namespace Nwa::Network
+} // namespace Nta::Network

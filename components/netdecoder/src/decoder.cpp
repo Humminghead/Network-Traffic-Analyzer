@@ -16,7 +16,7 @@
 /*type + code + checksum + id + seq + timestamp*/
 constexpr size_t IcmpShift = sizeof(struct icmphdr) + sizeof(uint64_t);
 
-namespace Nwa::Network {
+namespace Nta::Network {
 
 struct NetDecoder::Impl {
     IpHandler<Ip4> m_Ip4h;
@@ -377,4 +377,4 @@ NetDecoder::Result NetDecoder::ProcessTransportLayers(const uint8_t *&d, size_t 
     return std::make_tuple(ok, packet);
 }
 
-} // namespace Nwa::Network
+} // namespace Nta::Network

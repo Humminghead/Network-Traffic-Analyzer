@@ -8,7 +8,7 @@
 #include "gtp/Gtp1Defs.h"
 #include "gtp/GtpHeader.h"
 
-namespace Nwa::Network {
+namespace Nta::Network {
 
 void PacketBase::Reset() {
     vlanCounter = 0;
@@ -89,4 +89,4 @@ void PacketBase::ResetLowerLevels() {
     l7_size = {0};
 }
 
-} // namespace Nwa::Network
+} // namespace Nta::Network

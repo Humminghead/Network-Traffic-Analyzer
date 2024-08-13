@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdint.h>
 
-namespace Nwa::Network
+namespace Nta::Network
 {
 struct PacketBase;
 struct IpParseResult;

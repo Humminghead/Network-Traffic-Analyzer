@@ -3,7 +3,7 @@
 #include <gtest/internal/gtest-internal.h>
 #include <ip/NwaIpHandler.h>
 
-using namespace Nwa::Network;
+using namespace Nta::Network;
 
 class NetDecoderIp4HandlerTest : public ::testing::Test {
   public:
@@ -17,7 +17,7 @@ class NetDecoderIp4HandlerTest : public ::testing::Test {
 };
 
 TEST_F(NetDecoderIp4HandlerTest, Ip4UdpFrame1Packet) {
-    using namespace Nwa::Network;
+    using namespace Nta::Network;
     IpHandler<Ip4> ip4h;
 
     uint8_t *data = (uint8_t *)Ip4UdpFragment0.data();
@@ -27,7 +27,7 @@ TEST_F(NetDecoderIp4HandlerTest, Ip4UdpFrame1Packet) {
 
     ASSERT_TRUE(ok);
 
-    ASSERT_EQ(Nwa::Network::IpVersion::Ip4, result->GetIpProtocolVersionVirt());
+    ASSERT_EQ(Nta::Network::IpVersion::Ip4, result->GetIpProtocolVersionVirt());
     ASSERT_EQ(20, result->GetHeaderLenVirt());
     ASSERT_EQ(1444, result->GetHeaderTotalLenVirt());
     ASSERT_NE(nullptr, result->GetPayloadDataVirt());
@@ -41,7 +41,7 @@ TEST_F(NetDecoderIp4HandlerTest, Ip4UdpFrame1Packet) {
 }
 
 TEST_F(NetDecoderIp4HandlerTest, Ip4UdpFrame2Packet) {
-    using namespace Nwa::Network;
+    using namespace Nta::Network;
     IpHandler<Ip4> ip4h;
 
     uint8_t *data = (uint8_t *)Ip4UdpFragment1.data();
@@ -64,7 +64,7 @@ TEST_F(NetDecoderIp4HandlerTest, Ip4UdpFrame2Packet) {
 
 TEST_F(NetDecoderIp4HandlerTest, Ip4UdpAssembledPacket)
 {
-    using namespace Nwa::Network;
+    using namespace Nta::Network;
     IpHandler<Ip4> ip4h;
 
     uint8_t* data = (uint8_t*)Ip4UdpAssembledIpHdr.data();
@@ -87,7 +87,7 @@ TEST_F(NetDecoderIp4HandlerTest, Ip4UdpAssembledPacket)
 
 TEST_F(NetDecoderIp4HandlerTest, Ip4NullData)
 {
-    using namespace Nwa::Network;
+    using namespace Nta::Network;
     IpHandler<Ip4> ip4h;
 
     uint8_t* data = nullptr;

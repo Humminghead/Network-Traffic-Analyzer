@@ -5,7 +5,7 @@
 #include "ip/ipparseresult.h"
 #include "packetbase.h"
 
-namespace Nwa::Network
+namespace Nta::Network
 {
 /*RFC8200 4.1.  Extension Header Order
   IPv6 header                           |

@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace Nwa::Network {
+namespace Nta::Network {
 #pragma pack(push, 1)
 struct PppoeHeader {
     uint8_t version : 4, type : 4;
@@ -11,4 +11,4 @@ struct PppoeHeader {
     uint16_t payloadLength; // Length includes PPPoE header */
 };
 #pragma pack(pop)
-} // namespace Nwa::Network
+} // namespace Nta::Network

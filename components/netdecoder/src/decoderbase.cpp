@@ -18,7 +18,7 @@
 #include "sctp/sctp.h"
 #include "shift.h"
 
-namespace Nwa::Network {
+namespace Nta::Network {
 
 struct NetDecoderBase::Impl {
     EthStat ethstat;
@@ -193,4 +193,4 @@ void NetDecoderBase::ResetStat() {
     d->udpstat.reset();
     d->tcpstat.reset();
 }
-} // namespace Nwa::Network
+} // namespace Nta::Network

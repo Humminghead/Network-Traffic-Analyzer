@@ -8,7 +8,7 @@
 #include <string.h>
 #include <utility>
 
-namespace Nwa::Network {
+namespace Nta::Network {
 
 struct IpFragment {
     virtual ~IpFragment() = default;
@@ -148,7 +148,7 @@ struct Ip6HandlerResult : public IpVirtualResult<Ip6HandlerResult>, private Ip6P
     virtual const uint16_t GetFragmentOffset() const { return m_fragmentOffset; }
     virtual const bool GetFragmentMoreFlag() const { return m_fragmentMoreFlag; }
 };
-} // namespace Nwa::Network
+} // namespace Nta::Network
 
 // const uint32_t GetFragmentId() const { return ntohs(m_fragmentId); }
 // const bool GetFragmentMoreFlag() const { return m_fragmentMoreFlag; }

@@ -1,6 +1,6 @@
 #pragma once
 #include <cstdint>
-namespace Nwa::Network
+namespace Nta::Network
 {
 struct IpParseResult {
     uint8_t version = 0;

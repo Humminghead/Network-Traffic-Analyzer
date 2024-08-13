@@ -3,7 +3,7 @@
 #include "ip/NwaIpHandler.h"
 #include <netinet/ip.h>
 
-namespace Nwa::Network {
+namespace Nta::Network {
 
 template <> class IpHandler<Ip4> : public HandlerBase<HandlerResult> {
   public:
@@ -14,6 +14,6 @@ template <> class IpHandler<Ip4> : public HandlerBase<HandlerResult> {
   private:
     auto HandlePrivate(const uint8_t *d, size_t sz) const -> Result<HandlerResult>;
 };
-} // namespace Nwa::Network
+} // namespace Nta::Network
 
 

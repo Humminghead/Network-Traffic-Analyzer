@@ -3,17 +3,17 @@
 #include <HandlerIface.h>
 #include <memory>
 
-namespace Nwa::Json::Objects {
+namespace Nta::Json::Objects {
 struct JsonObjectPcap;
 }
 
-namespace Nwa ::Network {
+namespace Nta::Network {
 
 class HandlerPcap : public HandlerAbstract {
   public:
     // enum class Source { File, Hw, Unset };
 
-    HandlerPcap(const Nwa::Json::Objects::JsonObjectPcap &config);
+    HandlerPcap(const Nta::Json::Objects::JsonObjectPcap &config);
     virtual ~HandlerPcap() noexcept;
 
     /*!
@@ -66,4 +66,4 @@ class HandlerPcap : public HandlerAbstract {
     std::unique_ptr<Impl, void (*)(Impl *)> m_Impl;
 };
 
-} // namespace Nwa::Network
+} // namespace Nta::Network

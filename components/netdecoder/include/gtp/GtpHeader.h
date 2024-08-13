@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-namespace Nwa::Network {
+namespace Nta::Network {
 
 #define GTP_VERSION_0 0
 #define GTP_VERSION_1 1
@@ -58,4 +58,4 @@ struct GtpHeader {
         struct Gtp2Hdr gtpv2_hdr;
     } in;
 } __attribute__((packed));
-} // namespace Nwa::Network
+} // namespace Nta::Network

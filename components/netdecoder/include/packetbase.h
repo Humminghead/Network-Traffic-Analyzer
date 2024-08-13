@@ -17,7 +17,7 @@ static constexpr const size_t MAX_ETH_CNT = 2; //!< Максимальное к�
 static constexpr const size_t MAX_MPLS_CNT = 4; //!< Максимальное количество vlan меток в пакете.
 static constexpr const size_t MAX_VLAN_CNT = 8; //!< Максимальное количество vlan меток в пакете.
 
-namespace Nwa::Network {
+namespace Nta::Network {
 struct GtpHeader;
 struct PppoeHeader;
 struct SctpHdr;
@@ -77,4 +77,4 @@ struct PacketBase {
 
     void ResetLowerLevels();
 };
-} // namespace Nwa::Network
+} // namespace Nta::Network

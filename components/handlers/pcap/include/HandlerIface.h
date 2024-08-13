@@ -3,7 +3,7 @@
 #include <functional>
 #include <stdint.h>
 
-namespace Nwa::Network {
+namespace Nta::Network {
 
 enum class HandlerIfaces { Pcap, Unknown };
 
@@ -19,4 +19,4 @@ struct HandlerAbstract {
     virtual auto GetIfaceType() const -> const HandlerIfaces = 0;
 };
 
-} // namespace Nwa::Network
+} // namespace Nta::Network

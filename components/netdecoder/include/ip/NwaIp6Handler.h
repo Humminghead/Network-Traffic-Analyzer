@@ -4,7 +4,7 @@
 #include <memory>
 #include <netinet/ip6.h>
 
-namespace Nwa::Network {
+namespace Nta::Network {
 static bool CheckData(const Ip6PrivateFields &f) noexcept {
     if (!f.m_NextData)
         return false;
@@ -110,6 +110,6 @@ template <> class IpHandler<Ip6> : public HandlerBase<HandlerResult> {
     }
 };
 
-} // namespace Nwa::Network
+} // namespace Nta::Network
 
 // const IpVersion GetHandlerType() const override { return IpVersion::Ip6; }

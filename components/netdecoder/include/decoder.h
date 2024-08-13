@@ -5,7 +5,7 @@
 #include <functional>
 #include <memory>
 
-namespace Nwa::Network {
+namespace Nta::Network {
 
 class NetDecoder : protected NetDecoderBase {
   public:
@@ -42,4 +42,4 @@ class NetDecoder : protected NetDecoderBase {
     struct Impl;
     std::unique_ptr<Impl, std::function<void(Impl *)>> m_Impl;
 };
-} // namespace Nwa::Network
+} // namespace Nta::Network
