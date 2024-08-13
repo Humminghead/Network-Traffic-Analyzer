@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.11)
 project(nta_capture LANGUAGES C CXX)
 
 add_executable(${PROJECT_NAME} main.cpp)
-target_link_libraries(${PROJECT_NAME} PRIVATE Poco::Util )
+target_link_libraries(${PROJECT_NAME} PRIVATE Poco::Util NtaUtil )
 
 # set_target_properties (${PROJECT_NAME} PROPERTIES
 #     INTERFACE_COMPILE_FEATURES "c_std_99")

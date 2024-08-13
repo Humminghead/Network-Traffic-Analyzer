@@ -43,6 +43,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 ###############################################################################
 add_subdirectory(${CMAKE_SOURCE_DIR}/components/netdecoder)
 add_subdirectory(${CMAKE_SOURCE_DIR}/components/handlers/pcap)
+add_subdirectory(${CMAKE_SOURCE_DIR}/components/Util)
 
 ###############################################################################
 #                             Applications

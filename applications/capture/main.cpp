@@ -4,29 +4,12 @@
 #include <Poco/JSON/Parser.h>
 #include <Poco/JSON/Object.h>
 #include <filesystem>
-#include <fstream>
+
 // #include <nlohmann/json.hpp>
 
+#include "Filesystem.h"
+
 using namespace Poco::Util;
-
-[[maybe_unused]] auto ReadBinaryFile(const std::filesystem::path &path) noexcept {
-    std::ifstream stream(path.c_str(), std::ios::binary);
-
-    std::vector<char> vec;
-
-    if (stream.is_open()) {
-        stream.seekg(0, std::ios::end);
-        auto size = stream.tellg();
-        stream.seekg(0, std::ios::beg);
-
-        vec.resize(size);
-        stream.read((char *)vec.data(), size);
-
-        return vec;
-    }
-
-    return vec;
-}
 
 class SubsustemConfigIface {
   public:
@@ -37,12 +20,14 @@ class ConfigureSubsystem : public Subsystem, public SubsustemConfigIface {
 public:
     const char *name() const override { return "configure"; }
 
-    // ConfigureSubsystem(Poco::DynamicStruct&cfg):Subsystem(){}
     void Configure(const std::filesystem::path & p) override {
-        // if(p.empty()) throw "";
-        // if(p.extension()!= "json") throw "";
+        if (p.empty())
+            throw std::runtime_error("Empty config path!");
 
-        m_Data = ReadBinaryFile(p);
+        if (p.extension() != "json")
+            throw std::runtime_error(std::string{"Unknown config extension: "} + std::string{p.extension()});
+
+        m_Data = Nta::Util::Filesystem::ReadBinaryFile(p);
         // m_Data.push_back(0x0);
 
         // if(data.empty()) throw "";
@@ -60,7 +45,6 @@ public:
         //     std::cout<<el.toString();
         //     // int a = 0;
         // }
-
     }
 
   protected:
