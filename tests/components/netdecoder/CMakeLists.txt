@@ -11,7 +11,7 @@ project(netdecoder_test LANGUAGES CXX)
 find_package(GTest)
 link_libraries(
     GTest::GTest GTest::Main Threads::Threads
-    netdecoder
+    NtaNetDecoder
 )
 
 ###############################################################################

@@ -6,7 +6,7 @@
 #include <pppoe/PppoeHeader.h>
 #include <sctp/sctp.h>
 
-using namespace Nwa::Network;
+using namespace Nta::Network;
 
 NetDecoder decoder;
 
