@@ -1,6 +1,7 @@
 #include "CaptureApp.h"
 #include "Filesystem.h"
 #include "Common/HandlerIface.h"
+#include <iostream>
 
 namespace Nta::Network {
 

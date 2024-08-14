@@ -19,11 +19,11 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/components/handlers/cmake/Fin
 ###############################################################################
 #                               3rdParty
 ###############################################################################
-FetchContent_Declare(
-  GetOpt
-  GIT_REPOSITORY https://github.com/Humminghead/GetoptPlusPlus.git
-  GIT_TAG dd2837
-)
+# FetchContent_Declare(
+  # GetOpt
+  # GIT_REPOSITORY https://github.com/Humminghead/GetoptPlusPlus.git
+  # GIT_TAG dd2837
+# )
 
 FetchContent_Declare(
     Poco
@@ -31,7 +31,9 @@ FetchContent_Declare(
     GIT_TAG main
 )
 
-FetchContent_MakeAvailable(GetOpt Poco)
+FetchContent_MakeAvailable(
+    # GetOpt
+    Poco)
 
 ###############################################################################
 #                            Global variables
