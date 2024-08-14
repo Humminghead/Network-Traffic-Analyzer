@@ -44,7 +44,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(${PROJECT_NAME} main.cpp #[[tcpcb.cpp]])
-target_link_libraries(${PROJECT_NAME} PRIVATE netdecoder GetOptPP handler_pcap pthread Poco::Foundation)
+target_link_libraries(${PROJECT_NAME} PRIVATE netdecoder GetOptPP NtaHandlerPcap pthread Poco::Foundation)
 
 #------------------------------------------------------------------
 #

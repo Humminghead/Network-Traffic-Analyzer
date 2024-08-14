@@ -1,6 +1,6 @@
 #pragma once
 
-#include <HandlerIface.h>
+#include <Common/HandlerIface.h>
 #include <memory>
 
 namespace Nta::Json::Objects {

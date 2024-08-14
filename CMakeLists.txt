@@ -14,7 +14,7 @@ project(NetWorkAnalyzer VERSION 0.0.0 LANGUAGES CXX)
 #                         Cmake additional scripts
 ###############################################################################
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/components/handlers/pcap/cmake/FindPCAP.cmake")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/components/handlers/cmake/FindPCAP.cmake")
 
 ###############################################################################
 #                               3rdParty
@@ -41,14 +41,14 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 ###############################################################################
 #                               Common
 ###############################################################################
-add_subdirectory(${CMAKE_SOURCE_DIR}/components/netdecoder)
-add_subdirectory(${CMAKE_SOURCE_DIR}/components/handlers/pcap)
+add_subdirectory(${CMAKE_SOURCE_DIR}/components/Netdecoder)
+add_subdirectory(${CMAKE_SOURCE_DIR}/components/Handlers)
 add_subdirectory(${CMAKE_SOURCE_DIR}/components/Util)
 
 ###############################################################################
 #                             Applications
 ###############################################################################
-add_subdirectory(analysers/demo)
+# add_subdirectory(analysers/demo)
 add_subdirectory(applications/capture)
 
 ###############################################################################
