@@ -1,3 +1,3 @@
 #include "CaptureApp.h"
 
-POCO_SERVER_MAIN(CaptureApp)
+POCO_SERVER_MAIN(Nta::Network::CaptureApp)

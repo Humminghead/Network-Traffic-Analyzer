@@ -35,7 +35,7 @@ struct HandlerPcap::Impl {
     // PcapHandler::Source mSource{PcapHandler::Source::Unset};
 };
 
-HandlerPcap::HandlerPcap(const Nta::Json::Objects::JsonObjectPcap &config)
+HandlerPcap::HandlerPcap(const Json::Objects::JsonObjectPcap &config)
     : m_Impl{new HandlerPcap::Impl(), [](auto p) { delete p; }} {
     m_Impl->mConfig = config;
 }

@@ -3,6 +3,8 @@
 #include <Poco/Util/Subsystem.h>
 #include <nlohmann/json.hpp>
 
+namespace Nta::Network {
+
 class ConfigureSubsystem : public Poco::Util::Subsystem {
   public:
     const char *name() const override;
@@ -16,3 +18,4 @@ class ConfigureSubsystem : public Poco::Util::Subsystem {
   private:
     nlohmann::json m_JsonCfg{};
 };
+} // namespace Nta::Network

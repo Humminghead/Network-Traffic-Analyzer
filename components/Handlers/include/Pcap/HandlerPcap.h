@@ -13,7 +13,7 @@ class HandlerPcap : public HandlerAbstract {
   public:
     // enum class Source { File, Hw, Unset };
 
-    HandlerPcap(const Nta::Json::Objects::JsonObjectPcap &config);
+    HandlerPcap(const Json::Objects::JsonObjectPcap &config);
     virtual ~HandlerPcap() noexcept;
 
     /*!

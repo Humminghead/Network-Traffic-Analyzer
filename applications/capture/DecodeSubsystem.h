@@ -1,21 +1,21 @@
 #pragma once
 
+#pragma once
+
 #include <Poco/Util/Subsystem.h>
 #include <memory>
 
 namespace Nta::Network {
 struct HandlerAbstract;
 }
-
 namespace Nta::Network {
-class CaptureSubsystem : public Poco::Util::Subsystem {
+class DecodeSubsystem : public Poco::Util::Subsystem {
   public:
-    using HandlerPtr = std::shared_ptr<Nta::Network::HandlerAbstract>;
-
-    CaptureSubsystem();    
+    using HandlerPtr = std::shared_ptr<HandlerAbstract>;
 
     const char *name() const override;
-    HandlerPtr GetHandler();
+
+    DecodeSubsystem();
 
   protected:
     void initialize(Poco::Util::Application &app) override;

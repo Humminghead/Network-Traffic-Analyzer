@@ -1,5 +1,8 @@
 #include "CaptureApp.h"
 #include "Filesystem.h"
+#include "Common/HandlerIface.h"
+
+namespace Nta::Network {
 
 constexpr std::string_view help{R"(Help)"};
 
@@ -11,12 +14,13 @@ int CaptureApp::main(const std::vector<std::string> &args) {
 
     addSubsystem(m_Configure.get());
     addSubsystem(m_Capture.get());
+    addSubsystem(m_Decode.get());
     // addSubsystem(m_Stat.get());
     // addSubsystem(m_Out.get());
 
-    // this->initialize(*this);
+    this->initialize(*this);
 
-    return run();
+    return Run();
 }
 
 void CaptureApp::defineOptions(Poco::Util::OptionSet &options) {
@@ -43,8 +47,7 @@ void CaptureApp::handleOption(const std::string &name, const std::string &value)
     }
 }
 
-void CaptureApp::DisplayHelp()
-{
+void CaptureApp::DisplayHelp() {
     Poco::Util::HelpFormatter helpFormatter(options());
     helpFormatter.setCommand(commandName());
     helpFormatter.setUsage("OPTIONS");
@@ -52,12 +55,21 @@ void CaptureApp::DisplayHelp()
     helpFormatter.format(std::cout);
 }
 
-int CaptureApp::run(){
-return Application::EXIT_OK;
+int CaptureApp::Run() {
+    m_Capture->GetHandler()->Open();
+    m_Capture->GetHandler()->Loop();
+    m_Capture->GetHandler()->Close();
+    return Application::EXIT_OK;
 }
 
 CaptureApp::CaptureApp()
-    : ServerApplication(), m_Configure{std::make_unique<ConfigureSubsystem>()},
-    m_Capture{std::make_unique<CaptureSubsystem>()} {}
+    : ServerApplication(),                                 //
+      m_Configure{std::make_unique<ConfigureSubsystem>()}, //
+      m_Capture{std::make_unique<CaptureSubsystem>()},     //
+      m_Decode{std::make_unique<DecodeSubsystem>()}        //
+{}
 
-auto CaptureApp::GetConfigPath() const noexcept -> std::filesystem::path { return m_ConfigPath; }
+auto CaptureApp::GetConfigPath() const noexcept -> std::filesystem::path {
+    return m_ConfigPath;
+}
+} // namespace Nta::Network

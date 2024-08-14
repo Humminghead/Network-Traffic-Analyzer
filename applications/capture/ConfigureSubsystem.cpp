@@ -3,7 +3,10 @@
 #include "Filesystem.h"
 #include "Misc.h"
 
-const char *ConfigureSubsystem::name() const { return "configure"; }
+namespace Nta::Network {
+const char *ConfigureSubsystem::name() const {
+    return "configure";
+}
 
 void ConfigureSubsystem::initialize(Poco::Util::Application &app) {
     auto p = Nta::Util::Misc::ApplicationCast<CaptureApp>(&app);
@@ -14,3 +17,4 @@ void ConfigureSubsystem::initialize(Poco::Util::Application &app) {
 void ConfigureSubsystem::uninitialize() {
     m_JsonCfg.clear();
 }
+} // namespace Nta::Network

@@ -2,20 +2,24 @@
 
 #include "CaptureSubsystem.h"
 #include "ConfigureSubsystem.h"
+#include "DecodeSubsystem.h"
 #include <Poco/Util/HelpFormatter.h>
 #include <Poco/Util/ServerApplication.h>
 #include <filesystem>
 #include <memory>
 
-class CaptureApp : public Poco::Util::ServerApplication {    
+namespace Nta::Network {
+
+class CaptureApp : public Poco::Util::ServerApplication {
   public:
     CaptureApp();
 
     auto GetConfigPath() const noexcept -> std::filesystem::path;
 
-private:
+  private:
     std::unique_ptr<ConfigureSubsystem> m_Configure{nullptr};
     std::unique_ptr<CaptureSubsystem> m_Capture{nullptr};
+    std::unique_ptr<DecodeSubsystem> m_Decode{nullptr};
     std::filesystem::path m_ConfigPath{""};
     bool m_HelpRequested{false};
 
@@ -25,5 +29,8 @@ private:
 
     void handleOption(const std::string &name, const std::string &value) override;
 
-    void DisplayHelp();    
+    void DisplayHelp();
+
+    int Run();
 };
+} // namespace Nta::Network

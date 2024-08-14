@@ -1,19 +1,27 @@
 #include "CaptureSubsystem.h"
 #include "CaptureApp.h"
 #include "Common/HandlerIface.h"
-#include "Common/JsonObjectHandler.h"
 #include "ConfigureSubsystem.h"
 #include "Misc.h"
 #include "Pcap/HandlerPcap.h"
 #include "Pcap/JsonObjectPcap.h"
+#include <algorithm>
+#include <cctype>
+#include <decoder.h>
+
+namespace Nta::Network {
+
+struct CaptureSubsystem::Impl {
+    std::shared_ptr<Nta::Network::HandlerAbstract> m_Handler{nullptr};
+};
 
 const char *CaptureSubsystem::name() const {
     return "capture";
 }
 
-struct CaptureSubsystem::Impl {
-    std::unique_ptr<Nta::Network::HandlerAbstract> m_Handler{nullptr};
-};
+CaptureSubsystem::HandlerPtr CaptureSubsystem::GetHandler() {
+    return m_Pimpl->m_Handler;
+}
 
 CaptureSubsystem::CaptureSubsystem()
     : m_Pimpl{std::unique_ptr<Impl, void (*)(Impl *)>(new CaptureSubsystem::Impl, [](auto p) { delete p; })} {}
@@ -23,11 +31,21 @@ void CaptureSubsystem::initialize(Poco::Util::Application &app) {
 
     auto config = Nta::Util::Json::GetTo<Nta::Json::Objects::JsonObjectPcap>("handler", subsustem.GetRawJsonConfig());
 
-    if(config.m_Type == "pcap")
+    {
+        std::string type{};
+        std::transform(std::begin(config.m_Type), std::end(config.m_Type), std::back_inserter(type), [](const auto &c) {
+            return std::tolower(c);
+        });
 
-    printf("c_Init\n");
+        if (type == "pcap") {
+            m_Pimpl->m_Handler = std::make_unique<Nta::Network::HandlerPcap>(config);
+        } else {
+            throw std::runtime_error("Unsupported device type \"" + type + "\"!");
+        }
+    }
 }
 
 void CaptureSubsystem::uninitialize() {
-    printf("c_UnInit\n");
+    m_Pimpl->m_Handler.reset();
 }
+} // namespace Nta::Network
