@@ -1,10 +1,10 @@
 #include "CaptureSubsystem.h"
 #include "CaptureApp.h"
-#include "Common/HandlerIface.h"
 #include "ConfigureSubsystem.h"
-#include "Misc.h"
-#include "Pcap/HandlerPcap.h"
-#include "Pcap/JsonObjectPcap.h"
+#include "Handlers/Common/HandlerIface.h"
+#include "Handlers/Pcap/HandlerPcap.h"
+#include "Handlers/Pcap/JsonObjectPcap.h"
+#include "Util/Misc.h"
 #include <algorithm>
 #include <cctype>
 #include <decoder.h>

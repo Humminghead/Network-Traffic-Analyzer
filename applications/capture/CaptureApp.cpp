@@ -1,9 +1,11 @@
 #include "CaptureApp.h"
-#include "Filesystem.h"
-#include "Common/HandlerIface.h"
+#include "Handlers/Common/HandlerIface.h"
+#include "Util/Filesystem.h"
 #include <iostream>
 
 namespace Nta::Network {
+
+struct HandlerAbstract;
 
 constexpr std::string_view help{R"(Help)"};
 
