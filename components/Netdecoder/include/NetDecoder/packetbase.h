@@ -13,8 +13,7 @@
 // Linux
 struct mpls_label;
 
-static constexpr const size_t MAX_ETH_CNT = 2; //!< Максимальное количество vlan меток в пакете.
-static constexpr const size_t MAX_MPLS_CNT = 4; //!< Максимальное количество vlan меток в пакете.
+static constexpr const size_t MAX_MPLS_CNT = 4; //!< Максимальное количество mpls меток в пакете.
 static constexpr const size_t MAX_VLAN_CNT = 8; //!< Максимальное количество vlan меток в пакете.
 
 namespace Nta::Network {
@@ -23,7 +22,7 @@ struct PppoeHeader;
 struct SctpHdr;
 
 struct PacketBase {
-    using MplsArray = std::array<const struct mpls_label *, 4>;
+    using MplsArray = std::array<const struct mpls_label *, MAX_MPLS_CNT>;
     using VlansArray = std::array<const vlan_tag *, MAX_VLAN_CNT>;
 
     const struct ether_header *ethHeader{nullptr};

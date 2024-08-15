@@ -63,30 +63,31 @@ bool NetDecoderBase::DecodeVlan(const uint8_t *&data, size_t &size, const vlan_t
 bool NetDecoderBase::DecodeIpv4(const uint8_t *&data, size_t &size, const iphdr *&iph) {
     d->ipstat.pkt_count++;
 
-    IpParseResult res;
-    if (!HandleIp4(data, size, res)) {
-        ///\todo Добавить признак отличия no_space от invalid_version
+    iph = reinterpret_cast<const iphdr*>(data);
+
+    if (size == sizeof(struct iphdr)) {
         d->ipstat.no_space++;
-        d->ipstat.invalid_version++;
+        return true;
+    }
+
+    if (uint16_t tot_len = ntohs(iph->tot_len); size < tot_len) {
+        d->ipstat.invalid_tot_len++;
         return false;
     }
-    d->ipstat.ipv4++;
 
-    if (!res.good())
-        return false;
+    d->ipstat.ipv4++;    
 
-    if (res.payload_proto == IPPROTO_TCP)
+    if (const auto proto = iph->protocol;proto == IPPROTO_TCP)
         d->ipstat.ipv4_tcp++;
-    else if (res.payload_proto == IPPROTO_UDP)
+    else if (proto == IPPROTO_UDP)
         d->ipstat.ipv4_udp++;
-    else if (res.payload_proto == IPPROTO_ICMP)
+    else if (proto == IPPROTO_ICMP)
         d->ipstat.ipv4_icmp++;
     else
         d->ipstat.invalid_protocol++;
 
-    iph = reinterpret_cast<const iphdr *>(res.hdr);
-    data = res.payload;
-    size = res.payload_len;
+    data = data + sizeof(struct iphdr);
+    size = size - sizeof(struct iphdr);
 
     return true;
 }

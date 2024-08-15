@@ -118,29 +118,36 @@ bool NetDecoder::HandleMpls(const uint8_t *&d, size_t &sz, PacketBase &packet) n
     return true;
 }
 
-bool NetDecoder::HandleIp(const uint8_t *&d, size_t &sz, PacketBase &packet) noexcept {
+bool NetDecoder::HandleIp4(const uint8_t *&d, size_t &sz, PacketBase &packet) noexcept {
     if (!d)
         return false;
 
-    switch (const uint8_t ipVersion = d[0] >> 4; ipVersion) {
-        case 4:
-            if (!DecodeIpv4(d, sz, packet.ip4Header)) {
-                return false;
-            } else {
-                packet.l3_size += sizeof(iphdr);
-            }
-
-            break;
-        case 6:
-            if (!DecodeIpv6(d, sz, packet.ip6Header, packet.ip6Fragment)) {
-                return false;
-            }
-
-            break;
-        default:
-            GetIpStat().invalid_version++;
-            return false;
+    if (const uint8_t ipVersion = d[0] >> 4; ipVersion != 4) {
+        GetIpStat().invalid_version++;
+        return false;
     }
+
+    if (!DecodeIpv4(d, sz, packet.ip4Header))
+        return false;
+
+    packet.l3_size += sizeof(iphdr);
+
+    return true;
+}
+
+bool NetDecoder::HandleIp6(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept{
+    if (!d)
+        return false;
+
+    if (const uint8_t ipVersion = d[0] >> 4; ipVersion != 6) {
+        GetIpStat().invalid_version++;
+        return false;
+    }
+
+    if (!DecodeIpv6(d, sz, pkt.ip6Header, pkt.ip6Fragment))
+        return false;
+
+    ///\todo packet.l3_size += sizeof(ip6hdr);
 
     return true;
 }
@@ -206,29 +213,29 @@ bool NetDecoder::HandleGtp(const uint8_t *&d, size_t &sz, PacketBase &packet) no
     return true;
 }
 
-bool NetDecoder::FullProcessing(const uint16_t linkLayer, const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept {
+bool NetDecoder::FullProcessing(const uint16_t linkLayer, const uint8_t *&d, size_t &sz, PacketBase &paket) noexcept {
     if (!d)
         return false;
 
-    const uint8_t *tData = d + pkt.l2_size;
+    const uint8_t *tData = d + paket.l2_size;
 
     switch (linkLayer) {
         case 0x4788: // MPLS
-            if (!HandleMpls(tData, sz, pkt))
+            if (!HandleMpls(tData, sz, paket))
                 return false;
-            if (!FullProcessing(0, d, sz, pkt))
+            if (!FullProcessing(0, d, sz, paket))
                 return false;
             break;
         case 0x0081: // VLAN
-            if (!HandleVlan(tData, sz, pkt))
+            if (!HandleVlan(tData, sz, paket))
                 return false;
             if (!FullProcessing(
-                    pkt.vlansTags[pkt.vlanCounter > 0 ? pkt.vlanCounter - 1 : pkt.vlanCounter]->vlan_tci, d, sz, pkt))
+                    paket.vlansTags[paket.vlanCounter > 0 ? paket.vlanCounter - 1 : paket.vlanCounter]->vlan_tci, d, sz, paket))
                 return false;
             break;
         case 0x6488: // PPPoE
         case 0x6388: {
-            if (!HandlePPPoE(tData, sz, pkt))
+            if (!HandlePPPoE(tData, sz, paket))
                 return false;
             tData += sizeof(struct PppoeHeader);
             // Detect PPP PROTOCOL id
@@ -236,30 +243,39 @@ bool NetDecoder::FullProcessing(const uint16_t linkLayer, const uint8_t *&d, siz
             if (auto idSize = sizeof(uint16_t); sz < idSize)
                 return false;
             else {
-                pkt.l2_size += idSize;
+                paket.l2_size += idSize;
                 sz -= idSize;
             }
             if (const auto *id = (const uint16_t *)tData; *id != 0x2100)
                 return false;
-            if (!FullProcessing(0x0008, d, sz, pkt))
+            if (!FullProcessing(0x0008, d, sz, paket))
                 return false;
         } break;
+        // https://techhub.hpe.com/eginfolib/networking/docs/switches/5120si/cg/5998-8489_l2-lan_cg/content/436042676.htm
         case 0x0008: // IpV4
-                     // https://techhub.hpe.com/eginfolib/networking/docs/switches/5120si/cg/5998-8489_l2-lan_cg/content/436042676.htm
-        case 0xDD86: // Ipv6
-            if (!HandleIp(tData, sz, pkt))
+            if (!HandleIp4(tData, sz, paket))
                 return false;
-            if (pkt.IsIpFragment()) {
-                pkt.l7_size = sz;
+            if (paket.IsIpFragment()) {
+                paket.l7_size = sz;
                 return true;
             }
-            if (!ProcessTransportLayers(tData, sz, pkt))
+            if (!ProcessTransportLayers(tData, sz, paket))
+                return false;
+            break;
+        case 0xDD86: // Ipv6
+            if (!HandleIp6(tData, sz, paket))
+                return false;
+            if (paket.IsIpFragment()) {
+                paket.l7_size = sz;
+                return true;
+            }
+            if (!ProcessTransportLayers(tData, sz, paket))
                 return false;
             break;
         case 0x0000:
-            if (!HandleEth(tData, sz, pkt))
+            if (!HandleEth(tData, sz, paket))
                 return false;
-            if (!FullProcessing(pkt.ethHeader->ether_type, d, sz, pkt))
+            if (!FullProcessing(paket.ethHeader->ether_type, d, sz, paket))
                 return false;
             break;
         default:
@@ -335,9 +351,15 @@ NetDecoder::Result NetDecoder::HandleMpls(const uint8_t *&d, size_t &sz) noexcep
     return std::make_tuple(ok, packet);
 }
 
-NetDecoder::Result NetDecoder::HandleIp(const uint8_t *&d, size_t &sz) noexcept {
+NetDecoder::Result NetDecoder::HandleIp4(const uint8_t *&d, size_t &sz) noexcept {
     PacketBase packet{};
-    bool ok = HandleIp(d, sz, packet);
+    bool ok = HandleIp4(d, sz, packet);
+    return std::make_tuple(ok, packet);
+}
+
+NetDecoder::Result NetDecoder::HandleIp6(const uint8_t *&d, size_t &sz) noexcept {
+    PacketBase packet{};
+    bool ok = HandleIp6(d, sz, packet);
     return std::make_tuple(ok, packet);
 }
 
