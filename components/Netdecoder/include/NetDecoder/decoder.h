@@ -18,7 +18,8 @@ class NetDecoder : protected NetDecoderBase {
     virtual bool HandleVlan(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
     virtual bool HandlePPPoE(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
     virtual bool HandleMpls(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
-    virtual bool HandleIp(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
+    virtual bool HandleIp4(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
+    virtual bool HandleIp6(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
     virtual bool HandleTcp(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
     virtual bool HandleUdp(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
     virtual bool HandleSctp(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
@@ -30,7 +31,8 @@ class NetDecoder : protected NetDecoderBase {
     virtual Result HandleVlan(const uint8_t *&d, size_t &size) noexcept;
     virtual Result HandlePPPoE(const uint8_t *&d, size_t &size) noexcept;
     virtual Result HandleMpls(const uint8_t *&d, size_t &size) noexcept;
-    virtual Result HandleIp(const uint8_t *&d, size_t &size) noexcept;
+    virtual Result HandleIp4(const uint8_t *&d, size_t &size) noexcept;
+    virtual Result HandleIp6(const uint8_t *&d, size_t &size) noexcept;
     virtual Result HandleTcp(const uint8_t *&d, size_t &size) noexcept;
     virtual Result HandleUdp(const uint8_t *&d, size_t &size) noexcept;
     virtual Result HandleSctp(const uint8_t *&d, size_t &size) noexcept;

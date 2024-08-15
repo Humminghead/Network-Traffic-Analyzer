@@ -87,7 +87,7 @@ TEST_F(NetDecoderCompleteTest, handle_ip_nullptr_test) {
     const uint8_t *data = nullptr;
     size_t size = 0;
 
-    auto [status, packet] = decoder.HandleIp(data, size);
+    auto [status, packet] = decoder.HandleIp4(data, size);
 
     ASSERT_FALSE(status);
     ASSERT_EQ(packet.ip4Header, nullptr);
@@ -300,7 +300,7 @@ TEST_F(NetDecoderCompleteTest, handle_ip4_test) {
     const uint8_t *data = ip4Hdr.data();
     size_t size = ip4Hdr.size();
 
-    auto [status, packet] = decoder.HandleIp(data, size);
+    auto [status, packet] = decoder.HandleIp4(data, size);
 
     const struct iphdr *tIpH{(const struct iphdr *)ip4Hdr.data()};
 
@@ -386,7 +386,7 @@ TEST_F(NetDecoderCompleteTest, handle_ip6_test) {
     const uint8_t *data = ip6Hdr.data();
     size_t size = ip6Hdr.size();
 
-    auto [status, packet] = decoder.HandleIp(data, size);
+    auto [status, packet] = decoder.HandleIp6(data, size);
 
     const struct ip6_hdr *tIp6H{(const struct ip6_hdr *)ip6Hdr.data()};
 
