@@ -1,10 +1,14 @@
-#include "decoderbase.h"
+#include "NetDecoder/decoderbase.h"
 
-#include <PPPoELayer.h>
-#include <PppTypes.h>
-#include <ip/ip4parser.h>
-#include <ip/ip6parser.h>
-#include <ip/ipparseresult.h>
+#include "NetDecoder/decodestat.h"
+#include "NetDecoder/ip/ip4parser.h"
+#include "NetDecoder/ip/ip6parser.h"
+#include "NetDecoder/ip/ipparseresult.h"
+#include "NetDecoder/packetbase.h"
+#include "NetDecoder/pppoe/PPPoELayer.h"
+#include "NetDecoder/pppoe/PppTypes.h"
+#include "NetDecoder/sctp/sctp.h"
+#include "NetDecoder/shift.h"
 #include <linux/mpls.h>
 #include <net/ethernet.h>
 #include <netinet/ip.h>
@@ -12,11 +16,6 @@
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
 #include <pcap/vlan.h>
-
-#include "decodestat.h"
-#include "packetbase.h"
-#include "sctp/sctp.h"
-#include "shift.h"
 
 namespace Nta::Network {
 

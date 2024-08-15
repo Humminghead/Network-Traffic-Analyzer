@@ -1,17 +1,17 @@
-#include "decoder.h"
+#include "NetDecoder/decoder.h"
 
-#include <PPPoELayer.h>
-#include <PppTypes.h>
-#include <PppoeHeader.h>
+#include <NetDecoder/pppoe/PPPoELayer.h>
+#include <NetDecoder/pppoe/PppTypes.h>
+#include <NetDecoder/pppoe/PppoeHeader.h>
 #include <linux/mpls.h>
 
-#include "decodestat.h"
-#include "gtp/GtpHeader.h"
-#include "packetbase.h"
-#include "sctp/sctp.h"
-#include "shift.h"
+#include "NetDecoder/decodestat.h"
+#include "NetDecoder/gtp/GtpHeader.h"
+#include "NetDecoder/packetbase.h"
+#include "NetDecoder/sctp/sctp.h"
+#include "NetDecoder/shift.h"
 
-#include "ip/NwaIpHandler.h"
+#include "NetDecoder/ip/NwaIpHandler.h"
 
 /*type + code + checksum + id + seq + timestamp*/
 constexpr size_t IcmpShift = sizeof(struct icmphdr) + sizeof(uint64_t);

@@ -1,10 +1,10 @@
-#include <decoder.h>
+#include <NetDecoder/decoder.h>
+#include <NetDecoder/gtp/GtpHeader.h>
+#include <NetDecoder/packetbase.h>
+#include <NetDecoder/pppoe/PppoeHeader.h>
+#include <NetDecoder/sctp/sctp.h>
 #include <gtest/gtest.h>
 #include <gtest/internal/gtest-internal.h>
-#include <gtp/GtpHeader.h>
-#include <packetbase.h>
-#include <pppoe/PppoeHeader.h>
-#include <sctp/sctp.h>
 
 using namespace Nta::Network;
 
@@ -246,7 +246,7 @@ TEST_F(NetDecoderCompleteTest, handle_mpls_test) {
     auto [status, packet] = decoder.HandleMpls(data, size);
 
     ASSERT_TRUE(status);
-    ASSERT_EQ(packet.l2_size, 8);    
+    ASSERT_EQ(packet.l2_size, 8);
     ASSERT_EQ(size, 0);
 }
 
@@ -304,7 +304,7 @@ TEST_F(NetDecoderCompleteTest, handle_ip4_test) {
 
     const struct iphdr *tIpH{(const struct iphdr *)ip4Hdr.data()};
 
-    ASSERT_TRUE(status);    
+    ASSERT_TRUE(status);
     ASSERT_FALSE(packet.ip4Header == nullptr);
     ASSERT_EQ(packet.ip4Header->daddr, tIpH->daddr);
     ASSERT_EQ(packet.ip4Header->saddr, tIpH->saddr);
@@ -428,7 +428,7 @@ TEST_F(NetDecoderCompleteTest, handle_udp_test) {
 
     auto [status, packet] = decoder.HandleUdp(data, size);
 
-    ASSERT_TRUE(status);    
+    ASSERT_TRUE(status);
     ASSERT_FALSE(packet.udpHeader == nullptr);
     ASSERT_EQ(htobe16(packet.udpHeader->check), 0xc643);
     ASSERT_EQ(htobe16(packet.udpHeader->dest), 18569);
@@ -476,7 +476,7 @@ TEST_F(NetDecoderCompleteTest, handle_tcp_test) {
 
     auto *tcp = packet.tcpHeader;
 
-    ASSERT_TRUE(status);    
+    ASSERT_TRUE(status);
     ASSERT_FALSE(tcp == nullptr);
     ASSERT_EQ(htobe16(tcp->source), 443);
     ASSERT_EQ(htobe16(tcp->dest), 51250);
@@ -524,7 +524,7 @@ TEST_F(NetDecoderCompleteTest, handle_gtp_test) {
     const GtpHeader *gtp = packet.gtpHeader;
 
     ASSERT_TRUE(status);
-    ASSERT_FALSE(gtp == nullptr);    
+    ASSERT_FALSE(gtp == nullptr);
     ASSERT_EQ(gtp->common.flags, 0x30);
     ASSERT_EQ(htobe16(gtp->common.length), 81);
     ASSERT_EQ(gtp->common.msgtype, 0xff);

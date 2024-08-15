@@ -7,7 +7,7 @@
 #include "Util/Misc.h"
 #include <algorithm>
 #include <cctype>
-#include <decoder.h>
+#include <NetDecoder/decoder.h>
 
 namespace Nta::Network {
 

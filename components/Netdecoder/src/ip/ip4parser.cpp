@@ -1,7 +1,7 @@
 #include <netinet/ip.h>
 
-#include "ip/ip4parser.h"
-#include "ip/ipparseresult.h"
+#include "NetDecoder/ip/ip4parser.h"
+#include "NetDecoder/ip/ipparseresult.h"
 
 namespace Nta::Network
 {

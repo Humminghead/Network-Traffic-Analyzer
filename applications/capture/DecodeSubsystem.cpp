@@ -3,10 +3,10 @@
 #include "CaptureSubsystem.h"
 #include "Handlers/Common/HandlerIface.h"
 #include "Util/Misc.h"
-#include "packetbase.h"
+#include "NetDecoder/packetbase.h"
 #include <Poco/Util/Application.h>
 #include <cctype>
-#include <decoder.h>
+#include <NetDecoder/decoder.h>
 
 namespace Nta::Network {
 const char *DecodeSubsystem::name() const {
