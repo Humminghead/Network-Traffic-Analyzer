@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ip/NwaIpVersion.h>
+#include <NetDecoder/ip/NwaIpVersion.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/ip6.h>

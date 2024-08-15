@@ -1,7 +1,7 @@
 #include "NwaIp4HandlerTestHeadersData.h"
 #include <gtest/gtest.h>
 #include <gtest/internal/gtest-internal.h>
-#include <ip/NwaIpHandler.h>
+#include <NetDecoder/ip/NwaIpHandler.h>
 
 using namespace Nta::Network;
 

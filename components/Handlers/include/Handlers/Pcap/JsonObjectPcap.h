@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Common/JsonObjectHandler.h"
-#include "Json.h"
+#include "Handlers/Common/JsonObjectHandler.h"
+#include "Util/Json.h"
 #include <nlohmann/json.hpp>
 #include <string>
 

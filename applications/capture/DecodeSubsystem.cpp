@@ -1,12 +1,12 @@
 #include "DecodeSubsystem.h"
 
 #include "CaptureSubsystem.h"
-#include "Misc.h"
-#include "Common/HandlerIface.h"
-#include "packetbase.h"
+#include "Handlers/Common/HandlerIface.h"
+#include "Util/Misc.h"
+#include "NetDecoder/packetbase.h"
 #include <Poco/Util/Application.h>
 #include <cctype>
-#include <decoder.h>
+#include <NetDecoder/decoder.h>
 
 namespace Nta::Network {
 const char *DecodeSubsystem::name() const {
@@ -22,10 +22,10 @@ DecodeSubsystem::DecodeSubsystem()
 
 void DecodeSubsystem::initialize(Poco::Util::Application &app) {
     m_Pimpl->m_Decoder = std::make_unique<Nta::Network::NetDecoder>();
-    auto& subsystem = app.getSubsystem<CaptureSubsystem>();
-    subsystem.GetHandler()->SetCallback([&](const struct timeval, const uint8_t *d, const size_t s){
+    auto &subsystem = app.getSubsystem<CaptureSubsystem>();
+    subsystem.GetHandler()->SetCallback([&](const struct timeval, const uint8_t *d, const size_t s) {
         size_t tSz{s};
-        auto [ok,packet] = m_Pimpl->m_Decoder->FullProcessing(0,d,tSz);
+        auto [ok, packet] = m_Pimpl->m_Decoder->FullProcessing(0, d, tSz);
 
         return false;
     });

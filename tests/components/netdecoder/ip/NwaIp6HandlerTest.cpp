@@ -1,12 +1,12 @@
 #include <gtest/gtest.h>
 #include <gtest/internal/gtest-internal.h>
-#include <ip/ip6parser.h>
-#include <ip/ipparseresult.h>
+#include <NetDecoder/ip/ip6parser.h>
+#include <NetDecoder/ip/ipparseresult.h>
 #include <netinet/in.h>
 
 #include "NwaIp6HandlerTestHeadersData.h"
 
-#include "ip/NwaIpHandler.h"
+#include "NetDecoder/ip/NwaIpHandler.h"
 
 class Ip6ParserTest : public ::testing::Test {
   public:

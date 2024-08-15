@@ -1,7 +1,7 @@
 #include "ConfigureSubsystem.h"
 #include "CaptureApp.h"
-#include "Filesystem.h"
-#include "Misc.h"
+#include "Util/Filesystem.h"
+#include "Util/Misc.h"
 
 namespace Nta::Network {
 const char *ConfigureSubsystem::name() const {

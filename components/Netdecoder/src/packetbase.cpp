@@ -1,12 +1,12 @@
-#include "packetbase.h"
+#include "NetDecoder/packetbase.h"
 
 #include <algorithm>
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
 #include <string.h>
 
-#include "gtp/Gtp1Defs.h"
-#include "gtp/GtpHeader.h"
+#include "NetDecoder/gtp/Gtp1Defs.h"
+#include "NetDecoder/gtp/GtpHeader.h"
 
 namespace Nta::Network {
 
