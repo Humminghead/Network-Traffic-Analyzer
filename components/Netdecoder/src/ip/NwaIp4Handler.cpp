@@ -2,7 +2,7 @@
 
 namespace Nta::Network {
 
-auto IpHandler<Ip4>::HandlePrivate(const uint8_t *d, size_t sz) const -> Result<HandlerResult>{
+auto IpHandler<Ip4>::HandlePrivate(const uint8_t *d, const size_t& sz) const -> Result<HandlerResult>{
     if (!d || sz < sizeof(struct iphdr))
         return {false, nullptr};
 

@@ -20,7 +20,7 @@ static void ShiftPayloadIpv6(Ip6PrivateFields &f, const size_t shift) noexcept {
     f.m_NextDataSize == 0 ? f.m_NextData = nullptr : f.m_NextData += shift;
 }
 
-static Result<HandlerResult> HandleExtensionsIp6(Ip6PrivateFields &f) {
+static Result<HandlerResult> HandleExtensionsIp6(Ip6PrivateFields &&f) {
     if (IPPROTO_NONE == f.m_NextProtocol)
         return {true, std::make_unique<Ip6HandlerResult>(std::move(f))};
 
@@ -29,11 +29,11 @@ static Result<HandlerResult> HandleExtensionsIp6(Ip6PrivateFields &f) {
 
     // https://datatracker.ietf.org/doc/html/rfc2460#page-7
     if (const auto &next = f.m_NextProtocol; IPPROTO_HOPOPTS == next) {
-        const auto *ext = reinterpret_cast<const ip6_hbh *>(f.m_NextData);
-        const auto tLen = ext->ip6h_len == 0 ? 8 : (ext->ip6h_len * 8) + 8;
-        f.m_NextProtocol = ext->ip6h_nxt;
+        const auto *ext = reinterpret_cast<const ip6_ext *>(f.m_NextData);
+        const auto tLen = ext->ip6e_len == 0 ? 8 : (ext->ip6e_len * 8) + 8;
+        f.m_NextProtocol = ext->ip6e_nxt;
         ShiftPayloadIpv6(f, tLen);
-        return HandleExtensionsIp6(f);
+        return HandleExtensionsIp6(std::move(f));
     } else if (IPPROTO_ROUTING == next) {
         const auto *ext = reinterpret_cast<const ip6_rthdr *>(f.m_NextData);
 
@@ -43,7 +43,7 @@ static Result<HandlerResult> HandleExtensionsIp6(Ip6PrivateFields &f) {
                     + 4;                // first segment, flags, reserved
         ShiftPayloadIpv6(f, tLen);
 
-        return HandleExtensionsIp6(f);
+        return HandleExtensionsIp6(std::move(f));
     } else if (IPPROTO_FRAGMENT == next) {
         if (f.m_NextDataSize < sizeof(ip6_frag))
             return {false, std::make_unique<Ip6HandlerResult>(std::move(f))};
@@ -58,7 +58,7 @@ static Result<HandlerResult> HandleExtensionsIp6(Ip6PrivateFields &f) {
         f.m_fragmentOffset = ntohs(header->ip6f_offlg & IP6F_OFF_MASK);
         f.m_fragmentMoreFlag = (header->ip6f_offlg & IP6F_MORE_FRAG) ? true : false;
 
-        return HandleExtensionsIp6(f);
+        return HandleExtensionsIp6(std::move(f));
     } else if (IPPROTO_DSTOPTS == next) {
         const auto *ext = reinterpret_cast<const ip6_dest *>(f.m_NextData);
 
@@ -66,7 +66,7 @@ static Result<HandlerResult> HandleExtensionsIp6(Ip6PrivateFields &f) {
         f.m_NextProtocol = ext->ip6d_nxt;
         ShiftPayloadIpv6(f, tLen);
 
-        return HandleExtensionsIp6(f);
+        return HandleExtensionsIp6(std::move(f));
     }
     ///\todo Maybe it doesnt necessary to do
     /// Authentication
@@ -77,7 +77,7 @@ static Result<HandlerResult> HandleExtensionsIp6(Ip6PrivateFields &f) {
 
 template <> class IpHandler<Ip6> : public HandlerBase<HandlerResult> {
   public:
-    Result<HandlerResult> Handle(const uint8_t *d, size_t sz) const override {
+    Result<HandlerResult> Handle(const uint8_t *d, const size_t& sz) const override {
         if (d == nullptr)
             return {false, nullptr};
 
@@ -106,7 +106,7 @@ template <> class IpHandler<Ip6> : public HandlerBase<HandlerResult> {
 
         f.m_NextData = f.m_NextDataSize > 0 ? d + sizeof(struct ip6_hdr) : nullptr;
 
-        return HandleExtensionsIp6(f);
+        return HandleExtensionsIp6(std::move(f));
     }
 };
 

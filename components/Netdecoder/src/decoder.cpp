@@ -144,10 +144,11 @@ bool NetDecoder::HandleIp6(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexc
         return false;
     }
 
+    const auto sTmp = sz;
     if (!DecodeIpv6(d, sz, pkt.ip6Header, pkt.ip6Fragment))
         return false;
 
-    ///\todo packet.l3_size += sizeof(ip6hdr);
+    pkt.l3_size += sTmp - sz;
 
     return true;
 }
