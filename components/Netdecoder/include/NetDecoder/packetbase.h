@@ -10,6 +10,34 @@
 #include <netinet/udp.h>
 #include <pcap/vlan.h>
 
+/*RFC8200 4.1.  Extension Header Order
+  IPv6 header                           |
+  Hop-by-Hop Options header             |_Per-Fragment Headers
+  Destination Options header (note 1)   |
+  Routing header                        |
+  Fragment header
+  Authentication header (note 2)                    |
+  Encapsulating Security Payload header (note 2)    |_Extension (ESP is not considered
+  Destination Options header (note 3)               |           an extension header)
+  Upper-Layer header                                |-Upper-Layer Headers and ESP
+  --------------------------------------------------------------------------
+  Original:
+  +-----------------+-----------------+--------+--------+-//-+--------+
+  |  Per-Fragment   |Ext & Upper-Layer|  first | second |    |  last  |
+  |    Headers      |    Headers      |fragment|fragment|....|fragment|
+  +-----------------+-----------------+--------+--------+-//-+--------+
+  Fragmented:
+   +------------------+---------+-------------------+----------+
+   |  Per-Fragment    |Fragment | Ext & Upper-Layer |  first   |
+   |    Headers       | Header  |   Headers         | fragment |
+   +------------------+---------+-------------------+----------+
+   ....
+   +------------------+--------+----------+
+   |  Per-Fragment    |Fragment|   last   |
+   |    Headers       | Header | fragment |
+   +------------------+--------+----------+
+  */
+
 // Linux
 struct mpls_label;
 

@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 #include <gtest/internal/gtest-internal.h>
 #include <NetDecoder/ip/ip6parser.h>
-#include <NetDecoder/ip/ipparseresult.h>
 #include <netinet/in.h>
 
 #include "NwaIp6HandlerTestHeadersData.h"

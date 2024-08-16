@@ -1,9 +1,9 @@
 #include "NetDecoder/decoderbase.h"
 
 #include "NetDecoder/decodestat.h"
+#include "NetDecoder/ip/NwaIp6Handler.h"
 #include "NetDecoder/ip/ip4parser.h"
 #include "NetDecoder/ip/ip6parser.h"
-#include "NetDecoder/ip/ipparseresult.h"
 #include "NetDecoder/packetbase.h"
 #include "NetDecoder/pppoe/PPPoELayer.h"
 #include "NetDecoder/pppoe/PppTypes.h"
@@ -63,7 +63,7 @@ bool NetDecoderBase::DecodeVlan(const uint8_t *&data, size_t &size, const vlan_t
 bool NetDecoderBase::DecodeIpv4(const uint8_t *&data, size_t &size, const iphdr *&iph) {
     d->ipstat.pkt_count++;
 
-    iph = reinterpret_cast<const iphdr*>(data);
+    iph = reinterpret_cast<const iphdr *>(data);
 
     if (size == sizeof(struct iphdr)) {
         d->ipstat.no_space++;
@@ -75,9 +75,9 @@ bool NetDecoderBase::DecodeIpv4(const uint8_t *&data, size_t &size, const iphdr 
         return false;
     }
 
-    d->ipstat.ipv4++;    
+    d->ipstat.ipv4++;
 
-    if (const auto proto = iph->protocol;proto == IPPROTO_TCP)
+    if (const auto proto = iph->protocol; proto == IPPROTO_TCP)
         d->ipstat.ipv4_tcp++;
     else if (proto == IPPROTO_UDP)
         d->ipstat.ipv4_udp++;
@@ -95,24 +95,15 @@ bool NetDecoderBase::DecodeIpv4(const uint8_t *&data, size_t &size, const iphdr 
 bool NetDecoderBase::DecodeIpv6(const uint8_t *&data, size_t &size, const ip6_hdr *&ip6h, const ip6_frag *&ip6frag) {
     d->ipstat.pkt_count++;
 
-    IpParseResult res;
-    if (!parseIp6(data, size, res)) {
-        d->ipstat.no_space++;
-        return false;
-    }
-    d->ipstat.ipv6++;
-    if (res.payload_proto == IPPROTO_TCP)
-        d->ipstat.ipv6_tcp++;
-    else if (res.payload_proto == IPPROTO_UDP)
-        d->ipstat.ipv6_udp++;
-    else if (res.payload_proto == IPPROTO_ICMPV6)
-        d->ipstat.ipv6_icmpv6++;
-    else
-        d->ipstat.invalid_protocol++;
-    ip6h = reinterpret_cast<const ip6_hdr *>(res.hdr);
-    ip6frag = reinterpret_cast<const ip6_frag *>(res.frag_hdr);
-    data = res.payload;
-    size = res.payload_len;
+    ///\todo
+    auto [ok, res] = IpHandler<Ip6>{}.Handle(data,size);
+
+    if(!ok) return false;
+
+    ip6h = reinterpret_cast<const struct ip6_hdr *>(data);
+
+    data = res->GetPayloadDataVirt();
+    size = res->GetPayloadLenghtVirt();
     return true;
 }
 
