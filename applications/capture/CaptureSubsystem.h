@@ -5,17 +5,19 @@
 
 namespace Nta::Network {
 struct HandlerAbstract;
-}
+class ConfigureSubsystem;
+} // namespace Nta::Network
 
 namespace Nta::Network {
 class CaptureSubsystem : public Poco::Util::Subsystem {
   public:
     using HandlerPtr = std::shared_ptr<Nta::Network::HandlerAbstract>;
 
-    CaptureSubsystem();    
+    CaptureSubsystem(const ConfigureSubsystem *cSubSys);
 
-    const char *name() const override;
-    HandlerPtr GetHandler();
+    auto name() const -> const char * override;
+    auto GetHandler() const -> HandlerPtr;
+    auto SetHandler(HandlerPtr p) -> void;
 
   protected:
     void initialize(Poco::Util::Application &app) override;

@@ -32,5 +32,7 @@ class CaptureApp : public Poco::Util::ServerApplication {
     void DisplayHelp();
 
     int Run();
+
+    void initialize(Application& self) override;
 };
 } // namespace Nta::Network
