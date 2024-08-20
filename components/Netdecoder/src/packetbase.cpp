@@ -26,12 +26,12 @@ void PacketBase::Reset() {
     gtpHeader = nullptr;
     sctpHeader = nullptr;
 
-    l2_size = 0;
-    l3_size = 0;
-    l4_size = 0;
-    l5_size = 0;
-    l6_size = 0;
-    l7_size = 0;
+    bytes.L2 = 0;
+    bytes.L3 = 0;
+    bytes.L4 = 0;
+    bytes.L5 = 0;
+    bytes.L6 = 0;
+    bytes.L7 = 0;
 }
 
 // TODO: проверить ???
@@ -54,7 +54,7 @@ int8_t PacketBase::GetGtpVersion(const GtpHeader &gtph) {
 }
 
 size_t PacketBase::GetTotalSize() const {
-    return l2_size + l3_size + l4_size + l5_size + l6_size + l7_size;
+    return bytes.L2 + bytes.L3 + bytes.L4 + bytes.L5 + bytes.L6 + bytes.L7;
 }
 
 bool PacketBase::IsGtpv1HdrExt() const {
@@ -83,10 +83,10 @@ void PacketBase::ResetLowerLevels() {
     tcpHeader = nullptr;
     sctpHeader = nullptr;
     gtpHeader = nullptr;
-    l4_size = {0};
-    l5_size = {0};
-    l6_size = {0};
-    l7_size = {0};
+    bytes.L4 = {0};
+    bytes.L5 = {0};
+    bytes.L6 = {0};
+    bytes.L7 = {0};
 }
 
 } // namespace Nta::Network

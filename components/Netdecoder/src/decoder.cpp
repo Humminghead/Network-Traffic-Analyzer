@@ -29,7 +29,7 @@ bool NetDecoder::HandleEth(const uint8_t *&d, size_t &sz, PacketBase &packet) no
     if (!DecodeEth(d, sz, packet.ethHeader))
         return false;
 
-    packet.l2_size += sizeof(ether_header);
+    packet.bytes.L2 += sizeof(ether_header);
     return true;
 }
 
@@ -59,7 +59,7 @@ bool NetDecoder::HandleVlan(const uint8_t *&d, size_t &sz, PacketBase &pkt) noex
         tNextProto = ntohs((pkt.vlansTags[VlanConterLnk])->vlan_tci);
         if (tNextProto != ETHERTYPE_VLAN)
             nextProto = tNextProto;
-        pkt.l2_size += sizeof(vlan_tag);
+        pkt.bytes.L2 += sizeof(vlan_tag);
         VlanConterLnk++;
         tData = d + (VlanConterLnk * sizeof(vlan_tag));
     }
@@ -87,7 +87,7 @@ bool NetDecoder::HandlePPPoE(const uint8_t *&d, size_t &sz, PacketBase &packet) 
     }
 
     shift_left(sz, layer.getHeaderLen());
-    packet.l2_size += layer.getHeaderLen();
+    packet.bytes.L2 += layer.getHeaderLen();
 
     return true;
 }
@@ -108,7 +108,7 @@ bool NetDecoder::HandleMpls(const uint8_t *&d, size_t &sz, PacketBase &packet) n
             ((lbl->entry >> MPLS_LS_S_SHIFT) & MPLS_LS_S_MASK) == MPLS_LS_S_MASK) {
             dShift += sizeof(mpls_label);
             dShift += 4; // PW Ethernet Control Word
-            packet.l2_size += dShift;
+            packet.bytes.L2 += dShift;
             packet.mplsCounter++;
             shift_left(sz, dShift);
             break;
@@ -130,7 +130,7 @@ bool NetDecoder::HandleIp4(const uint8_t *&d, size_t &sz, PacketBase &packet) no
     if (!DecodeIpv4(d, sz, packet.ip4Header))
         return false;
 
-    packet.l3_size += sizeof(iphdr);
+    packet.bytes.L3 += sizeof(iphdr);
 
     return true;
 }
@@ -148,7 +148,7 @@ bool NetDecoder::HandleIp6(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexc
     if (!DecodeIpv6(d, sz, pkt.ip6Header, pkt.ip6Fragment))
         return false;
 
-    pkt.l3_size += sTmp - sz;
+    pkt.bytes.L3 += sTmp - sz;
 
     return true;
 }
@@ -158,7 +158,7 @@ bool NetDecoder::HandleTcp(const uint8_t *&d, size_t &sz, PacketBase &packet) no
         return false;
     if (!DecodeTcp(d, sz, packet.tcpHeader))
         return false;
-    packet.l4_size += packet.tcpHeader->doff * 4; // doff:4 i.e. count_doff's * 4;
+    packet.bytes.L4 += packet.tcpHeader->doff * 4; // doff:4 i.e. count_doff's * 4;
 
     return true;
 }
@@ -169,10 +169,10 @@ bool NetDecoder::HandleUdp(const uint8_t *&d, size_t &sz, PacketBase &packet) no
 
     if (!DecodeUdp(d, sz, packet.udpHeader))
         return false;
-    packet.l4_size += sizeof(udphdr);
+    packet.bytes.L4 += sizeof(udphdr);
 
     if (const auto dLen = htobe16(packet.udpHeader->len); dLen >= sizeof(udphdr)) {
-        packet.l7_size = dLen - sizeof(udphdr);
+        packet.bytes.L7 = dLen - sizeof(udphdr);
     } else {
         return false;
     }
@@ -186,14 +186,14 @@ bool NetDecoder::HandleSctp(const uint8_t *&d, size_t &sz, PacketBase &packet) n
 
     if (!DecodeSctp(d, sz, packet.sctpHeader))
         return false;
-    packet.l4_size += sizeof(SctpHdr);
-    packet.l7_size += sz;
+    packet.bytes.L4 += sizeof(SctpHdr);
+    packet.bytes.L7 += sz;
 
     return true;
 }
 
 bool NetDecoder::HandleGtp(const uint8_t *&d, size_t &sz, PacketBase &packet) noexcept {
-    packet.l7_size = sz;
+    packet.bytes.L7 = sz;
 
     if (!d)
         return false;
@@ -218,7 +218,7 @@ bool NetDecoder::FullProcessing(const LinkLayer linkLayer, const uint8_t *&d, si
     if (!d)
         return false;
 
-    const uint8_t *tData = d + paket.l2_size;
+    const uint8_t *tData = d + paket.bytes.L2;
 
     switch (static_cast<uint16_t>(linkLayer)) {
         case 0x4788: // MPLS
@@ -248,7 +248,7 @@ bool NetDecoder::FullProcessing(const LinkLayer linkLayer, const uint8_t *&d, si
             if (auto idSize = sizeof(uint16_t); sz < idSize)
                 return false;
             else {
-                paket.l2_size += idSize;
+                paket.bytes.L2 += idSize;
                 sz -= idSize;
             }
             if (const auto *id = (const uint16_t *)tData; *id != 0x2100)
@@ -261,7 +261,7 @@ bool NetDecoder::FullProcessing(const LinkLayer linkLayer, const uint8_t *&d, si
             if (!HandleIp4(tData, sz, paket))
                 return false;
             if (paket.IsIpFragment()) {
-                paket.l7_size = sz;
+                paket.bytes.L7 = sz;
                 return true;
             }
             if (!ProcessTransportLayers(tData, sz, paket))
@@ -271,7 +271,7 @@ bool NetDecoder::FullProcessing(const LinkLayer linkLayer, const uint8_t *&d, si
             if (!HandleIp6(tData, sz, paket))
                 return false;
             if (paket.IsIpFragment()) {
-                paket.l7_size = sz;
+                paket.bytes.L7 = sz;
                 return true;
             }
             if (!ProcessTransportLayers(tData, sz, paket))
@@ -300,12 +300,12 @@ bool NetDecoder::ProcessTransportLayers(const uint8_t *&d, size_t &sz, PacketBas
     if (proto == IPPROTO_TCP) {
         if (!HandleTcp(d, sz, pkt))
             return false;
-        pkt.l7_size = sz;
+        pkt.bytes.L7 = sz;
         return true;
     } else if (proto == IPPROTO_UDP) {
         if (!HandleUdp(d, sz, pkt))
             return false;
-        pkt.l7_size = sz;
+        pkt.bytes.L7 = sz;
         return true;
     } else if (proto == IPPROTO_ICMP) {
         pkt.icmpHeader = reinterpret_cast<const struct icmphdr *>(d);
@@ -315,16 +315,16 @@ bool NetDecoder::ProcessTransportLayers(const uint8_t *&d, size_t &sz, PacketBas
         if (IcmpShift > sz) { // Mailformed
             return false;
         }
-        pkt.l4_size = IcmpShift;
-        pkt.l7_size = sz;
+        pkt.bytes.L4 = IcmpShift;
+        pkt.bytes.L7 = sz;
         return true;
     } else if (proto == IPPROTO_ICMPV6) {
         ///\todo проверить правильность определения размера данных ICMPv6
         /// packet.l7_d = d + sizeof(icmp6_hdr);
         pkt.icmp6Header = reinterpret_cast<const struct icmp6_hdr *>(d);
         sz -= sizeof(icmp6_hdr);
-        pkt.l4_size = sizeof(icmp6_hdr);
-        pkt.l7_size = sz;
+        pkt.bytes.L4 = sizeof(icmp6_hdr);
+        pkt.bytes.L7 = sz;
         return true;
     } else if (proto == IPPROTO_SCTP) {
         return HandleSctp(d, sz, pkt);
