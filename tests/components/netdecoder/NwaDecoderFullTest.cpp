@@ -156,7 +156,7 @@ TEST_F(NetDecoderCompleteTest, handle_eth_test) {
     ASSERT_EQ(packet.ethHeader->ether_dhost, tEth->ether_dhost);
     ASSERT_EQ(packet.ethHeader->ether_shost, tEth->ether_shost);
     ASSERT_EQ(htobe16(packet.ethHeader->ether_type), 0x8847);
-    ASSERT_EQ(packet.l2_size, 14);
+    ASSERT_EQ(packet.bytes.L2, 14);
     ASSERT_EQ(size, 0);
 }
 
@@ -194,7 +194,7 @@ TEST_F(NetDecoderCompleteTest, handle_vlan_test) {
             vlansCntr++;
     });
     ASSERT_EQ(vlansCntr, 2);
-    ASSERT_EQ(packet.l2_size, 8);
+    ASSERT_EQ(packet.bytes.L2, 8);
     ASSERT_EQ(size, 0);
 }
 
@@ -246,7 +246,7 @@ TEST_F(NetDecoderCompleteTest, handle_mpls_test) {
     auto [status, packet] = decoder.HandleMpls(data, size);
 
     ASSERT_TRUE(status);
-    ASSERT_EQ(packet.l2_size, 8);
+    ASSERT_EQ(packet.bytes.L2, 8);
     ASSERT_EQ(size, 0);
 }
 
@@ -316,7 +316,7 @@ TEST_F(NetDecoderCompleteTest, handle_ip4_test) {
     ASSERT_EQ(packet.ip4Header->tos, tIpH->tos);
     ASSERT_EQ(packet.ip4Header->tot_len, tIpH->tot_len);
     ASSERT_EQ(packet.ip4Header->ttl, tIpH->ttl);
-    ASSERT_EQ(packet.l3_size, 20);
+    ASSERT_EQ(packet.bytes.L3, 20);
     ASSERT_EQ(size, 32);
 }
 
@@ -434,8 +434,8 @@ TEST_F(NetDecoderCompleteTest, handle_udp_test) {
     ASSERT_EQ(htobe16(packet.udpHeader->dest), 18569);
     ASSERT_EQ(htobe16(packet.udpHeader->source), 35024);
     ASSERT_EQ(htobe16(packet.udpHeader->len), 28);
-    ASSERT_EQ(packet.l4_size, 8);
-    ASSERT_EQ(packet.l7_size, 20);
+    ASSERT_EQ(packet.bytes.L4, 8);
+    ASSERT_EQ(packet.bytes.L7, 20);
     ASSERT_EQ(size, 0);
 }
 
@@ -494,7 +494,7 @@ TEST_F(NetDecoderCompleteTest, handle_tcp_test) {
     ASSERT_EQ(htobe16(tcp->window), 2773);
     ASSERT_EQ(htobe16(tcp->check), 0x400b);
     ASSERT_EQ(tcp->urg_ptr, 0);
-    ASSERT_EQ(packet.l4_size, 32);
+    ASSERT_EQ(packet.bytes.L4, 32);
     ASSERT_EQ(size, 0);
 }
 
@@ -529,7 +529,7 @@ TEST_F(NetDecoderCompleteTest, handle_gtp_test) {
     ASSERT_EQ(htobe16(gtp->common.length), 81);
     ASSERT_EQ(gtp->common.msgtype, 0xff);
     ASSERT_EQ(htonl(gtp->in.gtpv1_hdr.teid), 2164056373);
-    ASSERT_EQ(packet.l7_size, 98);
+    ASSERT_EQ(packet.bytes.L7, 98);
     ASSERT_FALSE(packet.IsGtpv1HdrExt());
     ASSERT_EQ(size, 94);
 }

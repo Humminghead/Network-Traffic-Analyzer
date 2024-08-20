@@ -49,6 +49,16 @@ struct GtpHeader;
 struct PppoeHeader;
 struct SctpHdr;
 
+struct BytesCount{
+    // Bytes count in packet by OSI layers
+    size_t L2{0}; // Data link layer(Eth,802.11q...)
+    size_t L3{0}; // Network layer(Ipv4,Ipv6...)
+    size_t L4{0}; // Transport layer(TCP,UDP)
+    size_t L5{0}; // Session layer(ADSP,ASP,SCP,SOCKS5...)
+    size_t L6{0}; // Presentation layer(VT,RDA,FTAM...)
+    size_t L7{0}; // Application layer(BitTorent,NFS,RTP,SMTP...)
+};
+
 struct PacketBase {
     using MplsArray = std::array<const struct mpls_label *, MAX_MPLS_CNT>;
     using VlansArray = std::array<const vlan_tag *, MAX_VLAN_CNT>;
@@ -80,13 +90,7 @@ struct PacketBase {
 
     const struct GtpHeader *gtpHeader{nullptr};
 
-    // Bytes count in packet by OSI layers
-    size_t l2_size{0}; // Data link layer(Eth,802.11q...)
-    size_t l3_size{0}; // Network layer(Ipv4,Ipv6...)
-    size_t l4_size{0}; // Transport layer(TCP,UDP)
-    size_t l5_size{0}; // Session layer(ADSP,ASP,SCP,SOCKS5...)
-    size_t l6_size{0}; // Presentation layer(VT,RDA,FTAM...)
-    size_t l7_size{0}; // Application layer(BitTorent,NFS,RTP,SMTP...)
+    BytesCount bytes{};
 
     explicit PacketBase() = default;
     virtual ~PacketBase() = default;

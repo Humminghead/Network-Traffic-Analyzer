@@ -70,6 +70,7 @@ int CaptureApp::Run() {
 void CaptureApp::initialize(Application &self)
 {
     m_Decode->SetLinkedSubSystem(m_Capture.get());
+    m_Decode->SetLinkLayer(LinkLayer::Ip4);
     Poco::Util::Application::initialize(self);
 }
 
