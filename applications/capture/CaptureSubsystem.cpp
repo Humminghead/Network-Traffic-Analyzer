@@ -5,9 +5,9 @@
 #include "Handlers/Pcap/HandlerPcap.h"
 #include "Handlers/Pcap/JsonObjectPcap.h"
 #include "Util/Misc.h"
+#include <NetDecoder/decoder.h>
 #include <algorithm>
 #include <cctype>
-#include <NetDecoder/decoder.h>
 
 namespace Nta::Network {
 
@@ -38,7 +38,9 @@ void CaptureSubsystem::initialize(Poco::Util::Application &app) {
         });
 
         if (type == "pcap") {
-            m_Pimpl->m_Handler = std::make_unique<Nta::Network::HandlerPcap>(config);
+            m_Pimpl->m_Handler = std::make_shared<Nta::Network::HandlerPcap>(config);
+        } else if (type.empty()) {
+            throw std::runtime_error("Empty device type string in config!");
         } else {
             throw std::runtime_error("Unsupported device type \"" + type + "\"!");
         }

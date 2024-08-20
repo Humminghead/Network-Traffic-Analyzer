@@ -7,6 +7,16 @@
 
 namespace Nta::Network {
 
+enum class LinkLayer : uint16_t {
+    Eth = 0x0,
+    Vlan = 0x0081,
+    Mpls = 0x4788,
+    PPpoEd = 0x6488, // https://datatracker.ietf.org/doc/html/rfc2516
+    PPPoEs = 0x6388,
+    Ip4 = 0x0008,
+    Ip6 = 0xDD86
+};
+
 class NetDecoder : protected NetDecoderBase {
   public:
     using Result = std::tuple<bool, PacketBase>;
@@ -24,7 +34,7 @@ class NetDecoder : protected NetDecoderBase {
     virtual bool HandleUdp(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
     virtual bool HandleSctp(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
     virtual bool HandleGtp(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
-    virtual bool FullProcessing(const uint16_t type, const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
+    virtual bool FullProcessing(const LinkLayer layer, const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
     virtual bool ProcessTransportLayers(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
 
     virtual Result HandleEth(const uint8_t *&d, size_t &size) noexcept;
@@ -37,7 +47,7 @@ class NetDecoder : protected NetDecoderBase {
     virtual Result HandleUdp(const uint8_t *&d, size_t &size) noexcept;
     virtual Result HandleSctp(const uint8_t *&d, size_t &size) noexcept;
     virtual Result HandleGtp(const uint8_t *&d, size_t &size) noexcept;
-    virtual Result FullProcessing(const uint16_t type, const uint8_t *&d, size_t &size) noexcept;
+    virtual Result FullProcessing(const LinkLayer type, const uint8_t *&d, size_t &size) noexcept;
     virtual Result ProcessTransportLayers(const uint8_t *&d, size_t &size) noexcept;
 
   private:
