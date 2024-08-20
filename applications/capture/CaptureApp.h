@@ -13,7 +13,7 @@ namespace Nta::Network {
 class CaptureApp : public Poco::Util::ServerApplication {
   public:
     CaptureApp();
-
+    ~CaptureApp();
     auto GetConfigPath() const noexcept -> std::filesystem::path;
 
   private:

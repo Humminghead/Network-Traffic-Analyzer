@@ -23,7 +23,7 @@ static constexpr std::string_view FileExtensionRegex("(\\.[pcangPCANG]{3,6})");
 struct HandlerPcap::Impl {
     pcap_t *m_PcapFdPtr{nullptr};
     bool m_Opened{false};
-    bool m_Stop{false};
+    bool m_Stopped{true};
     Json::Objects::JsonObjectPcap mConfig;
     // https://www.man7.org/linux/man-pages/man3/pcap_open_live.3pcap.html
     int m_PcapPromiscMode{1};
@@ -49,13 +49,15 @@ void HandlerPcap::Open() {
 }
 
 void HandlerPcap::Close() {
-    if (!m_Impl->m_Stop) {
-        m_Impl->m_Stop = true;
-        pcap_breakloop(m_Impl->m_PcapFdPtr);
-        pcap_close(m_Impl->m_PcapFdPtr);
-        m_Impl->m_PcapFdPtr = nullptr;
+    if (!m_Impl->m_Stopped) {
+        m_Impl->m_Stopped = true;
+        if (m_Impl->m_Opened) {
+            pcap_breakloop(m_Impl->m_PcapFdPtr);
+            pcap_close(m_Impl->m_PcapFdPtr);
+            m_Impl->m_PcapFdPtr = nullptr;
+            m_Impl->m_Opened = false;
+        }
     }
-    m_Impl->m_Opened = false;
 }
 
 void HandlerPcap::SetCallback(std::function<CallBackFunctionType> &&f) {
@@ -67,7 +69,9 @@ auto HandlerPcap::GetCallback() -> std::function<CallBackFunctionType> {
 }
 
 void HandlerPcap::Loop() {
-    while (!m_Impl->m_Stop) {
+    m_Impl->m_Stopped = false;
+
+    while (!m_Impl->m_Stopped) {
         if (!this->SingleShot())
             break;
     }
@@ -94,11 +98,11 @@ bool HandlerPcap::SingleShot() {
             reinterpret_cast<u_char *>(this));
         ret == 0) {
         if (m_Impl->m_BreakOnEmtyDispatchFlag) {
-            m_Impl->m_Stop = true;
+            m_Impl->m_Stopped = true;
             return false;
         }
     } else if (ret == -1) {
-        m_Impl->m_Stop = true;
+        m_Impl->m_Stopped = true;
         throw std::runtime_error("Pcap error: " + std::string{pcap_geterr(m_Impl->m_PcapFdPtr)});
     }    
     return true;

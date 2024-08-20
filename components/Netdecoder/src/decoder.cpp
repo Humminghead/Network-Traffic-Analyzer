@@ -135,7 +135,7 @@ bool NetDecoder::HandleIp4(const uint8_t *&d, size_t &sz, PacketBase &packet) no
     return true;
 }
 
-bool NetDecoder::HandleIp6(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept{
+bool NetDecoder::HandleIp6(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept {
     if (!d)
         return false;
 
@@ -214,28 +214,32 @@ bool NetDecoder::HandleGtp(const uint8_t *&d, size_t &sz, PacketBase &packet) no
     return true;
 }
 
-bool NetDecoder::FullProcessing(const uint16_t linkLayer, const uint8_t *&d, size_t &sz, PacketBase &paket) noexcept {
+bool NetDecoder::FullProcessing(const LinkLayer linkLayer, const uint8_t *&d, size_t &sz, PacketBase &paket) noexcept {
     if (!d)
         return false;
 
     const uint8_t *tData = d + paket.l2_size;
 
-    switch (linkLayer) {
+    switch (static_cast<uint16_t>(linkLayer)) {
         case 0x4788: // MPLS
             if (!HandleMpls(tData, sz, paket))
                 return false;
-            if (!FullProcessing(0, d, sz, paket))
+            if (!FullProcessing(LinkLayer::Eth, d, sz, paket))
                 return false;
             break;
         case 0x0081: // VLAN
             if (!HandleVlan(tData, sz, paket))
                 return false;
             if (!FullProcessing(
-                    paket.vlansTags[paket.vlanCounter > 0 ? paket.vlanCounter - 1 : paket.vlanCounter]->vlan_tci, d, sz, paket))
+                    static_cast<LinkLayer>(
+                        paket.vlansTags[paket.vlanCounter > 0 ? paket.vlanCounter - 1 : paket.vlanCounter]->vlan_tci),
+                    d,
+                    sz,
+                    paket))
                 return false;
             break;
-        case 0x6488: // PPPoE
-        case 0x6388: {
+        case 0x6488:   // PPPoE PPP Session Stage
+        case 0x6388: { // PPPoE Discovery Stage
             if (!HandlePPPoE(tData, sz, paket))
                 return false;
             tData += sizeof(struct PppoeHeader);
@@ -249,7 +253,7 @@ bool NetDecoder::FullProcessing(const uint16_t linkLayer, const uint8_t *&d, siz
             }
             if (const auto *id = (const uint16_t *)tData; *id != 0x2100)
                 return false;
-            if (!FullProcessing(0x0008, d, sz, paket))
+            if (!FullProcessing(LinkLayer::Ip4, d, sz, paket))
                 return false;
         } break;
         // https://techhub.hpe.com/eginfolib/networking/docs/switches/5120si/cg/5998-8489_l2-lan_cg/content/436042676.htm
@@ -276,7 +280,7 @@ bool NetDecoder::FullProcessing(const uint16_t linkLayer, const uint8_t *&d, siz
         case 0x0000:
             if (!HandleEth(tData, sz, paket))
                 return false;
-            if (!FullProcessing(paket.ethHeader->ether_type, d, sz, paket))
+            if (!FullProcessing(static_cast<LinkLayer>(paket.ethHeader->ether_type), d, sz, paket))
                 return false;
             break;
         default:
@@ -289,7 +293,7 @@ bool NetDecoder::ProcessTransportLayers(const uint8_t *&d, size_t &sz, PacketBas
     const uint16_t proto = pkt.GetIpProtocol();
 
     ///\todo Пересмотреть обработку заголовкой IPv6. В данной точке указатель d
-    ///указывает на payload после заговка ipV6
+    /// указывает на payload после заговка ipV6
     if (auto version = pkt.GetIpVersion(); version != 4 && version != 6)
         return false;
 
@@ -388,7 +392,7 @@ NetDecoder::Result NetDecoder::HandleGtp(const uint8_t *&d, size_t &sz) noexcept
     return std::make_tuple(ok, packet);
 }
 
-NetDecoder::Result NetDecoder::FullProcessing(const uint16_t linkLayer, const uint8_t *&d, size_t &sz) noexcept {
+NetDecoder::Result NetDecoder::FullProcessing(const LinkLayer linkLayer, const uint8_t *&d, size_t &sz) noexcept {
     PacketBase packet{};
     bool ok = FullProcessing(linkLayer, d, sz, packet);
     return std::make_tuple(ok, packet);

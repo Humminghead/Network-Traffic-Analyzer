@@ -14,6 +14,8 @@ int CaptureApp::main(const std::vector<std::string> &args) {
         DisplayHelp();
         return 0;
     }
+    // auto& logger = getSubsystem<Poco::Logger>();
+    // logger.setLevel(Poco::Message::PRIO_TRACE);
 
     addSubsystem(m_Configure.get());
     addSubsystem(m_Capture.get());
@@ -22,8 +24,10 @@ int CaptureApp::main(const std::vector<std::string> &args) {
     // addSubsystem(m_Out.get());
 
     this->initialize(*this);
+    const auto exitCode = Run();
+    this->uninitialize();
 
-    return Run();
+    return exitCode;
 }
 
 void CaptureApp::defineOptions(Poco::Util::OptionSet &options) {
@@ -71,6 +75,16 @@ CaptureApp::CaptureApp()
       m_Capture{std::make_unique<CaptureSubsystem>()},     //
       m_Decode{std::make_unique<DecodeSubsystem>()}        //
 {}
+
+CaptureApp::~CaptureApp() {
+    Poco::Util::ServerApplication::uninitialize();
+    this->subsystems().clear();
+
+    // It's needed because class Poco::Util::SubsystemSubsystem derrived from Poco::RefCountedObject (AutoPtr)
+    m_Configure.release();
+    m_Capture.release();
+    m_Decode.release();
+}
 
 auto CaptureApp::GetConfigPath() const noexcept -> std::filesystem::path {
     return m_ConfigPath;

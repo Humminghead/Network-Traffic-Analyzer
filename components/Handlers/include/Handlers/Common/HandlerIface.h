@@ -10,6 +10,8 @@ enum class HandlerIfaces { Pcap, Unknown };
 struct HandlerAbstract {
     using CallBackFunctionType = bool(const struct timeval, const uint8_t *, const size_t);
 
+    virtual ~HandlerAbstract() = default;
+
     virtual void Open() = 0;
     virtual void Close() = 0;
     virtual void Loop() = 0;
