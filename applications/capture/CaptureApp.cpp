@@ -7,8 +7,6 @@ namespace Nta::Network {
 
 struct HandlerAbstract;
 
-constexpr std::string_view help{R"(Help)"};
-
 int CaptureApp::main(const std::vector<std::string> &args) {
     if (m_HelpRequested || m_ConfigPath.empty()) {
         DisplayHelp();
@@ -69,11 +67,17 @@ int CaptureApp::Run() {
     return Application::EXIT_OK;
 }
 
+void CaptureApp::initialize(Application &self)
+{
+    m_Decode->SetLinkedSubSystem(m_Capture.get());
+    Poco::Util::Application::initialize(self);
+}
+
 CaptureApp::CaptureApp()
     : ServerApplication(),                                 //
       m_Configure{std::make_unique<ConfigureSubsystem>()}, //
-      m_Capture{std::make_unique<CaptureSubsystem>()},     //
-      m_Decode{std::make_unique<DecodeSubsystem>()}        //
+      m_Capture{std::make_unique<CaptureSubsystem>(m_Configure.get())},     //
+      m_Decode{std::make_unique<DecodeSubsystem>(m_Configure.get())}        //
 {}
 
 CaptureApp::~CaptureApp() {
