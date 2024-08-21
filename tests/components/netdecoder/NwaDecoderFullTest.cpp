@@ -1,8 +1,8 @@
-#include <NetDecoder/decoder.h>
-#include <NetDecoder/gtp/GtpHeader.h>
-#include <NetDecoder/packetbase.h>
-#include <NetDecoder/pppoe/PppoeHeader.h>
-#include <NetDecoder/sctp/sctp.h>
+#include <NetDecoder/Decoder.h>
+#include <NetDecoder/Gtp/GtpHeader.h>
+#include <NetDecoder/PacketBase.h>
+#include <NetDecoder/PppOe/PppoeHeader.h>
+#include <NetDecoder/Sctp/Sctp.h>
 #include <gtest/gtest.h>
 #include <gtest/internal/gtest-internal.h>
 

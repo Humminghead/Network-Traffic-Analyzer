@@ -1,5 +1,5 @@
-#include "NetDecoder/pppoe/PPPoELayer.h"
-#include "NetDecoder/pppoe/PppoeHeader.h"
+#include "NetDecoder/PppOe/PPPoELayer.h"
+#include "NetDecoder/PppOe/PppoeHeader.h"
 
 namespace Nta::Network {
 

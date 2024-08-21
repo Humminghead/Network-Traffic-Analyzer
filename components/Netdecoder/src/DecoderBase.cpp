@@ -1,14 +1,12 @@
-#include "NetDecoder/decoderbase.h"
+#include "NetDecoder/DecoderBase.h"
 
-#include "NetDecoder/decodestat.h"
-#include "NetDecoder/ip/NwaIp6Handler.h"
-#include "NetDecoder/ip/ip4parser.h"
-#include "NetDecoder/ip/ip6parser.h"
-#include "NetDecoder/packetbase.h"
-#include "NetDecoder/pppoe/PPPoELayer.h"
-#include "NetDecoder/pppoe/PppTypes.h"
-#include "NetDecoder/sctp/sctp.h"
-#include "NetDecoder/shift.h"
+#include "NetDecoder/DecodeStat.h"
+#include "NetDecoder/Ip/NwaIp6Handler.h"
+#include "NetDecoder/PacketBase.h"
+#include "NetDecoder/PppOe/PPPoELayer.h"
+#include "NetDecoder/PppOe/PppTypes.h"
+#include "NetDecoder/Sctp/Sctp.h"
+#include "NetDecoder/Shift.h"
 #include <linux/mpls.h>
 #include <net/ethernet.h>
 #include <netinet/ip.h>
