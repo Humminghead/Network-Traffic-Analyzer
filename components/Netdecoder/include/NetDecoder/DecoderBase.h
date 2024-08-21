@@ -17,7 +17,7 @@ struct SctpHdr;
 struct Gtp1Hdr;
 struct Gtp2Hdr;
 struct gtp_v2_opt;
-struct PacketBase;
+struct Packet;
 struct EthStat;
 struct VlanStat;
 struct IpStat;

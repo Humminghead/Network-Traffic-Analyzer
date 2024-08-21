@@ -26,7 +26,7 @@ struct NetDecoder::Impl {
 
 NetDecoder::NetDecoder() : NetDecoderBase(), m_Impl{std::make_unique<Impl>()} {}
 
-bool NetDecoder::HandleEth(const uint8_t *&d, size_t &sz, PacketBase &packet) noexcept {
+bool NetDecoder::HandleEth(const uint8_t *&d, size_t &sz, Packet &packet) noexcept {
     if (!DecodeEth(d, sz, packet.ethHeader))
         return false;
 
@@ -34,7 +34,7 @@ bool NetDecoder::HandleEth(const uint8_t *&d, size_t &sz, PacketBase &packet) no
     return true;
 }
 
-bool NetDecoder::HandleVlan(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept {
+bool NetDecoder::HandleVlan(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept {
     if (!d)
         return false;
     if (pkt.vlanCounter > (pkt.vlansTags.size() > 0 ? pkt.vlansTags.size() - 1 : 0))
@@ -68,7 +68,7 @@ bool NetDecoder::HandleVlan(const uint8_t *&d, size_t &sz, PacketBase &pkt) noex
     return true;
 }
 
-bool NetDecoder::HandlePPPoE(const uint8_t *&d, size_t &sz, PacketBase &packet) noexcept {
+bool NetDecoder::HandlePPPoE(const uint8_t *&d, size_t &sz, Packet &packet) noexcept {
     if (!d)
         return false;
 
@@ -93,7 +93,7 @@ bool NetDecoder::HandlePPPoE(const uint8_t *&d, size_t &sz, PacketBase &packet) 
     return true;
 }
 
-bool NetDecoder::HandleMpls(const uint8_t *&d, size_t &sz, PacketBase &packet) noexcept {
+bool NetDecoder::HandleMpls(const uint8_t *&d, size_t &sz, Packet &packet) noexcept {
     if (!d)
         return false;
     if (packet.mplsCounter > (packet.mplsLabels.size() > 0 ? packet.mplsLabels.size() - 1 : 0))
@@ -119,7 +119,7 @@ bool NetDecoder::HandleMpls(const uint8_t *&d, size_t &sz, PacketBase &packet) n
     return true;
 }
 
-bool NetDecoder::HandleIp4(const uint8_t *&d, size_t &sz, PacketBase &packet) noexcept {
+bool NetDecoder::HandleIp4(const uint8_t *&d, size_t &sz, Packet &packet) noexcept {
     if (!d)
         return false;
 
@@ -136,7 +136,7 @@ bool NetDecoder::HandleIp4(const uint8_t *&d, size_t &sz, PacketBase &packet) no
     return true;
 }
 
-bool NetDecoder::HandleIp6(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept {
+bool NetDecoder::HandleIp6(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept {
     if (!d)
         return false;
 
@@ -154,7 +154,7 @@ bool NetDecoder::HandleIp6(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexc
     return true;
 }
 
-bool NetDecoder::HandleTcp(const uint8_t *&d, size_t &sz, PacketBase &packet) noexcept {
+bool NetDecoder::HandleTcp(const uint8_t *&d, size_t &sz, Packet &packet) noexcept {
     if (!d)
         return false;
     if (!DecodeTcp(d, sz, packet.tcpHeader))
@@ -164,7 +164,7 @@ bool NetDecoder::HandleTcp(const uint8_t *&d, size_t &sz, PacketBase &packet) no
     return true;
 }
 
-bool NetDecoder::HandleUdp(const uint8_t *&d, size_t &sz, PacketBase &packet) noexcept {
+bool NetDecoder::HandleUdp(const uint8_t *&d, size_t &sz, Packet &packet) noexcept {
     if (!d)
         return false;
 
@@ -181,7 +181,7 @@ bool NetDecoder::HandleUdp(const uint8_t *&d, size_t &sz, PacketBase &packet) no
     return true;
 }
 
-bool NetDecoder::HandleSctp(const uint8_t *&d, size_t &sz, PacketBase &packet) noexcept {
+bool NetDecoder::HandleSctp(const uint8_t *&d, size_t &sz, Packet &packet) noexcept {
     if (!d)
         return false;
 
@@ -193,7 +193,7 @@ bool NetDecoder::HandleSctp(const uint8_t *&d, size_t &sz, PacketBase &packet) n
     return true;
 }
 
-bool NetDecoder::HandleGtp(const uint8_t *&d, size_t &sz, PacketBase &packet) noexcept {
+bool NetDecoder::HandleGtp(const uint8_t *&d, size_t &sz, Packet &packet) noexcept {
     packet.bytes.L7 = sz;
 
     if (!d)
@@ -215,7 +215,7 @@ bool NetDecoder::HandleGtp(const uint8_t *&d, size_t &sz, PacketBase &packet) no
     return true;
 }
 
-bool NetDecoder::FullProcessing(const LinkLayer linkLayer, const uint8_t *&d, size_t &sz, PacketBase &packet) noexcept {
+bool NetDecoder::FullProcessing(const LinkLayer linkLayer, const uint8_t *&d, size_t &sz, Packet &packet) noexcept {
     if (!d)
         return false;
 
@@ -290,7 +290,7 @@ bool NetDecoder::FullProcessing(const LinkLayer linkLayer, const uint8_t *&d, si
     return true;
 }
 
-bool NetDecoder::ProcessTransportLayers(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept {
+bool NetDecoder::ProcessTransportLayers(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept {
     const uint16_t proto = Util::GetIpProtocol(pkt);
 
     ///\todo Пересмотреть обработку заголовкой IPv6. В данной точке указатель d
@@ -334,73 +334,73 @@ bool NetDecoder::ProcessTransportLayers(const uint8_t *&d, size_t &sz, PacketBas
 }
 
 NetDecoder::Result NetDecoder::HandleEth(const uint8_t *&d, size_t &sz) noexcept {
-    PacketBase packet{};
+    Packet packet{};
     bool ok = HandleEth(d, sz, packet);
     return std::make_tuple(ok, packet);
 }
 
 NetDecoder::Result NetDecoder::HandleVlan(const uint8_t *&d, size_t &sz) noexcept {
-    PacketBase packet{};
+    Packet packet{};
     bool ok = HandleVlan(d, sz, packet);
     return std::make_tuple(ok, packet);
 }
 
 NetDecoder::Result NetDecoder::HandlePPPoE(const uint8_t *&d, size_t &sz) noexcept {
-    PacketBase packet{};
+    Packet packet{};
     bool ok = HandlePPPoE(d, sz, packet);
     return std::make_tuple(ok, packet);
 }
 
 NetDecoder::Result NetDecoder::HandleMpls(const uint8_t *&d, size_t &sz) noexcept {
-    PacketBase packet{};
+    Packet packet{};
     bool ok = HandleMpls(d, sz, packet);
     return std::make_tuple(ok, packet);
 }
 
 NetDecoder::Result NetDecoder::HandleIp4(const uint8_t *&d, size_t &sz) noexcept {
-    PacketBase packet{};
+    Packet packet{};
     bool ok = HandleIp4(d, sz, packet);
     return std::make_tuple(ok, packet);
 }
 
 NetDecoder::Result NetDecoder::HandleIp6(const uint8_t *&d, size_t &sz) noexcept {
-    PacketBase packet{};
+    Packet packet{};
     bool ok = HandleIp6(d, sz, packet);
     return std::make_tuple(ok, packet);
 }
 
 NetDecoder::Result NetDecoder::HandleTcp(const uint8_t *&d, size_t &sz) noexcept {
-    PacketBase packet{};
+    Packet packet{};
     bool ok = HandleTcp(d, sz, packet);
     return std::make_tuple(ok, packet);
 }
 
 NetDecoder::Result NetDecoder::HandleUdp(const uint8_t *&d, size_t &sz) noexcept {
-    PacketBase packet{};
+    Packet packet{};
     bool ok = HandleUdp(d, sz, packet);
     return std::make_tuple(ok, packet);
 }
 
 NetDecoder::Result NetDecoder::HandleSctp(const uint8_t *&d, size_t &sz) noexcept {
-    PacketBase packet{};
+    Packet packet{};
     bool ok = HandleSctp(d, sz, packet);
     return std::make_tuple(ok, packet);
 }
 
 NetDecoder::Result NetDecoder::HandleGtp(const uint8_t *&d, size_t &sz) noexcept {
-    PacketBase packet{};
+    Packet packet{};
     bool ok = HandleGtp(d, sz, packet);
     return std::make_tuple(ok, packet);
 }
 
 NetDecoder::Result NetDecoder::FullProcessing(const LinkLayer linkLayer, const uint8_t *&d, size_t &sz) noexcept {
-    PacketBase packet{};
+    Packet packet{};
     bool ok = FullProcessing(linkLayer, d, sz, packet);
     return std::make_tuple(ok, packet);
 }
 
 NetDecoder::Result NetDecoder::ProcessTransportLayers(const uint8_t *&d, size_t &sz) noexcept {
-    PacketBase packet{};
+    Packet packet{};
     bool ok = ProcessTransportLayers(d, sz, packet);
     return std::make_tuple(ok, packet);
 }

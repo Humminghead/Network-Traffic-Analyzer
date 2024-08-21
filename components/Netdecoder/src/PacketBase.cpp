@@ -10,7 +10,7 @@
 
 namespace Nta::Network {
 
-void PacketBase::Reset() {
+void Packet::Reset() {
     vlanCounter = 0;
     mplsCounter = 0;
 
@@ -34,7 +34,7 @@ void PacketBase::Reset() {
     bytes.L7 = 0;
 }
 
-void PacketBase::ResetLowerLevels() {
+void Packet::ResetLowerLevels() {
     tcpHeader = nullptr;
     sctpHeader = nullptr;
     gtpHeader = nullptr;

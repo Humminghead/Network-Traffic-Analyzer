@@ -49,7 +49,7 @@ struct GtpHeader;
 struct PppoeHeader;
 struct SctpHdr;
 
-struct BytesCount{
+struct BytesCount {
     // Bytes count in packet by OSI layers
     size_t L2{0}; // Data link layer(Eth,802.11q...)
     size_t L3{0}; // Network layer(Ipv4,Ipv6...)
@@ -59,7 +59,7 @@ struct BytesCount{
     size_t L7{0}; // Application layer(BitTorent,NFS,RTP,SMTP...)
 };
 
-struct PacketBase {
+struct Packet {
     using MplsArray = std::array<const struct mpls_label *, MAX_MPLS_CNT>;
     using VlansArray = std::array<const vlan_tag *, MAX_VLAN_CNT>;
 
@@ -76,24 +76,20 @@ struct PacketBase {
     const struct ip6_hdr *ip6Header{nullptr};
     const struct ip6_frag *ip6Fragment{nullptr};
 
-    union {
-        const struct udphdr *udpHeader{nullptr};
-        const struct tcphdr *tcpHeader;
-    };
+    const struct udphdr *udpHeader{nullptr};
+    const struct tcphdr *tcpHeader{nullptr};
 
     const struct SctpHdr *sctpHeader{nullptr};
 
-    union {
-        const struct icmphdr *icmpHeader{nullptr};
-        const struct icmp6_hdr *icmp6Header;
-    };
+    const struct icmphdr *icmpHeader{nullptr};
+    const struct icmp6_hdr *icmp6Header{nullptr};
 
     const struct GtpHeader *gtpHeader{nullptr};
 
     BytesCount bytes{};
 
-    explicit PacketBase() = default;
-    virtual ~PacketBase() = default;
+    // explicit PacketBase() = default;
+    // virtual ~PacketBase() = default;
 
     void Reset();
     void ResetLowerLevels();

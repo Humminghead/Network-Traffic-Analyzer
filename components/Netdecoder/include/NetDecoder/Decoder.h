@@ -10,23 +10,23 @@ namespace Nta::Network {
 
 class NetDecoder : protected NetDecoderBase {
   public:
-    using Result = std::tuple<bool, PacketBase>;
+    using Result = std::tuple<bool, Packet>;
 
     NetDecoder();
     virtual ~NetDecoder() = default;
 
-    virtual bool HandleEth(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
-    virtual bool HandleVlan(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
-    virtual bool HandlePPPoE(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
-    virtual bool HandleMpls(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
-    virtual bool HandleIp4(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
-    virtual bool HandleIp6(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
-    virtual bool HandleTcp(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
-    virtual bool HandleUdp(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
-    virtual bool HandleSctp(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
-    virtual bool HandleGtp(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
-    virtual bool FullProcessing(const LinkLayer layer, const uint8_t *&d, size_t &sz, PacketBase &packet) noexcept;
-    virtual bool ProcessTransportLayers(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
+    virtual bool HandleEth(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept;
+    virtual bool HandleVlan(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept;
+    virtual bool HandlePPPoE(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept;
+    virtual bool HandleMpls(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept;
+    virtual bool HandleIp4(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept;
+    virtual bool HandleIp6(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept;
+    virtual bool HandleTcp(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept;
+    virtual bool HandleUdp(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept;
+    virtual bool HandleSctp(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept;
+    virtual bool HandleGtp(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept;
+    virtual bool FullProcessing(const LinkLayer layer, const uint8_t *&d, size_t &sz, Packet &packet) noexcept;
+    virtual bool ProcessTransportLayers(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept;
 
     virtual Result HandleEth(const uint8_t *&d, size_t &size) noexcept;
     virtual Result HandleVlan(const uint8_t *&d, size_t &size) noexcept;
