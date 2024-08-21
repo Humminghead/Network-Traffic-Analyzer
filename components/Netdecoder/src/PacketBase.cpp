@@ -34,51 +34,6 @@ void PacketBase::Reset() {
     bytes.L7 = 0;
 }
 
-// TODO: проверить ???
-uint16_t PacketBase::GetIpProtocol() const {
-    return ip4Header != nullptr   ? ip4Header->protocol
-           : ip6Header != nullptr ? ip6Fragment != nullptr ? ip6Fragment->ip6f_nxt : ip6Header->ip6_nxt
-                                  : IPPROTO_MAX;
-}
-
-int8_t PacketBase::GetIpVersion() const {
-    return ip4Header != nullptr ? 4 : ip6Header != nullptr ? 6 : -1;
-}
-
-int8_t PacketBase::GetGtpVersion() const {
-    return gtpHeader ? GetGtpVersion(*gtpHeader) : 0;
-}
-
-int8_t PacketBase::GetGtpVersion(const GtpHeader &gtph) {
-    return (gtph.common.flags & 0b11100000) >> 5;
-}
-
-size_t PacketBase::GetTotalSize() const {
-    return bytes.L2 + bytes.L3 + bytes.L4 + bytes.L5 + bytes.L6 + bytes.L7;
-}
-
-bool PacketBase::IsGtpv1HdrExt() const {
-    return gtpHeader == nullptr ? false : (gtpHeader->common.flags & GTPV1_HDR_EXT) == GTPV1_HDR_EXT;
-}
-
-bool PacketBase::IsIpFragment() const {
-    return ip4Header != nullptr ? IsIp4Fragment() : ip6Header != nullptr ? IsIp6Fragment() : false;
-}
-
-bool PacketBase::IsIp4Fragment() const {
-    if (ip4Header == nullptr)
-        return false;
-    const uint16_t iph_flags = htons(ip4Header->frag_off) & (IP_DF | IP_MF | IP_RF);
-    const uint16_t iph_frag_off = htons(ip4Header->frag_off) & IP_OFFMASK;
-    if ((iph_flags & IP_DF) == IP_DF)
-        return false;
-    return (((iph_flags & IP_MF) == IP_MF) || (iph_frag_off != 0));
-}
-
-bool PacketBase::IsIp6Fragment() const {
-    return ip6Fragment ? (htons(ip6Fragment->ip6f_offlg) & (IP_MF | IP_OFFMASK)) : false;
-}
-
 void PacketBase::ResetLowerLevels() {
     tcpHeader = nullptr;
     sctpHeader = nullptr;
