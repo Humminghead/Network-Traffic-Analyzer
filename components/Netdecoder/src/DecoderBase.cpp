@@ -26,6 +26,8 @@ struct NetDecoderBase::Impl {
     SctpStat sctpstat;
     GtpStat gtpstat;
     GtpStat gtp2stat;
+    IpHandler<Ip4> m_Ip4h;
+    IpHandler<Ip6> m_Ip6h;
 };
 
 NetDecoderBase::ptr_impl::~ptr_impl() {}
@@ -93,10 +95,10 @@ bool NetDecoderBase::DecodeIpv4(const uint8_t *&data, size_t &size, const iphdr 
 bool NetDecoderBase::DecodeIpv6(const uint8_t *&data, size_t &size, const ip6_hdr *&ip6h, const ip6_frag *&ip6frag) {
     d->ipstat.pkt_count++;
 
-    ///\todo
-    auto [ok, res] = IpHandler<Ip6>{}.Handle(data,size);
+    auto [ok, res] = d->m_Ip6h.Handle(data, size);
 
-    if(!ok) return false;
+    if (!ok)
+        return false;
 
     ip6h = reinterpret_cast<const struct ip6_hdr *>(data);
 

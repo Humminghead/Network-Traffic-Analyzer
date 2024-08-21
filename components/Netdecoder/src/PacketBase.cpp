@@ -3,17 +3,10 @@
 #include <algorithm>
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
-#include <string.h>
-
-#include "NetDecoder/Gtp/Gtp1Defs.h"
-#include "NetDecoder/Gtp/GtpHeader.h"
 
 namespace Nta::Network {
 
-void Packet::Reset() {
-    vlanCounter = 0;
-    mplsCounter = 0;
-
+void Packet::Reset() {    
     ethHeader = nullptr;
     pppoeHeader = nullptr;
     std::for_each(std::begin(vlansTags), std::end(vlansTags), [](auto *&p) { p = nullptr; });

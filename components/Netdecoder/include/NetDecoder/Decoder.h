@@ -1,7 +1,7 @@
 #pragma once
 
-#include "LinkLayer.h"
 #include "DecoderBase.h"
+#include "LinkLayer.h"
 
 #include <functional>
 #include <memory>
@@ -16,9 +16,9 @@ class NetDecoder : protected NetDecoderBase {
     virtual ~NetDecoder() = default;
 
     virtual bool HandleEth(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept;
-    virtual bool HandleVlan(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept;
+    virtual bool HandleVlan(const uint8_t *&d, size_t &sz, Packet &pkt, size_t &idx) noexcept;
     virtual bool HandlePPPoE(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept;
-    virtual bool HandleMpls(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept;
+    virtual bool HandleMpls(const uint8_t *&d, size_t &sz, Packet &pkt, size_t &idx) noexcept;
     virtual bool HandleIp4(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept;
     virtual bool HandleIp6(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept;
     virtual bool HandleTcp(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept;

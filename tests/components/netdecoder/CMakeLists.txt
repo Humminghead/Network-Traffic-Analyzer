@@ -19,7 +19,7 @@ link_libraries(
 ###############################################################################
 
 #Full
-set (TARGET_NAME netdecoder_complete_test)
+set (TARGET_NAME netdecoder_full_test)
 add_executable(${TARGET_NAME} NwaDecoderFullTest.cpp)
 GenerateReport(${TARGET_NAME})
 
