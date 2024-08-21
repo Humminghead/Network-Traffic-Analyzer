@@ -25,7 +25,7 @@ class NetDecoder : protected NetDecoderBase {
     virtual bool HandleUdp(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
     virtual bool HandleSctp(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
     virtual bool HandleGtp(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
-    virtual bool FullProcessing(const LinkLayer layer, const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
+    virtual bool FullProcessing(const LinkLayer layer, const uint8_t *&d, size_t &sz, PacketBase &packet) noexcept;
     virtual bool ProcessTransportLayers(const uint8_t *&d, size_t &sz, PacketBase &pkt) noexcept;
 
     virtual Result HandleEth(const uint8_t *&d, size_t &size) noexcept;

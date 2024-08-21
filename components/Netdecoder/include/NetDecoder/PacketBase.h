@@ -96,16 +96,6 @@ struct PacketBase {
     virtual ~PacketBase() = default;
 
     void Reset();
-    uint16_t GetIpProtocol() const;
-    int8_t GetIpVersion() const;
-    int8_t GetGtpVersion() const;
-    static int8_t GetGtpVersion(const struct GtpHeader &gtph);
-    size_t GetTotalSize() const;
-    bool IsGtpv1HdrExt() const;
-    bool IsIpFragment() const;
-    bool IsIp4Fragment() const;
-    bool IsIp6Fragment() const;
-
     void ResetLowerLevels();
 };
 } // namespace Nta::Network

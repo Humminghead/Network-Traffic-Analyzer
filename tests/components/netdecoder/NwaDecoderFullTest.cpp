@@ -1,3 +1,4 @@
+#include "NetDecoder/Util/Packet.h"
 #include <NetDecoder/Decoder.h>
 #include <NetDecoder/Gtp/GtpHeader.h>
 #include <NetDecoder/PacketBase.h>
@@ -530,7 +531,7 @@ TEST_F(NetDecoderCompleteTest, handle_gtp_test) {
     ASSERT_EQ(gtp->common.msgtype, 0xff);
     ASSERT_EQ(htonl(gtp->in.gtpv1_hdr.teid), 2164056373);
     ASSERT_EQ(packet.bytes.L7, 98);
-    ASSERT_FALSE(packet.IsGtpv1HdrExt());
+    ASSERT_FALSE(Util::IsGtpv1HdrExt(packet));
     ASSERT_EQ(size, 94);
 }
 
