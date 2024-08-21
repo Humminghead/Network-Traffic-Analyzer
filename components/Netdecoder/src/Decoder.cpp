@@ -20,8 +20,6 @@ constexpr size_t IcmpShift = sizeof(struct icmphdr) + sizeof(uint64_t);
 namespace Nta::Network {
 
 struct NetDecoder::Impl {
-    IpHandler<Ip4> m_Ip4h;
-    IpHandler<Ip6> m_Ip6h;
 };
 
 NetDecoder::NetDecoder() : NetDecoderBase(), m_Impl{std::make_unique<Impl>()} {}
@@ -34,38 +32,28 @@ bool NetDecoder::HandleEth(const uint8_t *&d, size_t &sz, Packet &packet) noexce
     return true;
 }
 
-bool NetDecoder::HandleVlan(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept {
+bool NetDecoder::HandleVlan(const uint8_t *&d, size_t &sz, Packet &pkt, size_t &idx) noexcept {
     if (!d)
         return false;
-    if (pkt.vlanCounter > (pkt.vlansTags.size() > 0 ? pkt.vlansTags.size() - 1 : 0))
+
+    if (pkt.vlansTags.size() == 0)
         return false;
 
-    uint16_t nextProto{0}, tNextProto{0}; // ex. ipType
-
-    // Обработка vlan меток.
-    auto &VlanConterLnk = pkt.vlanCounter;
     const uint8_t *tData = d;
-    while (nextProto == 0) {
-        if (VlanConterLnk >= MAX_VLAN_CNT) {
-            GetVlanStat().invalid_ethertype++;
-            return false;
-        }
-        if (auto *vlan = pkt.vlansTags[VlanConterLnk]; !DecodeVlan(tData, sz, vlan)) {
-            GetVlanStat().invalid_ethertype++;
-            return false;
-        } else {
-            if (pkt.vlansTags[VlanConterLnk] == nullptr)
-                pkt.vlansTags[VlanConterLnk] = vlan;
-        }
-        tNextProto = ntohs((pkt.vlansTags[VlanConterLnk])->vlan_tci);
-        if (tNextProto != ETHERTYPE_VLAN)
-            nextProto = tNextProto;
+
+    for (auto &tag : pkt.vlansTags) {
+        if (!DecodeVlan(tData, sz, tag))
+            break;
+
         pkt.bytes.L2 += sizeof(vlan_tag);
-        VlanConterLnk++;
-        tData = d + (VlanConterLnk * sizeof(vlan_tag));
+        tData += pkt.bytes.L2;
+        idx++;
+
+        if (auto next = ntohs(tag->vlan_tci); next != ETHERTYPE_VLAN)
+            return true;
     }
 
-    return true;
+    return false;
 }
 
 bool NetDecoder::HandlePPPoE(const uint8_t *&d, size_t &sz, Packet &packet) noexcept {
@@ -93,24 +81,25 @@ bool NetDecoder::HandlePPPoE(const uint8_t *&d, size_t &sz, Packet &packet) noex
     return true;
 }
 
-bool NetDecoder::HandleMpls(const uint8_t *&d, size_t &sz, Packet &packet) noexcept {
+bool NetDecoder::HandleMpls(const uint8_t *&d, size_t &sz, Packet &packet, size_t &idx) noexcept {
     if (!d)
         return false;
-    if (packet.mplsCounter > (packet.mplsLabels.size() > 0 ? packet.mplsLabels.size() - 1 : 0))
+
+    if (idx > (packet.mplsLabels.size() > 0 ? packet.mplsLabels.size() - 1 : 0))
         return false;
 
-    for (size_t dShift = 0;; dShift += sizeof(mpls_label), packet.mplsCounter++) {
-        if (sz < sizeof(mpls_label) || packet.mplsCounter == packet.mplsLabels.size()) {
+    for (size_t dShift = 0;; dShift += sizeof(mpls_label), idx++) {
+        if (sz < sizeof(mpls_label) || idx == packet.mplsLabels.size()) {
             return false;
         }
-        packet.mplsLabels[packet.mplsCounter] = reinterpret_cast<const struct mpls_label *>(d + dShift);
+        packet.mplsLabels[idx] = reinterpret_cast<const struct mpls_label *>(d + dShift);
 
         if (mpls_label *lbl = (mpls_label *)(d + dShift);
             ((lbl->entry >> MPLS_LS_S_SHIFT) & MPLS_LS_S_MASK) == MPLS_LS_S_MASK) {
             dShift += sizeof(mpls_label);
             dShift += 4; // PW Ethernet Control Word
             packet.bytes.L2 += dShift;
-            packet.mplsCounter++;
+            idx++;
             shift_left(sz, dShift);
             break;
         }
@@ -223,20 +212,15 @@ bool NetDecoder::FullProcessing(const LinkLayer linkLayer, const uint8_t *&d, si
 
     switch (static_cast<uint16_t>(linkLayer)) {
         case 0x4788: // MPLS
-            if (!HandleMpls(tData, sz, packet))
+            if (size_t idx = 0; !HandleMpls(tData, sz, packet, idx))
                 return false;
             if (!FullProcessing(LinkLayer::Eth, d, sz, packet))
                 return false;
             break;
         case 0x0081: // VLAN
-            if (!HandleVlan(tData, sz, packet))
-                return false;
-            if (!FullProcessing(
-                    static_cast<LinkLayer>(
-                        packet.vlansTags[packet.vlanCounter > 0 ? packet.vlanCounter - 1 : packet.vlanCounter]->vlan_tci),
-                    d,
-                    sz,
-                    packet))
+            if (size_t pos = 0;
+                !HandleVlan(tData, sz, packet, pos) &&
+                !FullProcessing(static_cast<LinkLayer>(htons(packet.vlansTags[pos]->vlan_tci)), d, sz, packet))
                 return false;
             break;
         case 0x6488:   // PPPoE PPP Session Stage
@@ -341,7 +325,8 @@ NetDecoder::Result NetDecoder::HandleEth(const uint8_t *&d, size_t &sz) noexcept
 
 NetDecoder::Result NetDecoder::HandleVlan(const uint8_t *&d, size_t &sz) noexcept {
     Packet packet{};
-    bool ok = HandleVlan(d, sz, packet);
+    size_t idx{0};
+    bool ok = HandleVlan(d, sz, packet, idx);
     return std::make_tuple(ok, packet);
 }
 
@@ -353,7 +338,8 @@ NetDecoder::Result NetDecoder::HandlePPPoE(const uint8_t *&d, size_t &sz) noexce
 
 NetDecoder::Result NetDecoder::HandleMpls(const uint8_t *&d, size_t &sz) noexcept {
     Packet packet{};
-    bool ok = HandleMpls(d, sz, packet);
+    size_t idx{0};
+    bool ok = HandleMpls(d, sz, packet, idx);
     return std::make_tuple(ok, packet);
 }
 

@@ -60,16 +60,13 @@ struct BytesCount {
 };
 
 struct Packet {
-    using MplsArray = std::array<const struct mpls_label *, MAX_MPLS_CNT>;
+    using MplsArray = std::array<const mpls_label *, MAX_MPLS_CNT>;
     using VlansArray = std::array<const vlan_tag *, MAX_VLAN_CNT>;
 
     const struct ether_header *ethHeader{nullptr};
     const struct PppoeHeader *pppoeHeader{nullptr};
 
-    size_t vlanCounter{0};         //!< Количество vlan меток.
-    VlansArray vlansTags{nullptr}; //!< Vlan метки. Количество указанов в Packet::vlan_cnt.
-
-    size_t mplsCounter{0}; //!< Количество mplsLabels headers
+    VlansArray vlansTags{};
     MplsArray mplsLabels{};
 
     const struct iphdr *ip4Header{nullptr};
@@ -87,9 +84,6 @@ struct Packet {
     const struct GtpHeader *gtpHeader{nullptr};
 
     BytesCount bytes{};
-
-    // explicit PacketBase() = default;
-    // virtual ~PacketBase() = default;
 
     void Reset();
     void ResetLowerLevels();

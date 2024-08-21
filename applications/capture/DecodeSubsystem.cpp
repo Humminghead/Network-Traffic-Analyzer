@@ -7,7 +7,7 @@
 #include <NetDecoder/Decoder.h>
 #include <Poco/Util/Application.h>
 #include <cctype>
-
+#include <boost/pfr.hpp>
 namespace Nta::Network {
 
 struct DecodeSubsystem::Impl {
@@ -46,6 +46,12 @@ void DecodeSubsystem::uninitialize() {
 bool DecodeSubsystem::Decode(const struct timeval, const uint8_t *d, const size_t s) {
     size_t tSz{s};
     auto [ok, packet] = m_Pimpl->m_Decoder->FullProcessing(m_Pimpl->m_LinkLayer, d, tSz);
+
+
+    boost::pfr::for_each_field(packet,[](auto& f){
+        int a = 0;
+    });
+
     return ok;
 }
 
