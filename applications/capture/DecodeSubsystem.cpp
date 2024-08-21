@@ -2,9 +2,9 @@
 
 #include "CaptureSubsystem.h"
 #include "Handlers/Common/HandlerIface.h"
-#include "NetDecoder/packetbase.h"
+#include "NetDecoder/PacketBase.h"
 #include "Util/Misc.h"
-#include <NetDecoder/decoder.h>
+#include <NetDecoder/Decoder.h>
 #include <Poco/Util/Application.h>
 #include <cctype>
 

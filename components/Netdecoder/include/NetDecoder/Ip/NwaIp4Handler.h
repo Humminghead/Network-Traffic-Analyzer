@@ -1,6 +1,6 @@
 #pragma once
 
-#include "NetDecoder/ip/NwaIpHandler.h"
+#include "NetDecoder/Ip/NwaIpHandler.h"
 #include <netinet/ip.h>
 
 namespace Nta::Network {
