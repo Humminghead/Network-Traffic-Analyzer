@@ -47,10 +47,11 @@ bool NetDecoder::HandleVlan(const uint8_t *&d, size_t &sz, Packet &pkt, size_t &
 
         pkt.bytes.L2 += sizeof(vlan_tag);
         tData += pkt.bytes.L2;
-        idx++;
 
         if (auto next = ntohs(tag->vlan_tci); next != ETHERTYPE_VLAN)
             return true;
+
+        idx++;
     }
 
     return false;
@@ -219,8 +220,10 @@ bool NetDecoder::FullProcessing(const LinkLayer linkLayer, const uint8_t *&d, si
             break;
         case 0x0081: // VLAN
             if (size_t pos = 0;
-                !HandleVlan(tData, sz, packet, pos) &&
-                !FullProcessing(static_cast<LinkLayer>(htons(packet.vlansTags[pos]->vlan_tci)), d, sz, packet))
+                HandleVlan(tData, sz, packet, pos) &&
+                FullProcessing(static_cast<LinkLayer>(packet.vlansTags[pos]->vlan_tci), d, sz, packet))
+                return true;
+            else
                 return false;
             break;
         case 0x6488:   // PPPoE PPP Session Stage
