@@ -15,7 +15,8 @@ struct DecodeSubsystem::Impl {
     std::unique_ptr<Nta::Network::NetDecoder> m_Decoder{nullptr};
     LinkLayer m_LinkLayer{LinkLayer::Eth};
     const ConfigureSubsystem *m_ConfigureSubsystem{nullptr};
-    CaptureSubsystem *m_LinkedSubsystem{nullptr};
+    CaptureSubsystem *m_LinkedHandlerSubsystem{nullptr};
+    CaptureSubsystem *m_LinkedTransportSubsystem{nullptr};
 };
 
 const char *DecodeSubsystem::name() const {
@@ -31,11 +32,11 @@ void DecodeSubsystem::initialize(Poco::Util::Application &app) {
     if (!m_Pimpl->m_ConfigureSubsystem)
         throw std::runtime_error("ConfigureSubsystem wasn't set in " + m_Pimpl->m_SubSystemName + " subsustem!");
 
-    if (!m_Pimpl->m_LinkedSubsystem)
+    if (!m_Pimpl->m_LinkedHandlerSubsystem)
         throw std::runtime_error("DecodeSubsystem wasn't linked with " + m_Pimpl->m_SubSystemName + " subsustem!");
 
     m_Pimpl->m_Decoder = std::make_unique<Nta::Network::NetDecoder>();
-    m_Pimpl->m_LinkedSubsystem->GetHandler()->SetCallback(
+    m_Pimpl->m_LinkedHandlerSubsystem->GetHandler()->SetCallback(
         std::bind(&DecodeSubsystem::Decode, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 }
 
@@ -56,7 +57,7 @@ bool DecodeSubsystem::Decode(const struct timeval, const uint8_t *d, const size_
 }
 
 void DecodeSubsystem::SetLinkedSubSystem(CaptureSubsystem *s) {
-    m_Pimpl->m_LinkedSubsystem = s;
+    m_Pimpl->m_LinkedHandlerSubsystem = s;
 }
 
 void DecodeSubsystem::SetLinkLayer(const LinkLayer &layer) {
