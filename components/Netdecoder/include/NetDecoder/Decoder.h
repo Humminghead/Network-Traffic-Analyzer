@@ -3,7 +3,6 @@
 #include "DecoderBase.h"
 #include "LinkLayer.h"
 
-#include <functional>
 #include <memory>
 
 namespace Nta::Network {
@@ -41,8 +40,19 @@ class NetDecoder : protected NetDecoderBase {
     virtual Result FullProcessing(const LinkLayer type, const uint8_t *&d, size_t &size) noexcept;
     virtual Result ProcessTransportLayers(const uint8_t *&d, size_t &size) noexcept;
 
+    size_t GetHandledBytesTotal() const noexcept;
+    size_t GetHandledBytesL2() const noexcept;
+    size_t GetHandledBytesL3() const noexcept;
+    size_t GetHandledBytesL4() const noexcept;
+    size_t GetHandledBytesL5() const noexcept;
+    size_t GetHandledBytesL6() const noexcept;
+    size_t GetHandledBytesL7() const noexcept;
+    void ResetHandledBytes() const noexcept;
+
   private:
     struct Impl;
-    std::unique_ptr<Impl, std::function<void(Impl *)>> m_Impl;
+    struct ImplPointer : std::unique_ptr<Impl> {
+        ~ImplPointer();
+    } m_Impl;
 };
 } // namespace Nta::Network

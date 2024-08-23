@@ -24,10 +24,6 @@ int8_t GetGtpVersion(const GtpHeader *gtph) {
     return (gtph->common.flags & 0b11100000) >> 5;
 }
 
-size_t GetTotalSize(const Packet &p) {
-    return p.bytes.L2 + p.bytes.L3 + p.bytes.L4 + p.bytes.L5 + p.bytes.L6 + p.bytes.L7;
-}
-
 bool IsGtpv1HdrExt(const Packet &p) {
     return p.gtpHeader == nullptr ? false : (p.gtpHeader->common.flags & GTPV1_HDR_EXT) == GTPV1_HDR_EXT;
 }

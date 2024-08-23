@@ -18,23 +18,12 @@ void Packet::Reset() {
     icmpHeader = nullptr;
     gtpHeader = nullptr;
     sctpHeader = nullptr;
-
-    bytes.L2 = 0;
-    bytes.L3 = 0;
-    bytes.L4 = 0;
-    bytes.L5 = 0;
-    bytes.L6 = 0;
-    bytes.L7 = 0;
 }
 
 void Packet::ResetLowerLevels() {
     tcpHeader = nullptr;
     sctpHeader = nullptr;
     gtpHeader = nullptr;
-    bytes.L4 = {0};
-    bytes.L5 = {0};
-    bytes.L6 = {0};
-    bytes.L7 = {0};
 }
 
 } // namespace Nta::Network

@@ -12,15 +12,26 @@
 #include "NetDecoder/Shift.h"
 #include "NetDecoder/Util/Packet.h"
 
-#include "NetDecoder/Ip/NwaIpHandler.h"
-
 /*type + code + checksum + id + seq + timestamp*/
 constexpr size_t IcmpShift = sizeof(struct icmphdr) + sizeof(uint64_t);
 
 namespace Nta::Network {
 
-struct NetDecoder::Impl {
+struct BytesCount {
+    // Bytes count in packet by OSI layers
+    size_t m_CounterL2{0}; // Data link layer(Eth,802.11q...)
+    size_t m_CounterL3{0}; // Network layer(Ipv4,Ipv6...)
+    size_t m_CounterL4{0}; // Transport layer(TCP,UDP)
+    size_t m_CounterL5{0}; // Session layer(ADSP,ASP,SCP,SOCKS5...)
+    size_t m_CounterL6{0}; // Presentation layer(VT,RDA,FTAM...)
+    size_t m_CounterL7{0}; // Application layer(BitTorent,NFS,RTP,SMTP...)
 };
+
+struct NetDecoder::Impl {
+    BytesCount m_Bytes{};
+};
+
+NetDecoder::ImplPointer::~ImplPointer() {}
 
 NetDecoder::NetDecoder() : NetDecoderBase(), m_Impl{std::make_unique<Impl>()} {}
 
@@ -28,7 +39,7 @@ bool NetDecoder::HandleEth(const uint8_t *&d, size_t &sz, Packet &packet) noexce
     if (!DecodeEth(d, sz, packet.ethHeader))
         return false;
 
-    packet.bytes.L2 += sizeof(ether_header);
+    m_Impl->m_Bytes.m_CounterL2 += sizeof(ether_header);
     return true;
 }
 
@@ -45,8 +56,8 @@ bool NetDecoder::HandleVlan(const uint8_t *&d, size_t &sz, Packet &pkt, size_t &
         if (!DecodeVlan(tData, sz, tag))
             break;
 
-        pkt.bytes.L2 += sizeof(vlan_tag);
-        tData += pkt.bytes.L2;
+        m_Impl->m_Bytes.m_CounterL2 += sizeof(vlan_tag);
+        tData += m_Impl->m_Bytes.m_CounterL2;
 
         if (auto next = ntohs(tag->vlan_tci); next != ETHERTYPE_VLAN)
             return true;
@@ -77,7 +88,7 @@ bool NetDecoder::HandlePPPoE(const uint8_t *&d, size_t &sz, Packet &packet) noex
     }
 
     shift_left(sz, layer.getHeaderLen());
-    packet.bytes.L2 += layer.getHeaderLen();
+    m_Impl->m_Bytes.m_CounterL2 += layer.getHeaderLen();
 
     return true;
 }
@@ -99,7 +110,7 @@ bool NetDecoder::HandleMpls(const uint8_t *&d, size_t &sz, Packet &packet, size_
             ((lbl->entry >> MPLS_LS_S_SHIFT) & MPLS_LS_S_MASK) == MPLS_LS_S_MASK) {
             dShift += sizeof(mpls_label);
             dShift += 4; // PW Ethernet Control Word
-            packet.bytes.L2 += dShift;
+            m_Impl->m_Bytes.m_CounterL2 += dShift;
             idx++;
             shift_left(sz, dShift);
             break;
@@ -121,7 +132,7 @@ bool NetDecoder::HandleIp4(const uint8_t *&d, size_t &sz, Packet &packet) noexce
     if (!DecodeIpv4(d, sz, packet.ip4Header))
         return false;
 
-    packet.bytes.L3 += sizeof(iphdr);
+    m_Impl->m_Bytes.m_CounterL3 += sizeof(iphdr);
 
     return true;
 }
@@ -139,7 +150,7 @@ bool NetDecoder::HandleIp6(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept 
     if (!DecodeIpv6(d, sz, pkt.ip6Header, pkt.ip6Fragment))
         return false;
 
-    pkt.bytes.L3 += sTmp - sz;
+    m_Impl->m_Bytes.m_CounterL3 += sTmp - sz;
 
     return true;
 }
@@ -149,7 +160,7 @@ bool NetDecoder::HandleTcp(const uint8_t *&d, size_t &sz, Packet &packet) noexce
         return false;
     if (!DecodeTcp(d, sz, packet.tcpHeader))
         return false;
-    packet.bytes.L4 += packet.tcpHeader->doff * 4; // doff:4 i.e. count_doff's * 4;
+    m_Impl->m_Bytes.m_CounterL4 += packet.tcpHeader->doff * 4; // doff:4 i.e. count_doff's * 4;
 
     return true;
 }
@@ -160,10 +171,10 @@ bool NetDecoder::HandleUdp(const uint8_t *&d, size_t &sz, Packet &packet) noexce
 
     if (!DecodeUdp(d, sz, packet.udpHeader))
         return false;
-    packet.bytes.L4 += sizeof(udphdr);
+    m_Impl->m_Bytes.m_CounterL4 += sizeof(udphdr);
 
     if (const auto dLen = htobe16(packet.udpHeader->len); dLen >= sizeof(udphdr)) {
-        packet.bytes.L7 = dLen - sizeof(udphdr);
+        m_Impl->m_Bytes.m_CounterL7 = dLen - sizeof(udphdr);
     } else {
         return false;
     }
@@ -177,14 +188,14 @@ bool NetDecoder::HandleSctp(const uint8_t *&d, size_t &sz, Packet &packet) noexc
 
     if (!DecodeSctp(d, sz, packet.sctpHeader))
         return false;
-    packet.bytes.L4 += sizeof(SctpHdr);
-    packet.bytes.L7 += sz;
+    m_Impl->m_Bytes.m_CounterL4 += sizeof(SctpHdr);
+    m_Impl->m_Bytes.m_CounterL7 += sz;
 
     return true;
 }
 
 bool NetDecoder::HandleGtp(const uint8_t *&d, size_t &sz, Packet &packet) noexcept {
-    packet.bytes.L7 = sz;
+    m_Impl->m_Bytes.m_CounterL7 = sz;
 
     if (!d)
         return false;
@@ -209,7 +220,7 @@ bool NetDecoder::FullProcessing(const LinkLayer linkLayer, const uint8_t *&d, si
     if (!d)
         return false;
 
-    const uint8_t *tData = d + packet.bytes.L2;
+    const uint8_t *tData = d + m_Impl->m_Bytes.m_CounterL2;
 
     switch (static_cast<uint16_t>(linkLayer)) {
         case 0x4788: // MPLS
@@ -219,9 +230,8 @@ bool NetDecoder::FullProcessing(const LinkLayer linkLayer, const uint8_t *&d, si
                 return false;
             break;
         case 0x0081: // VLAN
-            if (size_t pos = 0;
-                HandleVlan(tData, sz, packet, pos) &&
-                FullProcessing(static_cast<LinkLayer>(packet.vlansTags[pos]->vlan_tci), d, sz, packet))
+            if (size_t pos = 0; HandleVlan(tData, sz, packet, pos) &&
+                                FullProcessing(static_cast<LinkLayer>(packet.vlansTags[pos]->vlan_tci), d, sz, packet))
                 return true;
             else
                 return false;
@@ -236,7 +246,7 @@ bool NetDecoder::FullProcessing(const LinkLayer linkLayer, const uint8_t *&d, si
             if (auto idSize = sizeof(uint16_t); sz < idSize)
                 return false;
             else {
-                packet.bytes.L2 += idSize;
+                m_Impl->m_Bytes.m_CounterL2 += idSize;
                 sz -= idSize;
             }
             if (const auto *id = (const uint16_t *)tData; *id != 0x2100)
@@ -249,7 +259,7 @@ bool NetDecoder::FullProcessing(const LinkLayer linkLayer, const uint8_t *&d, si
             if (!HandleIp4(tData, sz, packet))
                 return false;
             if (Util::IsIpFragment(packet)) {
-                packet.bytes.L7 = sz;
+                m_Impl->m_Bytes.m_CounterL7 = sz;
                 return true;
             }
             if (!ProcessTransportLayers(tData, sz, packet))
@@ -259,7 +269,7 @@ bool NetDecoder::FullProcessing(const LinkLayer linkLayer, const uint8_t *&d, si
             if (!HandleIp6(tData, sz, packet))
                 return false;
             if (Util::IsIpFragment(packet)) {
-                packet.bytes.L7 = sz;
+                m_Impl->m_Bytes.m_CounterL7 = sz;
                 return true;
             }
             if (!ProcessTransportLayers(tData, sz, packet))
@@ -288,12 +298,12 @@ bool NetDecoder::ProcessTransportLayers(const uint8_t *&d, size_t &sz, Packet &p
     if (proto == IPPROTO_TCP) {
         if (!HandleTcp(d, sz, pkt))
             return false;
-        pkt.bytes.L7 = sz;
+        m_Impl->m_Bytes.m_CounterL7 = sz;
         return true;
     } else if (proto == IPPROTO_UDP) {
         if (!HandleUdp(d, sz, pkt))
             return false;
-        pkt.bytes.L7 = sz;
+        m_Impl->m_Bytes.m_CounterL7 = sz;
         return true;
     } else if (proto == IPPROTO_ICMP) {
         pkt.icmpHeader = reinterpret_cast<const struct icmphdr *>(d);
@@ -303,16 +313,16 @@ bool NetDecoder::ProcessTransportLayers(const uint8_t *&d, size_t &sz, Packet &p
         if (IcmpShift > sz) { // Mailformed
             return false;
         }
-        pkt.bytes.L4 = IcmpShift;
-        pkt.bytes.L7 = sz;
+        m_Impl->m_Bytes.m_CounterL4 = IcmpShift;
+        m_Impl->m_Bytes.m_CounterL7 = sz;
         return true;
     } else if (proto == IPPROTO_ICMPV6) {
         ///\todo проверить правильность определения размера данных ICMPv6
         /// packet.l7_d = d + sizeof(icmp6_hdr);
         pkt.icmp6Header = reinterpret_cast<const struct icmp6_hdr *>(d);
         sz -= sizeof(icmp6_hdr);
-        pkt.bytes.L4 = sizeof(icmp6_hdr);
-        pkt.bytes.L7 = sz;
+        m_Impl->m_Bytes.m_CounterL4 = sizeof(icmp6_hdr);
+        m_Impl->m_Bytes.m_CounterL7 = sz;
         return true;
     } else if (proto == IPPROTO_SCTP) {
         return HandleSctp(d, sz, pkt);
@@ -392,6 +402,44 @@ NetDecoder::Result NetDecoder::ProcessTransportLayers(const uint8_t *&d, size_t 
     Packet packet{};
     bool ok = ProcessTransportLayers(d, sz, packet);
     return std::make_tuple(ok, packet);
+}
+
+size_t NetDecoder::GetHandledBytesTotal() const noexcept {
+    return m_Impl->m_Bytes.m_CounterL2 + m_Impl->m_Bytes.m_CounterL3 + m_Impl->m_Bytes.m_CounterL4 + m_Impl->m_Bytes.m_CounterL5 + m_Impl->m_Bytes.m_CounterL6 +
+           m_Impl->m_Bytes.m_CounterL7;
+}
+
+size_t NetDecoder::GetHandledBytesL7() const noexcept {
+    return m_Impl->m_Bytes.m_CounterL7;
+}
+
+void NetDecoder::ResetHandledBytes() const noexcept {
+    m_Impl->m_Bytes.m_CounterL2 = 0;
+    m_Impl->m_Bytes.m_CounterL3 = 0;
+    m_Impl->m_Bytes.m_CounterL4 = 0;
+    m_Impl->m_Bytes.m_CounterL5 = 0;
+    m_Impl->m_Bytes.m_CounterL6 = 0;
+    m_Impl->m_Bytes.m_CounterL7 = 0;
+}
+
+size_t NetDecoder::GetHandledBytesL6() const noexcept {
+    return m_Impl->m_Bytes.m_CounterL6;
+}
+
+size_t NetDecoder::GetHandledBytesL5() const noexcept {
+    return m_Impl->m_Bytes.m_CounterL5;
+}
+
+size_t NetDecoder::GetHandledBytesL4() const noexcept {
+    return m_Impl->m_Bytes.m_CounterL4;
+}
+
+size_t NetDecoder::GetHandledBytesL3() const noexcept {
+    return m_Impl->m_Bytes.m_CounterL3;
+}
+
+size_t NetDecoder::GetHandledBytesL2() const noexcept {
+    return m_Impl->m_Bytes.m_CounterL2;
 }
 
 } // namespace Nta::Network

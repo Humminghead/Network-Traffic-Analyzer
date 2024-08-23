@@ -33,11 +33,15 @@ TEST_F(NetDecoderCompleteTest, handle_eth_nullptr_test) {
     const uint8_t *data = nullptr;
     size_t size = 0;
 
+    decoder.ResetHandledBytes();
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
+
     auto [status, packet] = decoder.HandleEth(data, size);
 
     ASSERT_FALSE(status);
     ASSERT_EQ(packet.ethHeader, nullptr);
     ASSERT_EQ(size, 0);
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
 }
 
 TEST_F(NetDecoderCompleteTest, handle_vlan_nullptr_test) {
@@ -46,11 +50,15 @@ TEST_F(NetDecoderCompleteTest, handle_vlan_nullptr_test) {
     const uint8_t *data = nullptr;
     size_t size = 0;
 
+    decoder.ResetHandledBytes();
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
+
     auto [status, packet] = decoder.HandleVlan(data, size);
 
     ASSERT_FALSE(status);    
     std::for_each(std::begin(packet.vlansTags), std::end(packet.vlansTags), [](auto p) { ASSERT_EQ(p, nullptr); });    
     ASSERT_EQ(size, 0);
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
 }
 
 TEST_F(NetDecoderCompleteTest, handle_pppoe_nullptr_test) {
@@ -59,11 +67,15 @@ TEST_F(NetDecoderCompleteTest, handle_pppoe_nullptr_test) {
     const uint8_t *data = nullptr;
     size_t size = 0;
 
+    decoder.ResetHandledBytes();
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
+
     auto [status, packet] = decoder.HandlePPPoE(data, size);
 
     ASSERT_FALSE(status);
     ASSERT_EQ(packet.pppoeHeader, nullptr);
     ASSERT_EQ(size, 0);
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
 }
 
 TEST_F(NetDecoderCompleteTest, handle_mpls_nullptr_test) {
@@ -72,11 +84,15 @@ TEST_F(NetDecoderCompleteTest, handle_mpls_nullptr_test) {
     const uint8_t *data = nullptr;
     size_t size = 0;
 
+    decoder.ResetHandledBytes();
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
+
     auto [status, packet] = decoder.HandleMpls(data, size);
 
     ASSERT_FALSE(status);
     std::for_each(std::begin(packet.mplsLabels), std::end(packet.mplsLabels), [](auto p) { ASSERT_EQ(p, nullptr); });    
     ASSERT_EQ(size, 0);
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
 }
 
 TEST_F(NetDecoderCompleteTest, handle_ip_nullptr_test) {
@@ -85,12 +101,16 @@ TEST_F(NetDecoderCompleteTest, handle_ip_nullptr_test) {
     const uint8_t *data = nullptr;
     size_t size = 0;
 
+    decoder.ResetHandledBytes();
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
+
     auto [status, packet] = decoder.HandleIp4(data, size);
 
     ASSERT_FALSE(status);
     ASSERT_EQ(packet.ip4Header, nullptr);
     ASSERT_EQ(packet.ip6Header, nullptr);
     ASSERT_EQ(size, 0);
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
 }
 
 TEST_F(NetDecoderCompleteTest, handle_udp_nullptr_test) {
@@ -99,11 +119,15 @@ TEST_F(NetDecoderCompleteTest, handle_udp_nullptr_test) {
     const uint8_t *data = nullptr;
     size_t size = 0;
 
+    decoder.ResetHandledBytes();
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
+
     auto [status, packet] = decoder.HandleUdp(data, size);
 
     ASSERT_FALSE(status);
     ASSERT_EQ(packet.udpHeader, nullptr);
     ASSERT_EQ(size, 0);
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
 }
 
 TEST_F(NetDecoderCompleteTest, handle_tcp_nullptr_test) {
@@ -112,11 +136,15 @@ TEST_F(NetDecoderCompleteTest, handle_tcp_nullptr_test) {
     const uint8_t *data = nullptr;
     size_t size = 0;
 
+    decoder.ResetHandledBytes();
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
+
     auto [status, packet] = decoder.HandleTcp(data, size);
 
     ASSERT_FALSE(status);
     ASSERT_EQ(packet.tcpHeader, nullptr);
     ASSERT_EQ(size, 0);
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
 }
 
 TEST_F(NetDecoderCompleteTest, handle_gtp_nullptr_test) {
@@ -125,11 +153,15 @@ TEST_F(NetDecoderCompleteTest, handle_gtp_nullptr_test) {
     const uint8_t *data = nullptr;
     size_t size = 0;
 
+    decoder.ResetHandledBytes();
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
+
     auto [status, packet] = decoder.HandleGtp(data, size);
 
     ASSERT_FALSE(status);
     ASSERT_EQ(packet.gtpHeader, nullptr);
     ASSERT_EQ(size, 0);
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
 }
 
 /*
@@ -145,6 +177,9 @@ TEST_F(NetDecoderCompleteTest, handle_eth_test) {
     const uint8_t *data = ethHdr.data();
     size_t size = ethHdr.size();
 
+    decoder.ResetHandledBytes();
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
+
     auto [status, packet] = decoder.HandleEth(data, size);
 
     ASSERT_TRUE(status);
@@ -154,7 +189,8 @@ TEST_F(NetDecoderCompleteTest, handle_eth_test) {
     ASSERT_EQ(packet.ethHeader->ether_dhost, tEth->ether_dhost);
     ASSERT_EQ(packet.ethHeader->ether_shost, tEth->ether_shost);
     ASSERT_EQ(htobe16(packet.ethHeader->ether_type), 0x8847);
-    ASSERT_EQ(packet.bytes.L2, 14);
+    ASSERT_EQ(decoder.GetHandledBytesL2(), 14);
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 14);
     ASSERT_EQ(size, 0);
 }
 
@@ -182,6 +218,9 @@ TEST_F(NetDecoderCompleteTest, handle_vlan_test) {
     size_t size = vlanHdr.size();
     size_t vlansCntr = 0;
 
+    decoder.ResetHandledBytes();
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
+
     auto [status, packet] = decoder.HandleVlan(data, size);
 
     ASSERT_TRUE(status);
@@ -192,7 +231,8 @@ TEST_F(NetDecoderCompleteTest, handle_vlan_test) {
             vlansCntr++;
     });
     ASSERT_EQ(vlansCntr, 2);
-    ASSERT_EQ(packet.bytes.L2, 8);
+    ASSERT_EQ(decoder.GetHandledBytesL2(), 8);
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 8);
     ASSERT_EQ(size, 0);
 }
 
@@ -213,6 +253,9 @@ TEST_F(NetDecoderCompleteTest, handle_pppoe_test) {
 
     const uint8_t *data = pppoeHdr.data();
     size_t size = pppoeHdr.size();
+
+    decoder.ResetHandledBytes();
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
 
     auto [status, packet] = decoder.HandlePPPoE(data, size);
 
@@ -241,10 +284,14 @@ TEST_F(NetDecoderCompleteTest, handle_mpls_test) {
     const uint8_t *data = mplsHdr.data();
     size_t size = mplsHdr.size();
 
+    decoder.ResetHandledBytes();
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
+
     auto [status, packet] = decoder.HandleMpls(data, size);
 
     ASSERT_TRUE(status);
-    ASSERT_EQ(packet.bytes.L2, 8);
+    ASSERT_EQ(decoder.GetHandledBytesL2(), 8);
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 8);
     ASSERT_EQ(size, 0);
 }
 
@@ -298,6 +345,9 @@ TEST_F(NetDecoderCompleteTest, handle_ip4_test) {
     const uint8_t *data = ip4Hdr.data();
     size_t size = ip4Hdr.size();
 
+    decoder.ResetHandledBytes();
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
+
     auto [status, packet] = decoder.HandleIp4(data, size);
 
     const struct iphdr *tIpH{(const struct iphdr *)ip4Hdr.data()};
@@ -314,7 +364,8 @@ TEST_F(NetDecoderCompleteTest, handle_ip4_test) {
     ASSERT_EQ(packet.ip4Header->tos, tIpH->tos);
     ASSERT_EQ(packet.ip4Header->tot_len, tIpH->tot_len);
     ASSERT_EQ(packet.ip4Header->ttl, tIpH->ttl);
-    ASSERT_EQ(packet.bytes.L3, 20);
+    ASSERT_EQ(decoder.GetHandledBytesL3(), 20);
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 20);
     ASSERT_EQ(size, 32);
 }
 
@@ -384,6 +435,9 @@ TEST_F(NetDecoderCompleteTest, handle_ip6_test) {
     const uint8_t *data = ip6Hdr.data();
     size_t size = ip6Hdr.size();
 
+    decoder.ResetHandledBytes();
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
+
     auto [status, packet] = decoder.HandleIp6(data, size);
 
     const struct ip6_hdr *tIp6H{(const struct ip6_hdr *)ip6Hdr.data()};
@@ -404,6 +458,8 @@ TEST_F(NetDecoderCompleteTest, handle_ip6_test) {
     ASSERT_EQ(packet.ip6Header->ip6_ctlun.ip6_un1.ip6_un1_nxt, tIp6H->ip6_ctlun.ip6_un1.ip6_un1_nxt);
     ASSERT_EQ(packet.ip6Header->ip6_ctlun.ip6_un1.ip6_un1_plen, tIp6H->ip6_ctlun.ip6_un1.ip6_un1_plen);
     ASSERT_EQ(size, 84);
+    ASSERT_EQ(decoder.GetHandledBytesL3(), 40);
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 40);
 }
 
 /*
@@ -421,6 +477,9 @@ constexpr std::array<uint8_t, 8> udpHdr{0x88, 0xd0, 0x48, 0x89, 0x00, 0x1c, 0xc6
 TEST_F(NetDecoderCompleteTest, handle_udp_test) {
     auto &decoder = this->getDecoder();
 
+    decoder.ResetHandledBytes();
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
+
     const uint8_t *data = udpHdr.data();
     size_t size = udpHdr.size();
 
@@ -432,8 +491,9 @@ TEST_F(NetDecoderCompleteTest, handle_udp_test) {
     ASSERT_EQ(htobe16(packet.udpHeader->dest), 18569);
     ASSERT_EQ(htobe16(packet.udpHeader->source), 35024);
     ASSERT_EQ(htobe16(packet.udpHeader->len), 28);
-    ASSERT_EQ(packet.bytes.L4, 8);
-    ASSERT_EQ(packet.bytes.L7, 20);
+    ASSERT_EQ(decoder.GetHandledBytesL4(), 8);
+    ASSERT_EQ(decoder.GetHandledBytesL7(), 20);
+    ASSERT_EQ(decoder.GetHandledBytesTotal(),28);
     ASSERT_EQ(size, 0);
 }
 
@@ -470,6 +530,9 @@ TEST_F(NetDecoderCompleteTest, handle_tcp_test) {
     const uint8_t *data = tcpHdr.data();
     size_t size = tcpHdr.size();
 
+    decoder.ResetHandledBytes();
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
+
     auto [status, packet] = decoder.HandleTcp(data, size);
 
     auto *tcp = packet.tcpHeader;
@@ -492,7 +555,8 @@ TEST_F(NetDecoderCompleteTest, handle_tcp_test) {
     ASSERT_EQ(htobe16(tcp->window), 2773);
     ASSERT_EQ(htobe16(tcp->check), 0x400b);
     ASSERT_EQ(tcp->urg_ptr, 0);
-    ASSERT_EQ(packet.bytes.L4, 32);
+    ASSERT_EQ(decoder.GetHandledBytesL4(), 32);
+    ASSERT_EQ(decoder.GetHandledBytesTotal(),32);
     ASSERT_EQ(size, 0);
 }
 
@@ -517,6 +581,9 @@ TEST_F(NetDecoderCompleteTest, handle_gtp_test) {
     const uint8_t *data = gtpHdr.data();
     size_t size = gtpHdr.size();
 
+    decoder.ResetHandledBytes();
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
+
     auto [status, packet] = decoder.HandleGtp(data, size);
 
     const GtpHeader *gtp = packet.gtpHeader;
@@ -527,7 +594,8 @@ TEST_F(NetDecoderCompleteTest, handle_gtp_test) {
     ASSERT_EQ(htobe16(gtp->common.length), 81);
     ASSERT_EQ(gtp->common.msgtype, 0xff);
     ASSERT_EQ(htonl(gtp->in.gtpv1_hdr.teid), 2164056373);
-    ASSERT_EQ(packet.bytes.L7, 98);
+    ASSERT_EQ(decoder.GetHandledBytesL7(), 98);
+    ASSERT_EQ(decoder.GetHandledBytesTotal(),98);
     ASSERT_FALSE(Util::IsGtpv1HdrExt(packet));
     ASSERT_EQ(size, 94);
 }
@@ -552,6 +620,9 @@ TEST_F(NetDecoderCompleteTest, handle_sctp_test) {
     const uint8_t *data = sctpHdr.data();
     size_t size = sctpHdr.size();
 
+    decoder.ResetHandledBytes();
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
+
     auto [status, packet] = decoder.HandleSctp(data, size);
 
     const SctpHdr *sctp = packet.sctpHeader;
@@ -563,6 +634,9 @@ TEST_F(NetDecoderCompleteTest, handle_sctp_test) {
     ASSERT_EQ(htonl(sctp->vtag), 0x00016f0a);
     ASSERT_EQ(htonl(sctp->checksum), 0x6db01882);
     ASSERT_EQ(size, 16);
+    ASSERT_EQ(decoder.GetHandledBytesL4(), 12);
+    ASSERT_EQ(decoder.GetHandledBytesL7(), 16);
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 28);
 }
 
 int main(int argc, char **argv) {
