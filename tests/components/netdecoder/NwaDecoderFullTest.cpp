@@ -41,6 +41,7 @@ TEST_F(NetDecoderCompleteTest, handle_eth_nullptr_test) {
     ASSERT_FALSE(status);
     ASSERT_EQ(packet.ethHeader, nullptr);
     ASSERT_EQ(size, 0);
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
 }
 
 TEST_F(NetDecoderCompleteTest, handle_vlan_nullptr_test) {
@@ -57,6 +58,7 @@ TEST_F(NetDecoderCompleteTest, handle_vlan_nullptr_test) {
     ASSERT_FALSE(status);    
     std::for_each(std::begin(packet.vlansTags), std::end(packet.vlansTags), [](auto p) { ASSERT_EQ(p, nullptr); });    
     ASSERT_EQ(size, 0);
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
 }
 
 TEST_F(NetDecoderCompleteTest, handle_pppoe_nullptr_test) {
@@ -73,6 +75,7 @@ TEST_F(NetDecoderCompleteTest, handle_pppoe_nullptr_test) {
     ASSERT_FALSE(status);
     ASSERT_EQ(packet.pppoeHeader, nullptr);
     ASSERT_EQ(size, 0);
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
 }
 
 TEST_F(NetDecoderCompleteTest, handle_mpls_nullptr_test) {
@@ -89,6 +92,7 @@ TEST_F(NetDecoderCompleteTest, handle_mpls_nullptr_test) {
     ASSERT_FALSE(status);
     std::for_each(std::begin(packet.mplsLabels), std::end(packet.mplsLabels), [](auto p) { ASSERT_EQ(p, nullptr); });    
     ASSERT_EQ(size, 0);
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
 }
 
 TEST_F(NetDecoderCompleteTest, handle_ip_nullptr_test) {
@@ -106,6 +110,7 @@ TEST_F(NetDecoderCompleteTest, handle_ip_nullptr_test) {
     ASSERT_EQ(packet.ip4Header, nullptr);
     ASSERT_EQ(packet.ip6Header, nullptr);
     ASSERT_EQ(size, 0);
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
 }
 
 TEST_F(NetDecoderCompleteTest, handle_udp_nullptr_test) {
@@ -122,6 +127,7 @@ TEST_F(NetDecoderCompleteTest, handle_udp_nullptr_test) {
     ASSERT_FALSE(status);
     ASSERT_EQ(packet.udpHeader, nullptr);
     ASSERT_EQ(size, 0);
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
 }
 
 TEST_F(NetDecoderCompleteTest, handle_tcp_nullptr_test) {
@@ -138,6 +144,7 @@ TEST_F(NetDecoderCompleteTest, handle_tcp_nullptr_test) {
     ASSERT_FALSE(status);
     ASSERT_EQ(packet.tcpHeader, nullptr);
     ASSERT_EQ(size, 0);
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
 }
 
 TEST_F(NetDecoderCompleteTest, handle_gtp_nullptr_test) {
@@ -154,6 +161,7 @@ TEST_F(NetDecoderCompleteTest, handle_gtp_nullptr_test) {
     ASSERT_FALSE(status);
     ASSERT_EQ(packet.gtpHeader, nullptr);
     ASSERT_EQ(size, 0);
+    ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
 }
 
 /*
