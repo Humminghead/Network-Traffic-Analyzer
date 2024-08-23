@@ -1,10 +1,7 @@
 #include "NetDecoder/DecoderBase.h"
 
-#include "NetDecoder/DecodeStat.h"
 #include "NetDecoder/Ip/NwaIp6Handler.h"
 #include "NetDecoder/PacketBase.h"
-#include "NetDecoder/PppOe/PPPoELayer.h"
-#include "NetDecoder/PppOe/PppTypes.h"
 #include "NetDecoder/Sctp/Sctp.h"
 #include "NetDecoder/Shift.h"
 #include <linux/mpls.h>
@@ -18,15 +15,7 @@
 namespace Nta::Network {
 
 struct NetDecoderBase::Impl {
-    EthStat ethstat;
-    VlanStat vlanstat;
-    IpStat ipstat;
-    UdpStat udpstat;
-    TcpStat tcpstat;
-    SctpStat sctpstat;
-    GtpStat gtpstat;
-    GtpStat gtp2stat;
-    IpHandler<Ip4> m_Ip4h;
+    IpHandler<Ip4> m_Ip4h;///\todo
     IpHandler<Ip6> m_Ip6h;
 };
 
@@ -35,10 +24,7 @@ NetDecoderBase::ptr_impl::~ptr_impl() {}
 NetDecoderBase::NetDecoderBase() : d{std::make_unique<Impl>()} {}
 
 bool NetDecoderBase::DecodeEth(const uint8_t *&data, size_t &size, const ether_header *&eth) {
-    d->ethstat.pkt_count++;
-
     if (size < sizeof(struct ether_header)) {
-        d->ethstat.no_space++;
         return false;
     }
 
@@ -49,10 +35,7 @@ bool NetDecoderBase::DecodeEth(const uint8_t *&data, size_t &size, const ether_h
 }
 
 bool NetDecoderBase::DecodeVlan(const uint8_t *&data, size_t &size, const vlan_tag *&vlan) {
-    d->vlanstat.pkt_count++;
-
     if (size < sizeof(struct vlan_tag)) {
-        d->vlanstat.no_space++;
         return false;
     }
     vlan = reinterpret_cast<const struct vlan_tag *>(data);
@@ -61,30 +44,15 @@ bool NetDecoderBase::DecodeVlan(const uint8_t *&data, size_t &size, const vlan_t
 }
 
 bool NetDecoderBase::DecodeIpv4(const uint8_t *&data, size_t &size, const iphdr *&iph) {
-    d->ipstat.pkt_count++;
-
     iph = reinterpret_cast<const iphdr *>(data);
 
     if (size == sizeof(struct iphdr)) {
-        d->ipstat.no_space++;
         return true;
     }
 
     if (uint16_t tot_len = ntohs(iph->tot_len); size < tot_len) {
-        d->ipstat.invalid_tot_len++;
         return false;
     }
-
-    d->ipstat.ipv4++;
-
-    if (const auto proto = iph->protocol; proto == IPPROTO_TCP)
-        d->ipstat.ipv4_tcp++;
-    else if (proto == IPPROTO_UDP)
-        d->ipstat.ipv4_udp++;
-    else if (proto == IPPROTO_ICMP)
-        d->ipstat.ipv4_icmp++;
-    else
-        d->ipstat.invalid_protocol++;
 
     data = data + sizeof(struct iphdr);
     size = size - sizeof(struct iphdr);
@@ -93,7 +61,6 @@ bool NetDecoderBase::DecodeIpv4(const uint8_t *&data, size_t &size, const iphdr 
 }
 
 bool NetDecoderBase::DecodeIpv6(const uint8_t *&data, size_t &size, const ip6_hdr *&ip6h, const ip6_frag *&ip6frag) {
-    d->ipstat.pkt_count++;
 
     auto [ok, res] = d->m_Ip6h.Handle(data, size);
 
@@ -108,10 +75,8 @@ bool NetDecoderBase::DecodeIpv6(const uint8_t *&data, size_t &size, const ip6_hd
 }
 
 bool NetDecoderBase::DecodeUdp(const uint8_t *&data, size_t &size, const udphdr *&udph) {
-    d->udpstat.pkt_count++;
 
     if (size < sizeof(struct udphdr)) {
-        d->udpstat.no_space++;
         return false;
     }
 
@@ -122,10 +87,8 @@ bool NetDecoderBase::DecodeUdp(const uint8_t *&data, size_t &size, const udphdr 
 }
 
 bool NetDecoderBase::DecodeTcp(const uint8_t *&data, size_t &size, const tcphdr *&tcph) {
-    d->tcpstat.pkt_count++;
 
     if (size < sizeof(struct tcphdr)) {
-        d->tcpstat.no_space++;
         return false;
     }
 
@@ -133,7 +96,6 @@ bool NetDecoderBase::DecodeTcp(const uint8_t *&data, size_t &size, const tcphdr 
     size_t tcph_size = tcph->doff << 2;
 
     if (size < tcph_size) {
-        d->tcpstat.no_space++;
         return false;
     }
 
@@ -144,10 +106,7 @@ bool NetDecoderBase::DecodeTcp(const uint8_t *&data, size_t &size, const tcphdr 
 
 bool NetDecoderBase::DecodeSctp(const uint8_t *&data, size_t &size, const SctpHdr *&sctph) {
 
-    d->sctpstat.pkt_count++;
-
     if (size < sizeof(struct SctpHdr)) {
-        d->sctpstat.no_space++;
         return false;
     }
 
@@ -155,33 +114,5 @@ bool NetDecoderBase::DecodeSctp(const uint8_t *&data, size_t &size, const SctpHd
     shift_left(size, sizeof(struct SctpHdr));
 
     return true;
-}
-
-EthStat &NetDecoderBase::GetEthStat() const {
-    return d->ethstat;
-}
-
-VlanStat &NetDecoderBase::GetVlanStat() const {
-    return d->vlanstat;
-}
-
-IpStat &NetDecoderBase::GetIpStat() const {
-    return d->ipstat;
-}
-
-UdpStat &NetDecoderBase::GetUdpStat() const {
-    return d->udpstat;
-}
-
-TcpStat &NetDecoderBase::GetTcpStat() const {
-    return d->tcpstat;
-}
-
-void NetDecoderBase::ResetStat() {
-    d->ethstat.reset();
-    d->vlanstat.reset();
-    d->ipstat.reset();
-    d->udpstat.reset();
-    d->tcpstat.reset();
 }
 } // namespace Nta::Network

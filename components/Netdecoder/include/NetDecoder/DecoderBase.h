@@ -35,13 +35,7 @@ class NetDecoderBase {
     bool DecodeIpv6(const uint8_t *&data, size_t &size, const struct ip6_hdr *&ip6h, const struct ip6_frag *&ip6frag);
     bool DecodeUdp(const uint8_t *&data, size_t &size, const struct udphdr *&udph);
     bool DecodeTcp(const uint8_t *&data, size_t &size, const struct tcphdr *&tcph);
-    bool DecodeSctp(const uint8_t *&data, size_t &size, const struct SctpHdr *&sctph);
-
-    EthStat &GetEthStat() const;
-    VlanStat &GetVlanStat() const;
-    IpStat &GetIpStat() const;
-    UdpStat &GetUdpStat() const;
-    TcpStat &GetTcpStat() const;
+    bool DecodeSctp(const uint8_t *&data, size_t &size, const struct SctpHdr *&sctph);    
 
     void ResetStat();
 

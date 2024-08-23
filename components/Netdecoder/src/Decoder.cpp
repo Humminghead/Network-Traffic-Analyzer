@@ -5,7 +5,6 @@
 #include <NetDecoder/PppOe/PppoeHeader.h>
 #include <linux/mpls.h>
 
-#include "NetDecoder/DecodeStat.h"
 #include "NetDecoder/Gtp/GtpHeader.h"
 #include "NetDecoder/PacketBase.h"
 #include "NetDecoder/Sctp/Sctp.h"
@@ -124,8 +123,7 @@ bool NetDecoder::HandleIp4(const uint8_t *&d, size_t &sz, Packet &packet) noexce
     if (!d)
         return false;
 
-    if (const uint8_t ipVersion = d[0] >> 4; ipVersion != 4) {
-        GetIpStat().invalid_version++;
+    if (const uint8_t ipVersion = d[0] >> 4; ipVersion != 4) {        
         return false;
     }
 
@@ -141,8 +139,7 @@ bool NetDecoder::HandleIp6(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept 
     if (!d)
         return false;
 
-    if (const uint8_t ipVersion = d[0] >> 4; ipVersion != 6) {
-        GetIpStat().invalid_version++;
+    if (const uint8_t ipVersion = d[0] >> 4; ipVersion != 6) {        
         return false;
     }
 
