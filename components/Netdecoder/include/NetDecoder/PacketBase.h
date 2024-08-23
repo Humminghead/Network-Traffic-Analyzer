@@ -49,16 +49,6 @@ struct GtpHeader;
 struct PppoeHeader;
 struct SctpHdr;
 
-struct BytesCount {
-    // Bytes count in packet by OSI layers
-    size_t L2{0}; // Data link layer(Eth,802.11q...)
-    size_t L3{0}; // Network layer(Ipv4,Ipv6...)
-    size_t L4{0}; // Transport layer(TCP,UDP)
-    size_t L5{0}; // Session layer(ADSP,ASP,SCP,SOCKS5...)
-    size_t L6{0}; // Presentation layer(VT,RDA,FTAM...)
-    size_t L7{0}; // Application layer(BitTorent,NFS,RTP,SMTP...)
-};
-
 struct Packet {
     using MplsArray = std::array<const mpls_label *, MAX_MPLS_CNT>;
     using VlansArray = std::array<const vlan_tag *, MAX_VLAN_CNT>;
@@ -81,9 +71,7 @@ struct Packet {
     const struct icmphdr *icmpHeader{nullptr};
     const struct icmp6_hdr *icmp6Header{nullptr};
 
-    const struct GtpHeader *gtpHeader{nullptr};
-
-    BytesCount bytes{};
+    const struct GtpHeader *gtpHeader{nullptr};    
 
     void Reset();
     void ResetLowerLevels();
