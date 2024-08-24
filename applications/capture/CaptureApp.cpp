@@ -67,18 +67,18 @@ int CaptureApp::Run() {
     return Application::EXIT_OK;
 }
 
-void CaptureApp::initialize(Application &self)
-{
+void CaptureApp::initialize(Application &self) {
     m_Decode->SetLinkedSubSystem(m_Capture.get());
-    m_Decode->SetLinkLayer(LinkLayer::Ip4);
+    // m_Decode->SetLinkLayer(LinkLayer::Ip4);
     Poco::Util::Application::initialize(self);
 }
 
 CaptureApp::CaptureApp()
-    : ServerApplication(),                                 //
-      m_Configure{std::make_unique<ConfigureSubsystem>()}, //
-      m_Capture{std::make_unique<CaptureSubsystem>(m_Configure.get())},     //
-      m_Decode{std::make_unique<DecodeSubsystem>(m_Configure.get())}        //
+    : ServerApplication(),                                                 //
+      m_Configure{std::make_unique<ConfigureSubsystem>()},                 //
+      m_Capture{std::make_unique<CaptureSubsystem>(m_Configure.get())},    //
+      m_Decode{std::make_unique<DecodeSubsystem>(m_Configure.get())},      //
+      m_Transport{std::make_unique<TransportSubsystem>(m_Configure.get())} //
 {}
 
 CaptureApp::~CaptureApp() {
@@ -89,6 +89,7 @@ CaptureApp::~CaptureApp() {
     m_Configure.release();
     m_Capture.release();
     m_Decode.release();
+    m_Transport.release();
 }
 
 auto CaptureApp::GetConfigPath() const noexcept -> std::filesystem::path {

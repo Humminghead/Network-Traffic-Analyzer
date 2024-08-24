@@ -3,20 +3,25 @@
 #include "CaptureSubsystem.h"
 #include "Handlers/Common/HandlerIface.h"
 #include "NetDecoder/PacketBase.h"
+#include "TransportSubsystem.h"
 #include "Util/Misc.h"
 #include <NetDecoder/Decoder.h>
 #include <Poco/Util/Application.h>
 #include <cctype>
-#include <boost/pfr.hpp>
+// #include <boost/pfr.hpp>
 namespace Nta::Network {
 
 struct DecodeSubsystem::Impl {
+    //Members
     std::string m_SubSystemName{"decode"};
     std::unique_ptr<Nta::Network::NetDecoder> m_Decoder{nullptr};
     LinkLayer m_LinkLayer{LinkLayer::Eth};
     const ConfigureSubsystem *m_ConfigureSubsystem{nullptr};
-    CaptureSubsystem *m_LinkedHandlerSubsystem{nullptr};
-    CaptureSubsystem *m_LinkedTransportSubsystem{nullptr};
+    CaptureSubsystem *m_LinkedCaptureSubsystem{nullptr};
+    TransportSubsystem *m_LinkedTransportSubsystem{nullptr};
+
+    //Temporary values
+    size_t m_DecorerDataSizeValue{0};
 };
 
 const char *DecodeSubsystem::name() const {
@@ -32,11 +37,11 @@ void DecodeSubsystem::initialize(Poco::Util::Application &app) {
     if (!m_Pimpl->m_ConfigureSubsystem)
         throw std::runtime_error("ConfigureSubsystem wasn't set in " + m_Pimpl->m_SubSystemName + " subsustem!");
 
-    if (!m_Pimpl->m_LinkedHandlerSubsystem)
+    if (!m_Pimpl->m_LinkedCaptureSubsystem)
         throw std::runtime_error("DecodeSubsystem wasn't linked with " + m_Pimpl->m_SubSystemName + " subsustem!");
 
     m_Pimpl->m_Decoder = std::make_unique<Nta::Network::NetDecoder>();
-    m_Pimpl->m_LinkedHandlerSubsystem->GetHandler()->SetCallback(
+    m_Pimpl->m_LinkedCaptureSubsystem->GetHandler()->SetCallback(
         std::bind(&DecodeSubsystem::Decode, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 }
 
@@ -45,19 +50,20 @@ void DecodeSubsystem::uninitialize() {
 }
 
 bool DecodeSubsystem::Decode(const struct timeval, const uint8_t *d, const size_t s) {
-    size_t tSz{s};
-    auto [ok, packet] = m_Pimpl->m_Decoder->FullProcessing(m_Pimpl->m_LinkLayer, d, tSz);
+    m_Pimpl->m_DecorerDataSizeValue = s;
 
+    auto result = m_Pimpl->m_Decoder->FullProcessing(m_Pimpl->m_LinkLayer, d, m_Pimpl->m_DecorerDataSizeValue);
 
-    boost::pfr::for_each_field(packet,[](auto& f){
-        int a = 0;
-    });
+    if (!m_Pimpl->m_LinkedTransportSubsystem)
+        return false;
 
-    return ok;
+    m_Pimpl->m_LinkedTransportSubsystem->Send(std::move(result));
+
+    return false;
 }
 
 void DecodeSubsystem::SetLinkedSubSystem(CaptureSubsystem *s) {
-    m_Pimpl->m_LinkedHandlerSubsystem = s;
+    m_Pimpl->m_LinkedCaptureSubsystem = s;
 }
 
 void DecodeSubsystem::SetLinkLayer(const LinkLayer &layer) {

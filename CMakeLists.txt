@@ -19,11 +19,11 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/components/handlers/cmake/Fin
 ###############################################################################
 #                               3rdParty
 ###############################################################################
-# FetchContent_Declare(
-  # GetOpt
-  # GIT_REPOSITORY https://github.com/Humminghead/GetoptPlusPlus.git
-  # GIT_TAG dd2837
-# )
+FetchContent_Declare(
+  ThriftPfrSerializer
+  GIT_REPOSITORY https://github.com/Humminghead/ThriftPfrSerializer.git
+  GIT_TAG 1.0.3
+)
 
 FetchContent_Declare(
     Poco
@@ -32,7 +32,7 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(
-    # GetOpt
+    ThriftPfrSerializer
     Poco)
 
 ###############################################################################

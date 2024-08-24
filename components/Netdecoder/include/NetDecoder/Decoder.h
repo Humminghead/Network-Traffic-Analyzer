@@ -2,6 +2,7 @@
 
 #include "DecoderBase.h"
 #include "LinkLayer.h"
+#include "Result.h"
 
 #include <memory>
 
@@ -9,8 +10,6 @@ namespace Nta::Network {
 
 class NetDecoder : protected NetDecoderBase {
   public:
-    using Result = std::tuple<bool, Packet>;
-
     NetDecoder();
     virtual ~NetDecoder() = default;
 

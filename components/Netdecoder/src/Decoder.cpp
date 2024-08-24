@@ -327,75 +327,75 @@ bool NetDecoder::ProcessTransportLayers(const uint8_t *&d, size_t &sz, Packet &p
     return false;
 }
 
-NetDecoder::Result NetDecoder::HandleEth(const uint8_t *&d, size_t &sz) noexcept {
+Result NetDecoder::HandleEth(const uint8_t *&d, size_t &sz) noexcept {
     Packet packet{};
     bool ok = HandleEth(d, sz, packet);
     return std::make_tuple(ok, packet);
 }
 
-NetDecoder::Result NetDecoder::HandleVlan(const uint8_t *&d, size_t &sz) noexcept {
+Result NetDecoder::HandleVlan(const uint8_t *&d, size_t &sz) noexcept {
     Packet packet{};
     size_t idx{0};
     bool ok = HandleVlan(d, sz, packet, idx);
     return std::make_tuple(ok, packet);
 }
 
-NetDecoder::Result NetDecoder::HandlePPPoE(const uint8_t *&d, size_t &sz) noexcept {
+Result NetDecoder::HandlePPPoE(const uint8_t *&d, size_t &sz) noexcept {
     Packet packet{};
     bool ok = HandlePPPoE(d, sz, packet);
     return std::make_tuple(ok, packet);
 }
 
-NetDecoder::Result NetDecoder::HandleMpls(const uint8_t *&d, size_t &sz) noexcept {
+Result NetDecoder::HandleMpls(const uint8_t *&d, size_t &sz) noexcept {
     Packet packet{};
     size_t idx{0};
     bool ok = HandleMpls(d, sz, packet, idx);
     return std::make_tuple(ok, packet);
 }
 
-NetDecoder::Result NetDecoder::HandleIp4(const uint8_t *&d, size_t &sz) noexcept {
+Result NetDecoder::HandleIp4(const uint8_t *&d, size_t &sz) noexcept {
     Packet packet{};
     bool ok = HandleIp4(d, sz, packet);
     return std::make_tuple(ok, packet);
 }
 
-NetDecoder::Result NetDecoder::HandleIp6(const uint8_t *&d, size_t &sz) noexcept {
+Result NetDecoder::HandleIp6(const uint8_t *&d, size_t &sz) noexcept {
     Packet packet{};
     bool ok = HandleIp6(d, sz, packet);
     return std::make_tuple(ok, packet);
 }
 
-NetDecoder::Result NetDecoder::HandleTcp(const uint8_t *&d, size_t &sz) noexcept {
+Result NetDecoder::HandleTcp(const uint8_t *&d, size_t &sz) noexcept {
     Packet packet{};
     bool ok = HandleTcp(d, sz, packet);
     return std::make_tuple(ok, packet);
 }
 
-NetDecoder::Result NetDecoder::HandleUdp(const uint8_t *&d, size_t &sz) noexcept {
+Result NetDecoder::HandleUdp(const uint8_t *&d, size_t &sz) noexcept {
     Packet packet{};
     bool ok = HandleUdp(d, sz, packet);
     return std::make_tuple(ok, packet);
 }
 
-NetDecoder::Result NetDecoder::HandleSctp(const uint8_t *&d, size_t &sz) noexcept {
+Result NetDecoder::HandleSctp(const uint8_t *&d, size_t &sz) noexcept {
     Packet packet{};
     bool ok = HandleSctp(d, sz, packet);
     return std::make_tuple(ok, packet);
 }
 
-NetDecoder::Result NetDecoder::HandleGtp(const uint8_t *&d, size_t &sz) noexcept {
+Result NetDecoder::HandleGtp(const uint8_t *&d, size_t &sz) noexcept {
     Packet packet{};
     bool ok = HandleGtp(d, sz, packet);
     return std::make_tuple(ok, packet);
 }
 
-NetDecoder::Result NetDecoder::FullProcessing(const LinkLayer linkLayer, const uint8_t *&d, size_t &sz) noexcept {
+Result NetDecoder::FullProcessing(const LinkLayer linkLayer, const uint8_t *&d, size_t &sz) noexcept {
     Packet packet{};
     bool ok = FullProcessing(linkLayer, d, sz, packet);
     return std::make_tuple(ok, packet);
 }
 
-NetDecoder::Result NetDecoder::ProcessTransportLayers(const uint8_t *&d, size_t &sz) noexcept {
+Result NetDecoder::ProcessTransportLayers(const uint8_t *&d, size_t &sz) noexcept {
     Packet packet{};
     bool ok = ProcessTransportLayers(d, sz, packet);
     return std::make_tuple(ok, packet);
