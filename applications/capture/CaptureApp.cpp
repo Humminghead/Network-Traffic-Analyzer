@@ -18,7 +18,7 @@ int CaptureApp::main(const std::vector<std::string> &args) {
     addSubsystem(m_Configure.get());
     addSubsystem(m_Capture.get());
     addSubsystem(m_Decode.get());
-    // addSubsystem(m_Stat.get());
+    addSubsystem(m_Transport.get());
     // addSubsystem(m_Out.get());
 
     this->initialize(*this);
@@ -69,7 +69,7 @@ int CaptureApp::Run() {
 
 void CaptureApp::initialize(Application &self) {
     m_Decode->SetLinkedSubSystem(m_Capture.get());
-    // m_Decode->SetLinkLayer(LinkLayer::Ip4);
+    m_Decode->SetLinkedSubSystem(m_Transport.get());
     Poco::Util::Application::initialize(self);
 }
 

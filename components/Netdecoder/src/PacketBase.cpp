@@ -15,15 +15,15 @@ void Packet::Reset() {
     ip6Header = nullptr;
     ip6Fragment = nullptr;
     udpHeader = nullptr;
-    icmpHeader = nullptr;
-    gtpHeader = nullptr;
+    icmpHeader = nullptr;    
     sctpHeader = nullptr;
+    // payload = nullptr;
 }
 
 void Packet::ResetLowerLevels() {
     tcpHeader = nullptr;
-    sctpHeader = nullptr;
-    gtpHeader = nullptr;
+    sctpHeader = nullptr;    
+    // payload = nullptr;
 }
 
 } // namespace Nta::Network

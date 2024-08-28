@@ -12,7 +12,7 @@
 namespace Nta::Network {
 
 struct DecodeSubsystem::Impl {
-    //Members
+    // Members
     std::string m_SubSystemName{"decode"};
     std::unique_ptr<Nta::Network::NetDecoder> m_Decoder{nullptr};
     LinkLayer m_LinkLayer{LinkLayer::Eth};
@@ -20,7 +20,7 @@ struct DecodeSubsystem::Impl {
     CaptureSubsystem *m_LinkedCaptureSubsystem{nullptr};
     TransportSubsystem *m_LinkedTransportSubsystem{nullptr};
 
-    //Temporary values
+    // Temporary values
     size_t m_DecorerDataSizeValue{0};
 };
 
@@ -51,19 +51,22 @@ void DecodeSubsystem::uninitialize() {
 
 bool DecodeSubsystem::Decode(const struct timeval, const uint8_t *d, const size_t s) {
     m_Pimpl->m_DecorerDataSizeValue = s;
+    m_Pimpl->m_Decoder->ResetHandledBytes();
 
     auto result = m_Pimpl->m_Decoder->FullProcessing(m_Pimpl->m_LinkLayer, d, m_Pimpl->m_DecorerDataSizeValue);
 
     if (!m_Pimpl->m_LinkedTransportSubsystem)
         return false;
 
-    m_Pimpl->m_LinkedTransportSubsystem->Send(std::move(result));
-
-    return false;
+    return m_Pimpl->m_LinkedTransportSubsystem->Send(std::move(result));
 }
 
 void DecodeSubsystem::SetLinkedSubSystem(CaptureSubsystem *s) {
     m_Pimpl->m_LinkedCaptureSubsystem = s;
+}
+
+void DecodeSubsystem::SetLinkedSubSystem(TransportSubsystem *s) {
+    m_Pimpl->m_LinkedTransportSubsystem = s;
 }
 
 void DecodeSubsystem::SetLinkLayer(const LinkLayer &layer) {

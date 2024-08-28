@@ -191,7 +191,8 @@ bool NetDecoder::HandleSctp(const uint8_t *&d, size_t &sz, Packet &packet) noexc
     return true;
 }
 
-bool NetDecoder::HandleGtp(const uint8_t *&d, size_t &sz, Packet &packet) noexcept {
+///\todo move it in segregated handler
+bool NetDecoder::HandleGtp(const uint8_t *&d, size_t &sz, const GtpHeader *& hdr) noexcept {
     m_Impl->m_Bytes.m_CounterL7 = sz;
 
     if (!d)
@@ -207,7 +208,7 @@ bool NetDecoder::HandleGtp(const uint8_t *&d, size_t &sz, Packet &packet) noexce
     if (sz < htons(gtph->common.length))
         return false;
 
-    packet.gtpHeader = gtph;
+    hdr = gtph;
     sz -= sizeof(GtpCommon);
 
     return true;
@@ -295,7 +296,7 @@ bool NetDecoder::ProcessTransportLayers(const uint8_t *&d, size_t &sz, Packet &p
     if (proto == IPPROTO_TCP) {
         if (!HandleTcp(d, sz, pkt))
             return false;
-        m_Impl->m_Bytes.m_CounterL7 = sz;
+        m_Impl->m_Bytes.m_CounterL7 = sz;        
         return true;
     } else if (proto == IPPROTO_UDP) {
         if (!HandleUdp(d, sz, pkt))
@@ -380,12 +381,6 @@ Result NetDecoder::HandleUdp(const uint8_t *&d, size_t &sz) noexcept {
 Result NetDecoder::HandleSctp(const uint8_t *&d, size_t &sz) noexcept {
     Packet packet{};
     bool ok = HandleSctp(d, sz, packet);
-    return std::make_tuple(ok, packet);
-}
-
-Result NetDecoder::HandleGtp(const uint8_t *&d, size_t &sz) noexcept {
-    Packet packet{};
-    bool ok = HandleGtp(d, sz, packet);
     return std::make_tuple(ok, packet);
 }
 
