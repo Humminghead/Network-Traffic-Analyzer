@@ -16,6 +16,7 @@ struct JsonObjectTransport {
     std::string m_WorkDir{};
     std::string m_Host{};
     std::size_t m_Port{};
+    std::size_t m_MsgQueueSize{};
     std::string m_BufferType{"none"};
     std::string m_Protocol{};
     std::size_t m_MaxMessageSize{0};
@@ -36,6 +37,7 @@ struct JsonObjectTransport {
         {"max_message_size", t.m_MaxMessageSize},
         {"max_frame_size", t.m_MaxFrameSize},
         {"recursion_limit", t.m_RecursionLimit},
+        {"message_queue_size", t.m_MsgQueueSize}
     };
 }
 [[maybe_unused]] static void from_json(const nlohmann::json &j, JsonObjectTransport &t) {
@@ -50,6 +52,7 @@ struct JsonObjectTransport {
     Util::Json::GetTo(j, "max_message_size", t.m_MaxMessageSize);
     Util::Json::GetTo(j, "max_frame_size", t.m_MaxFrameSize);
     Util::Json::GetTo(j, "recursion_limit", t.m_RecursionLimit);
+    Util::Json::GetTo(j, "message_queue_size", t.m_MsgQueueSize);
 }
 } // namespace Nta::Json::Objects
 
