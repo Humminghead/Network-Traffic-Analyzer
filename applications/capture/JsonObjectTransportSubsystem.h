@@ -22,6 +22,7 @@ struct JsonObjectTransport {
     std::size_t m_MaxMessageSize{0};
     std::size_t m_MaxFrameSize{0};
     std::size_t m_RecursionLimit{0};
+    std::size_t m_FramesCount{0};
 };
 
 [[maybe_unused]] static void to_json(nlohmann::json &j, const JsonObjectTransport &t) {
@@ -37,7 +38,8 @@ struct JsonObjectTransport {
         {"max_message_size", t.m_MaxMessageSize},
         {"max_frame_size", t.m_MaxFrameSize},
         {"recursion_limit", t.m_RecursionLimit},
-        {"message_queue_size", t.m_MsgQueueSize}
+        {"message_queue_size", t.m_MsgQueueSize},
+        {"frames_count", t.m_FramesCount},
     };
 }
 [[maybe_unused]] static void from_json(const nlohmann::json &j, JsonObjectTransport &t) {
@@ -53,6 +55,7 @@ struct JsonObjectTransport {
     Util::Json::GetTo(j, "max_frame_size", t.m_MaxFrameSize);
     Util::Json::GetTo(j, "recursion_limit", t.m_RecursionLimit);
     Util::Json::GetTo(j, "message_queue_size", t.m_MsgQueueSize);
+    Util::Json::GetTo(j, "frames_count", t.m_FramesCount);
 }
 } // namespace Nta::Json::Objects
 

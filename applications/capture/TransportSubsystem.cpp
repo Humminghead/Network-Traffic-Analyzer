@@ -22,10 +22,10 @@
 
 #include <thrift/transport/TBufferTransports.h>
 #include <thrift/transport/TFDTransport.h>
+#include <thrift/transport/THttpClient.h>
 #include <thrift/transport/TSSLSocket.h>
 #include <thrift/transport/TSimpleFileTransport.h>
 #include <thrift/transport/TSocket.h>
-#include <thrift/transport/THttpClient.h>
 #include <thrift/transport/TZlibTransport.h>
 
 #include <unistd.h>
@@ -37,26 +37,22 @@ using namespace apache::thrift::transport;
 namespace Nta::Network {
 
 class TransportSubsystemFlowProducer {
-    static inline int id = 0;
-
   public:
     TransportSubsystemFlowProducer(std::shared_ptr<boost::lockfree::spsc_queue<FlowModel>> pq)
         : m_Queue{std::move(pq)} {}
-    bool Produce(Result &&result) {
-        FlowModel m_FlowData;
-        auto &[ok, packet] = result;        
 
-        m_FlowData.m_Success.SetValue(ok);
-        m_FlowData.m_Id.SetValue(id++);
+    bool Produce(Result &&result) {
+        auto &[ok, packet] = result;
+
+        FlowModel flowData{};
+        flowData.m_Success.SetValue(ok);
 
         boost::pfr::for_each_field(std::move(packet), [&](const auto field) {
             using field_t = std::remove_const_t<std::remove_pointer_t<decltype(field)>>;
-            FieldFiller<field_t, FlowModel>::Fill(field, m_FlowData);
+            FieldFiller<field_t, FlowModel>::Fill(field, flowData);
         });
 
-        m_Queue->push(std::move(m_FlowData));
-
-        return ok;
+        return m_Queue->push(std::move(flowData));
     }
 
   private:
@@ -94,6 +90,7 @@ class TransportSubsystem::Impl {
 
     std::unique_ptr<std::jthread> m_ConsumerThread{nullptr};
     std::atomic_bool m_ConsumerThreadActive{false};
+    std::size_t m_FramesCount{0};
 };
 
 TransportSubsystem::ImplPointer::~ImplPointer() {}
@@ -116,7 +113,7 @@ const char *TransportSubsystem::name() const {
 }
 
 bool TransportSubsystem::Send(Result &&result) {
-    if (false == m_Pimpl->m_ConsumerThreadActive.load() && m_Pimpl->m_Queue->read_available() > 8000) { ///\todo CONFIG
+    if (false == m_Pimpl->m_ConsumerThreadActive.load() && m_Pimpl->m_Queue->read_available() > m_Pimpl->m_FramesCount) {
         m_Pimpl->m_ConsumerThreadActive.store(true);
         m_Pimpl->m_ConsumerThreadActive.notify_one();
     }
@@ -127,7 +124,6 @@ void TransportSubsystem::initialize(Poco::Util::Application &app) {
     auto obj = Util::Json::GetTo<Json::Objects::JsonObjectTransport>(
         "transport", m_Pimpl->m_ConfigureSubsystem->GetRawJsonConfig());
 
-    ///\todo
     auto tc = std::make_shared<TConfiguration>(
         static_cast<int>(obj.m_MaxMessageSize),
         static_cast<int>(obj.m_MaxFrameSize),
@@ -142,6 +138,9 @@ void TransportSubsystem::initialize(Poco::Util::Application &app) {
 
     if (!obj.m_MsgQueueSize)
         throw std::runtime_error("Message queue size should be greater than 0!");
+
+    if (m_Pimpl->m_FramesCount = obj.m_FramesCount; !m_Pimpl->m_FramesCount)
+        throw std::runtime_error("Frames count should be greater than 0!");
 
     m_Pimpl->m_Serialzer = std::make_shared<serialize::TPfrSerializer<FlowModel>>(m_Pimpl->m_Protocol);
     m_Pimpl->m_Queue = std::make_shared<boost::lockfree::spsc_queue<FlowModel>>(obj.m_MsgQueueSize);
@@ -186,19 +185,19 @@ void TransportSubsystem::InitializeTransport(
         m_Pimpl->m_Pipe = std::make_shared<TSimpleFileTransport>(obj.m_WorkDir + "/file.txt", false, true, tc);
     } else if (type == "socket") {
         m_Pimpl->m_Pipe = std::make_shared<TSocket>(obj.m_Host, obj.m_Port);
-    } else if (type == "socket_ssl") {        
+    } else if (type == "socket_ssl") {
         // m_Pimpl->m_Pipe = std::make_shared<TSSLSocket>();
     } else if (type == "shm") {
         ///\todo
     } else if (type == "http") {
-        m_Pimpl->m_Pipe = std::make_shared<THttpClient>(obj.m_Host,obj.m_Port, "/service", tc);
+        m_Pimpl->m_Pipe = std::make_shared<THttpClient>(obj.m_Host, obj.m_Port, "/service", tc);
     } else if (type == "descriptor") {
         ///\todo
     } else {
         throw std::runtime_error("Unsupported transport: " + std::string{type});
     }
 
-    ///See example in thrift/test/cpp/src/TestClient.cpp
+    /// See example in thrift/test/cpp/src/TestClient.cpp
     if (obj.m_UseZlib) {
         ///\todo
         // m_Pimpl->m_Pipe = std::make_shared<TZlibTransport>(m_Pimpl->m_Pipe);

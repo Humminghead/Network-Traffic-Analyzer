@@ -7,8 +7,7 @@
 namespace Nta::Network {
 
 struct FlowModel {
-    static constexpr apache::thrift::serialize::TModelName name = "FlowModel";
-    apache::thrift::serialize::TModelField<int> m_Id{"Id", {}};
+    static constexpr apache::thrift::serialize::TModelName name = "FlowModel";    
     apache::thrift::serialize::TModelField<bool> m_Success{"Success", {}};
     apache::thrift::serialize::TModelField<uint8_t> m_Protocol{"Protocol", {}};
     apache::thrift::serialize::TModelField<uint32_t> m_SourceAddrIp4{"Source ip4-addr", {}};
