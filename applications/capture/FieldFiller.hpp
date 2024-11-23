@@ -6,6 +6,7 @@
 
 #include <ThriftModels/FlowModel.h>
 
+#include <algorithm>
 #include <net/ethernet.h>
 #include <netinet/icmp6.h>
 #include <netinet/ip.h>
@@ -19,7 +20,20 @@ namespace Nta::Network {
 template <class Field, class Model> struct FieldFiller;
 
 template <> struct FieldFiller<ether_header, FlowModel> {
-    static void Fill(const ether_header *eth, FlowModel &m) {}
+    static void Fill(const ether_header *eth, FlowModel &m) {
+        if(!eth)
+        {
+            m.m_EthDstMac.SetEmpty(true);
+            m.m_EthSrcMac.SetEmpty(true);
+            m.m_Ethtype.SetEmpty(true);
+            return;
+        }
+        std::copy_n(eth->ether_shost, ETH_ALEN, m.m_EthSrcMac.Value().begin());
+        std::copy_n(eth->ether_dhost, ETH_ALEN, m.m_EthDstMac.Value().begin());
+        m.m_Ethtype.SetValue(eth->ether_type);
+        m.m_EthSrcMac.SetEmpty(false);
+        m.m_EthDstMac.SetEmpty(false);
+    }
 };
 
 template <> struct FieldFiller<Nta::Network::PppoeHeader, FlowModel> {
@@ -39,13 +53,13 @@ template <> struct FieldFiller<iphdr, FlowModel> {
         if (!iph) {
             m.m_SourceAddrIp4.SetEmpty(true);
             m.m_DesinationAddrIp4.SetEmpty(true);
-            m.m_Protocol.SetEmpty(true);
+            m.m_IpProtocol.SetEmpty(true);
             return;
         }
 
         m.m_SourceAddrIp4.SetValue(iph->saddr);
         m.m_DesinationAddrIp4.SetValue(iph->daddr);
-        m.m_Protocol.SetValue(iph->protocol);
+        m.m_IpProtocol.SetValue(iph->protocol);
     }
 };
 
@@ -54,7 +68,7 @@ template <> struct FieldFiller<ip6_hdr, FlowModel> {
         if (!ip6h) {
             m.m_SourceAddrIp6.SetEmpty(true);
             m.m_DesinationAddrIp6.SetEmpty(true);
-            m.m_Protocol.SetEmpty(true);
+            m.m_IpProtocol.SetEmpty(true);
             return;
         }
 
@@ -71,7 +85,7 @@ template <> struct FieldFiller<ip6_hdr, FlowModel> {
             &(ip6h->ip6_dst.s6_addr[0]) + sizeof(in6_addr::s6_addr),
             std::back_inserter(m.m_DesinationAddrIp6.Value()));
 
-        m.m_Protocol.SetValue(ip6h->ip6_nxt);
+        m.m_IpProtocol.SetValue(ip6h->ip6_nxt);
     }
 };
 

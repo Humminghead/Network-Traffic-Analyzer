@@ -25,7 +25,7 @@ FetchContent_Declare(
   TPfr
   GIT_REPOSITORY https://github.com/Humminghead/ThriftPfrSerializer.git
   # GIT_TAG 1.0.4
-  GIT_TAG main
+  GIT_TAG a53eb6d166ec910ae61a18a3b3a125440a8700d6
 )
 
 FetchContent_Declare(
