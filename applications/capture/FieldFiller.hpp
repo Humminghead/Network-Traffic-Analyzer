@@ -1,0 +1,125 @@
+#pragma once
+
+#include "NetDecoder/PacketBase.h"
+#include "NetDecoder/PppOe/PppoeHeader.h"
+#include "NetDecoder/Sctp/Sctp.h"
+
+#include <ThriftModels/FlowModel.h>
+
+#include <net/ethernet.h>
+#include <netinet/icmp6.h>
+#include <netinet/ip.h>
+#include <netinet/ip6.h>
+#include <netinet/ip_icmp.h>
+#include <netinet/tcp.h>
+#include <netinet/udp.h>
+
+namespace Nta::Network {
+
+template <class Field, class Model> struct FieldFiller;
+
+template <> struct FieldFiller<ether_header, FlowModel> {
+    static void Fill(const ether_header *eth, FlowModel &m) {}
+};
+
+template <> struct FieldFiller<Nta::Network::PppoeHeader, FlowModel> {
+    static void Fill(const Nta::Network::PppoeHeader *, FlowModel &) {}
+};
+
+template <> struct FieldFiller<Nta::Network::Packet::VlansArray, FlowModel> {
+    static void Fill(const Nta::Network::Packet::VlansArray &, FlowModel &) {}
+};
+
+template <> struct FieldFiller<Nta::Network::Packet::MplsArray, FlowModel> {
+    static void Fill(const Nta::Network::Packet::MplsArray &, FlowModel &) {}
+};
+
+template <> struct FieldFiller<iphdr, FlowModel> {
+    static void Fill(const iphdr *iph, FlowModel &m) {
+        if (!iph) {
+            m.m_SourceAddrIp4.SetEmpty(true);
+            m.m_DesinationAddrIp4.SetEmpty(true);
+            m.m_Protocol.SetEmpty(true);
+            return;
+        }
+
+        m.m_SourceAddrIp4.SetValue(iph->saddr);
+        m.m_DesinationAddrIp4.SetValue(iph->daddr);
+        m.m_Protocol.SetValue(iph->protocol);
+    }
+};
+
+template <> struct FieldFiller<ip6_hdr, FlowModel> {
+    static void Fill(const ip6_hdr *ip6h, FlowModel &m) {
+        if (!ip6h) {
+            m.m_SourceAddrIp6.SetEmpty(true);
+            m.m_DesinationAddrIp6.SetEmpty(true);
+            m.m_Protocol.SetEmpty(true);
+            return;
+        }
+
+        m.m_SourceAddrIp6.Value().clear();
+        m.m_DesinationAddrIp6.Value().clear();
+
+        std::copy(
+            &(ip6h->ip6_src.s6_addr[0]),
+            &(ip6h->ip6_src.s6_addr[0]) + sizeof(in6_addr::s6_addr),
+            std::back_inserter(m.m_SourceAddrIp6.Value()));
+
+        std::copy(
+            &(ip6h->ip6_dst.s6_addr[0]),
+            &(ip6h->ip6_dst.s6_addr[0]) + sizeof(in6_addr::s6_addr),
+            std::back_inserter(m.m_DesinationAddrIp6.Value()));
+
+        m.m_Protocol.SetValue(ip6h->ip6_nxt);
+    }
+};
+
+template <> struct FieldFiller<ip6_frag, FlowModel> {
+    static void Fill(const ip6_frag *, FlowModel &) {}
+};
+
+template <> struct FieldFiller<udphdr, FlowModel> {
+    static void Fill(const udphdr *udp, FlowModel &m) {
+        if (!udp) {
+            m.m_SrcPort.SetEmpty(true);
+            m.m_DstPort.SetEmpty(true);
+            return;
+        }
+        m.m_SrcPort.SetValue(udp->source);
+        m.m_DstPort.SetValue(udp->dest);
+    }
+};
+
+template <> struct FieldFiller<tcphdr, FlowModel> {
+    static void Fill(const tcphdr *tcp, FlowModel &m) {
+        if (!tcp) {
+            m.m_SrcPort.SetEmpty(true);
+            m.m_DstPort.SetEmpty(true);
+            return;
+        }
+        m.m_SrcPort.SetValue(tcp->source);
+        m.m_DstPort.SetValue(tcp->dest);
+    }
+};
+
+template <> struct FieldFiller<Nta::Network::SctpHdr, FlowModel> {
+    static void Fill(const Nta::Network::SctpHdr *sctp, FlowModel &m) {
+        if (!sctp) {
+            m.m_SrcPort.SetEmpty(true);
+            m.m_DstPort.SetEmpty(true);
+            return;
+        }
+        m.m_SrcPort.SetValue(sctp->source);
+        m.m_DstPort.SetValue(sctp->dest);
+    }
+};
+
+template <> struct FieldFiller<icmphdr, FlowModel> {
+    static void Fill(const icmphdr *, FlowModel &) {}
+};
+
+template <> struct FieldFiller<icmp6_hdr, FlowModel> {
+    static void Fill(const icmp6_hdr *icmpv6, FlowModel &m) {}
+};
+} // namespace Nta::Network

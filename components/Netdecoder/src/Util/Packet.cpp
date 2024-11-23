@@ -16,16 +16,12 @@ int8_t GetIpVersion(const Packet &p) {
     return p.ip4Header != nullptr ? 4 : p.ip6Header != nullptr ? 6 : -1;
 }
 
-int8_t GetGtpVersion(const Packet &p) {
-    return p.gtpHeader ? GetGtpVersion(p.gtpHeader) : 0;
-}
-
 int8_t GetGtpVersion(const GtpHeader *gtph) {
     return (gtph->common.flags & 0b11100000) >> 5;
 }
 
-bool IsGtpv1HdrExt(const Packet &p) {
-    return p.gtpHeader == nullptr ? false : (p.gtpHeader->common.flags & GTPV1_HDR_EXT) == GTPV1_HDR_EXT;
+bool IsGtpv1HdrExt(const GtpHeader *p) {
+    return p == nullptr ? false : (p->common.flags & GTPV1_HDR_EXT) == GTPV1_HDR_EXT;
 }
 
 bool IsIp4Fragment(const Packet &p) {
