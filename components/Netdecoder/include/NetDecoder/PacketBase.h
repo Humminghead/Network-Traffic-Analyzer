@@ -45,7 +45,7 @@ static constexpr const size_t MAX_MPLS_CNT = 4; //!< Максимальное к
 static constexpr const size_t MAX_VLAN_CNT = 8; //!< Максимальное количество vlan меток в пакете.
 
 namespace Nta::Network {
-struct GtpHeader;
+// struct GtpHeader;
 struct PppoeHeader;
 struct SctpHdr;
 
@@ -71,7 +71,7 @@ struct Packet {
     const struct icmphdr *icmpHeader{nullptr};
     const struct icmp6_hdr *icmp6Header{nullptr};
 
-    const struct GtpHeader *gtpHeader{nullptr};    
+    // const uint8_t* payload{nullptr};
 
     void Reset();
     void ResetLowerLevels();

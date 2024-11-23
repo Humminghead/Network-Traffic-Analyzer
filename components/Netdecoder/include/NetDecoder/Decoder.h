@@ -2,15 +2,16 @@
 
 #include "DecoderBase.h"
 #include "LinkLayer.h"
+#include "Result.h"
 
 #include <memory>
 
 namespace Nta::Network {
 
+struct GtpHeader;
+
 class NetDecoder : protected NetDecoderBase {
   public:
-    using Result = std::tuple<bool, Packet>;
-
     NetDecoder();
     virtual ~NetDecoder() = default;
 
@@ -23,7 +24,7 @@ class NetDecoder : protected NetDecoderBase {
     virtual bool HandleTcp(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept;
     virtual bool HandleUdp(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept;
     virtual bool HandleSctp(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept;
-    virtual bool HandleGtp(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept;
+    virtual bool HandleGtp(const uint8_t *&d, size_t &sz, const GtpHeader *& hdr) noexcept;
     virtual bool FullProcessing(const LinkLayer layer, const uint8_t *&d, size_t &sz, Packet &packet) noexcept;
     virtual bool ProcessTransportLayers(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept;
 
@@ -35,8 +36,7 @@ class NetDecoder : protected NetDecoderBase {
     virtual Result HandleIp6(const uint8_t *&d, size_t &size) noexcept;
     virtual Result HandleTcp(const uint8_t *&d, size_t &size) noexcept;
     virtual Result HandleUdp(const uint8_t *&d, size_t &size) noexcept;
-    virtual Result HandleSctp(const uint8_t *&d, size_t &size) noexcept;
-    virtual Result HandleGtp(const uint8_t *&d, size_t &size) noexcept;
+    virtual Result HandleSctp(const uint8_t *&d, size_t &size) noexcept;    
     virtual Result FullProcessing(const LinkLayer type, const uint8_t *&d, size_t &size) noexcept;
     virtual Result ProcessTransportLayers(const uint8_t *&d, size_t &size) noexcept;
 

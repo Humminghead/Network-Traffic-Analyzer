@@ -1,6 +1,5 @@
 #include "CaptureSubsystem.h"
 #include "ConfigureSubsystem.h"
-#include "Handlers/Common/HandlerIface.h"
 #include "Handlers/Pcap/HandlerPcap.h"
 #include "Handlers/Pcap/JsonObjectPcap.h"
 #include "Util/Misc.h"

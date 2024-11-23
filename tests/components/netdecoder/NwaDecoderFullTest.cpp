@@ -156,10 +156,12 @@ TEST_F(NetDecoderCompleteTest, handle_gtp_nullptr_test) {
     decoder.ResetHandledBytes();
     ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
 
-    auto [status, packet] = decoder.HandleGtp(data, size);
+    const GtpHeader* hdr{nullptr};
+
+    auto status = decoder.HandleGtp(data, size, hdr);
 
     ASSERT_FALSE(status);
-    ASSERT_EQ(packet.gtpHeader, nullptr);
+    ASSERT_EQ(hdr, nullptr);
     ASSERT_EQ(size, 0);
     ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
 }
@@ -584,9 +586,9 @@ TEST_F(NetDecoderCompleteTest, handle_gtp_test) {
     decoder.ResetHandledBytes();
     ASSERT_EQ(decoder.GetHandledBytesTotal(), 0);
 
-    auto [status, packet] = decoder.HandleGtp(data, size);
+    const GtpHeader *gtp{nullptr};
 
-    const GtpHeader *gtp = packet.gtpHeader;
+    auto status = decoder.HandleGtp(data, size, gtp);
 
     ASSERT_TRUE(status);
     ASSERT_FALSE(gtp == nullptr);
@@ -596,7 +598,7 @@ TEST_F(NetDecoderCompleteTest, handle_gtp_test) {
     ASSERT_EQ(htonl(gtp->in.gtpv1_hdr.teid), 2164056373);
     ASSERT_EQ(decoder.GetHandledBytesL7(), 98);
     ASSERT_EQ(decoder.GetHandledBytesTotal(),98);
-    ASSERT_FALSE(Util::IsGtpv1HdrExt(packet));
+    ASSERT_FALSE(Util::IsGtpv1HdrExt(gtp));
     ASSERT_EQ(size, 94);
 }
 

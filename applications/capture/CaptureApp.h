@@ -3,6 +3,7 @@
 #include "CaptureSubsystem.h"
 #include "ConfigureSubsystem.h"
 #include "DecodeSubsystem.h"
+#include "TransportSubsystem.h"
 #include <Poco/Util/HelpFormatter.h>
 #include <Poco/Util/ServerApplication.h>
 #include <filesystem>
@@ -20,6 +21,7 @@ class CaptureApp : public Poco::Util::ServerApplication {
     std::unique_ptr<ConfigureSubsystem> m_Configure{nullptr};
     std::unique_ptr<CaptureSubsystem> m_Capture{nullptr};
     std::unique_ptr<DecodeSubsystem> m_Decode{nullptr};
+    std::unique_ptr<TransportSubsystem> m_Transport{nullptr};
     std::filesystem::path m_ConfigPath{""};
     bool m_HelpRequested{false};
 

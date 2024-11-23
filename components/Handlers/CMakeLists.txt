@@ -12,7 +12,7 @@ file(GLOB_RECURSE CPP_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
 
 add_library(${PROJECT_NAME} OBJECT ${CPP_FILES})
 
-target_link_libraries(${PROJECT_NAME} PRIVATE ${PCAP_LIBRARIES} NtaUtil)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${PCAP_LIBRARIES} NtaUtil nlohmann_json)
 
 target_include_directories(
   ${PROJECT_NAME}
