@@ -41,7 +41,20 @@ template <> struct FieldFiller<Nta::Network::PppoeHeader, FlowModel> {
 };
 
 template <> struct FieldFiller<Nta::Network::Packet::VlansArray, FlowModel> {
-    static void Fill(const Nta::Network::Packet::VlansArray &, FlowModel &) {}
+    static void Fill(const Nta::Network::Packet::VlansArray & vlan, FlowModel & m) {
+        if(!vlan.front()){
+            m.m_VlanTpid.SetEmpty(true);
+            m.m_VlanDepth.SetEmpty(true);
+            m.m_VlanTci.SetEmpty(true);
+        }
+
+        auto _unused = std::ranges::find_if(
+            vlan, [&depth = m.m_VlanDepth.Value()](auto *vl) { return nullptr == vl ? true : ++depth, false; });
+        (void)_unused;
+        m.m_VlanDepth.SetEmpty(false);
+        m.m_VlanTci.SetValue(vlan[m.m_VlanDepth.Value() - 1]->vlan_tci);
+        m.m_VlanTpid.SetValue(vlan[m.m_VlanDepth.Value() - 1]->vlan_tpid);
+    }
 };
 
 template <> struct FieldFiller<Nta::Network::Packet::MplsArray, FlowModel> {
