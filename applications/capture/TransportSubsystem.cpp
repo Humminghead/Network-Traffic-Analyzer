@@ -140,8 +140,11 @@ void TransportSubsystem::initialize(Poco::Util::Application &app) {
     if (!m_Pimpl->m_Protocol)
         throw std::runtime_error("Protocol should be initialized!");
 
+    if (!obj.m_MsgQueueSize)
+        throw std::runtime_error("Message queue size should be greater than 0!");
+
     m_Pimpl->m_Serialzer = std::make_shared<serialize::TPfrSerializer<FlowModel>>(m_Pimpl->m_Protocol);
-    m_Pimpl->m_Queue = std::make_shared<boost::lockfree::spsc_queue<FlowModel>>(10000); ///\todo CONFIG
+    m_Pimpl->m_Queue = std::make_shared<boost::lockfree::spsc_queue<FlowModel>>(obj.m_MsgQueueSize);
     m_Pimpl->m_Producer = std::make_shared<TransportSubsystemFlowProducer>(m_Pimpl->m_Queue);
     m_Pimpl->m_Consumer = std::make_shared<TransportSubsystemFlowConsumer>(m_Pimpl->m_Serialzer, m_Pimpl->m_Queue);
 
