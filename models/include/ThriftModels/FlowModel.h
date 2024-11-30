@@ -18,6 +18,7 @@ struct FlowModel {
     apache::thrift::serialize::TModelField<uint8_t> m_PPPoEVersion{"PPPoE version", {}};
     apache::thrift::serialize::TModelField<uint8_t> m_PPPoEType{"PPPoE type", {}};
     apache::thrift::serialize::TModelField<uint8_t> m_PPPoECode{"PPPoE code", {}};
+    apache::thrift::serialize::TModelField<uint32_t> m_MplsHeader{"Mpls header", {}};
     apache::thrift::serialize::TModelField<uint16_t> m_PPPoESessionId{"PPPoE session ID", {}};
     apache::thrift::serialize::TModelField<uint16_t> m_PPPoEPayloadLen{"PPPoE payload length", {}};
     apache::thrift::serialize::TModelField<uint8_t> m_IpProtocol{"Protocol", {}};

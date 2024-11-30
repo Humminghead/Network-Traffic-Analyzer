@@ -7,6 +7,7 @@
 #include <ThriftModels/FlowModel.h>
 
 #include <algorithm>
+#include <linux/mpls.h>
 #include <net/ethernet.h>
 #include <netinet/icmp6.h>
 #include <netinet/ip.h>
@@ -37,19 +38,20 @@ template <> struct FieldFiller<ether_header, FlowModel> {
 };
 
 template <> struct FieldFiller<Nta::Network::PppoeHeader, FlowModel> {
-    static void Fill(const Nta::Network::PppoeHeader *ppoe, FlowModel &m) {
-        if(!ppoe){
+    static void Fill(const Nta::Network::PppoeHeader *pppoe, FlowModel &m) {
+        if(!pppoe){
             m.m_PPPoEVersion.SetEmpty(true);
             m.m_PPPoEType.SetEmpty(true);
             m.m_PPPoECode.SetEmpty(true);
             m.m_PPPoESessionId.SetEmpty(true);
             m.m_PPPoEPayloadLen.SetEmpty(true);
+            return;
         }
-        m.m_PPPoEVersion.SetValue(ppoe->version);
-        m.m_PPPoEType.SetValue(ppoe->type);
-        m.m_PPPoECode.SetValue(ppoe->code);
-        m.m_PPPoESessionId.SetValue(htons(ppoe->sessionId));
-        m.m_PPPoEPayloadLen.SetValue(htons(ppoe->payloadLength));
+        m.m_PPPoEVersion.SetValue(pppoe->version);
+        m.m_PPPoEType.SetValue(pppoe->type);
+        m.m_PPPoECode.SetValue(pppoe->code);
+        m.m_PPPoESessionId.SetValue(htons(pppoe->sessionId));
+        m.m_PPPoEPayloadLen.SetValue(htons(pppoe->payloadLength));
     }
 };
 
@@ -59,6 +61,7 @@ template <> struct FieldFiller<Nta::Network::Packet::VlansArray, FlowModel> {
             m.m_VlanTpid.SetEmpty(true);
             m.m_VlanDepth.SetEmpty(true);
             m.m_VlanTci.SetEmpty(true);
+            return;
         }
 
         auto _unused = std::ranges::find_if(
@@ -71,7 +74,23 @@ template <> struct FieldFiller<Nta::Network::Packet::VlansArray, FlowModel> {
 };
 
 template <> struct FieldFiller<Nta::Network::Packet::MplsArray, FlowModel> {
-    static void Fill(const Nta::Network::Packet::MplsArray &, FlowModel &) {}
+    using MplsHeader = std::remove_cv_t<std::remove_pointer_t<Nta::Network::Packet::MplsArray::value_type>>;
+
+    static void Fill(const Nta::Network::Packet::MplsArray &mpls, FlowModel &m) {
+        if (!mpls.front()) {
+            m.m_MplsHeader.SetEmpty(true);
+            return;
+        }
+
+        auto _unused = std::ranges::find_if(mpls, [&](const MplsHeader *header) {
+            if (nullptr == header)
+                return true;
+            else {
+                m.m_MplsHeader.SetValue(htonl(header->entry));
+                return false;
+            }
+        });
+    }
 };
 
 template <> struct FieldFiller<iphdr, FlowModel> {
