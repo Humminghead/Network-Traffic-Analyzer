@@ -177,12 +177,39 @@ template <> struct FieldFiller<Nta::Network::SctpHdr, FlowModel> {
 template <> struct FieldFiller<icmphdr, FlowModel> {
     static void Fill(const icmphdr *icmp, FlowModel &m) {
         if(!icmp){
-
+            m.m_Icmp4Type.SetEmpty(true);
+            m.m_Icmp4Code.SetEmpty(true);
+            m.m_Icmp4Crc.SetEmpty(true);
+            m.m_Icmp4IdLe.SetEmpty(true);
+            m.m_Icmp4SeqLe.SetEmpty(true);
+            m.m_Icmp4Gateway.SetEmpty(true);           
+            return;
         }
+        m.m_Icmp4Type.SetValue(icmp->type);
+        m.m_Icmp4Code.SetValue(icmp->code);
+        m.m_Icmp4Crc.SetValue(icmp->checksum);
+
+        if (ICMP_ECHO == icmp->type || ICMP_ECHOREPLY == icmp->type) {
+            m.m_Icmp4IdLe.SetValue(htons(icmp->un.echo.id));
+            m.m_Icmp4SeqLe.SetValue(htons(icmp->un.echo.sequence));
+        }else if(ICMP_REDIRECT == icmp->type){
+            m.m_Icmp4Gateway.SetValue(htonl(icmp->un.gateway));
+        }        
     }
 };
 
 template <> struct FieldFiller<icmp6_hdr, FlowModel> {
     static void Fill(const icmp6_hdr *icmpv6, FlowModel &m) {}
+};
+
+template <> struct FieldFiller<Nta::Network::Payload, FlowModel> {
+       static void Fill(const Payload &p, FlowModel &m) {
+           if (0 == p.size) {
+               m.m_Payload.SetEmpty(true);
+               return;
+           }
+           ///\todo add config option "no send" or something else
+           m.m_Payload.SetValue({p.data, p.data + p.size});
+       }
 };
 } // namespace Nta::Network

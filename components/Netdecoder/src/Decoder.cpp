@@ -11,8 +11,8 @@
 #include "NetDecoder/Shift.h"
 #include "NetDecoder/Util/Packet.h"
 
-/*type + code + checksum + id + seq + timestamp*/
-constexpr size_t IcmpShift = sizeof(struct icmphdr) + sizeof(uint64_t);
+/*type + code + checksum + id + seq*/
+constexpr size_t IcmpShift = sizeof(struct icmphdr);
 
 namespace Nta::Network {
 
@@ -305,14 +305,21 @@ bool NetDecoder::ProcessTransportLayers(const uint8_t *&d, size_t &sz, Packet &p
         return true;
     } else if (proto == IPPROTO_ICMP) {
         pkt.icmpHeader = reinterpret_cast<const struct icmphdr *>(d);
-        if (pkt.icmpHeader->type != ICMP_ECHOREPLY && pkt.icmpHeader->type != ICMP_ECHO)
+
+        if (!ICMP_INFOTYPE(pkt.icmpHeader->type))
             return false;
-        sz -= IcmpShift;
-        if (IcmpShift > sz) { // Mailformed
-            return false;
+
+        if (sz -= IcmpShift; sz) { // Create payload. Writes all after icmphdr
+            pkt.payload.data = d + IcmpShift;
+            pkt.payload.size = sz;
         }
+
+        if (IcmpShift > sz) // Mailformed
+            return false;
+
         m_Impl->m_Bytes.m_CounterL4 = IcmpShift;
         m_Impl->m_Bytes.m_CounterL7 = sz;
+
         return true;
     } else if (proto == IPPROTO_ICMPV6) {
         ///\todo проверить правильность определения размера данных ICMPv6

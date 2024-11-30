@@ -17,13 +17,13 @@ void Packet::Reset() {
     udpHeader = nullptr;
     icmpHeader = nullptr;    
     sctpHeader = nullptr;
-    // payload = nullptr;
+    payload.Reset();
 }
 
 void Packet::ResetLowerLevels() {
     tcpHeader = nullptr;
     sctpHeader = nullptr;    
-    // payload = nullptr;
+    payload.Reset();
 }
 
 } // namespace Nta::Network
