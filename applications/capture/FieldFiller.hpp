@@ -37,7 +37,20 @@ template <> struct FieldFiller<ether_header, FlowModel> {
 };
 
 template <> struct FieldFiller<Nta::Network::PppoeHeader, FlowModel> {
-    static void Fill(const Nta::Network::PppoeHeader *, FlowModel &) {}
+    static void Fill(const Nta::Network::PppoeHeader *ppoe, FlowModel &m) {
+        if(!ppoe){
+            m.m_PPPoEVersion.SetEmpty(true);
+            m.m_PPPoEType.SetEmpty(true);
+            m.m_PPPoECode.SetEmpty(true);
+            m.m_PPPoESessionId.SetEmpty(true);
+            m.m_PPPoEPayloadLen.SetEmpty(true);
+        }
+        m.m_PPPoEVersion.SetValue(ppoe->version);
+        m.m_PPPoEType.SetValue(ppoe->type);
+        m.m_PPPoECode.SetValue(ppoe->code);
+        m.m_PPPoESessionId.SetValue(htons(ppoe->sessionId));
+        m.m_PPPoEPayloadLen.SetValue(htons(ppoe->payloadLength));
+    }
 };
 
 template <> struct FieldFiller<Nta::Network::Packet::VlansArray, FlowModel> {
@@ -143,7 +156,11 @@ template <> struct FieldFiller<Nta::Network::SctpHdr, FlowModel> {
 };
 
 template <> struct FieldFiller<icmphdr, FlowModel> {
-    static void Fill(const icmphdr *, FlowModel &) {}
+    static void Fill(const icmphdr *icmp, FlowModel &m) {
+        if(!icmp){
+
+        }
+    }
 };
 
 template <> struct FieldFiller<icmp6_hdr, FlowModel> {
