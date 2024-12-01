@@ -27,13 +27,20 @@ struct FlowModel {
     apache::thrift::serialize::TModelField<uint16_t> m_Icmp4IdLe{"ICMP identifier (LE)", {}};
     apache::thrift::serialize::TModelField<uint16_t> m_Icmp4SeqLe{"ICMP sequence number (LE)", {}};
     apache::thrift::serialize::TModelField<uint32_t> m_Icmp4Gateway{"ICMP gateway", {}};
+    apache::thrift::serialize::TModelField<uint8_t> m_Icmp6Type{"ICMPv6 type", {}};
+    apache::thrift::serialize::TModelField<uint8_t> m_Icmp6Code{"ICMPv6 code", {}};
+    apache::thrift::serialize::TModelField<uint16_t> m_Icmp6Crc{"ICMPv6 checksum", {}};
     apache::thrift::serialize::TModelField<uint8_t> m_IpProtocol{"IP protocol", {}};
     apache::thrift::serialize::TModelField<uint32_t> m_SourceAddrIp4{"IP4 source addr", {}};
     apache::thrift::serialize::TModelField<uint32_t> m_DesinationAddrIp4{"IP4 destination addr", {}};
     apache::thrift::serialize::TModelField<std::vector<char>> m_SourceAddrIp6{"IP6 source addr", {}};
     apache::thrift::serialize::TModelField<std::vector<char>> m_DesinationAddrIp6{"IP6 destination addr", {}};
-    apache::thrift::serialize::TModelField<uint16_t> m_SrcPort{"Source port", {}};
-    apache::thrift::serialize::TModelField<uint16_t> m_DstPort{"Destination port", {}};
+    apache::thrift::serialize::TModelField<uint16_t> m_TcpSrcPort{"TCP source port", {}};
+    apache::thrift::serialize::TModelField<uint16_t> m_TcpDstPort{"TCP destination port", {}};
+    apache::thrift::serialize::TModelField<uint16_t> m_UdpSrcPort{"UDP Source port", {}};
+    apache::thrift::serialize::TModelField<uint16_t> m_UdpDstPort{"UDP destination port", {}};
+    apache::thrift::serialize::TModelField<uint16_t> m_SctpSrcPort{"SCTP Source port", {}};
+    apache::thrift::serialize::TModelField<uint16_t> m_SctDstPort{"SCTP destination port", {}};
     apache::thrift::serialize::TModelField<std::vector<char>> m_Payload{"Payload", {}};
 };
 

@@ -141,36 +141,36 @@ template <> struct FieldFiller<ip6_frag, FlowModel> {
 template <> struct FieldFiller<udphdr, FlowModel> {
     static void Fill(const udphdr *udp, FlowModel &m) {
         if (!udp) {
-            m.m_SrcPort.SetEmpty(true);
-            m.m_DstPort.SetEmpty(true);
+            m.m_UdpSrcPort.SetEmpty(true);
+            m.m_UdpDstPort.SetEmpty(true);
             return;
         }
-        m.m_SrcPort.SetValue(udp->source);
-        m.m_DstPort.SetValue(udp->dest);
+        m.m_UdpSrcPort.SetValue(udp->source);
+        m.m_UdpDstPort.SetValue(udp->dest);
     }
 };
 
 template <> struct FieldFiller<tcphdr, FlowModel> {
     static void Fill(const tcphdr *tcp, FlowModel &m) {
         if (!tcp) {
-            m.m_SrcPort.SetEmpty(true);
-            m.m_DstPort.SetEmpty(true);
+            m.m_TcpSrcPort.SetEmpty(true);
+            m.m_TcpDstPort.SetEmpty(true);
             return;
         }
-        m.m_SrcPort.SetValue(tcp->source);
-        m.m_DstPort.SetValue(tcp->dest);
+        m.m_TcpSrcPort.SetValue(tcp->source);
+        m.m_TcpDstPort.SetValue(tcp->dest);
     }
 };
 
 template <> struct FieldFiller<Nta::Network::SctpHdr, FlowModel> {
     static void Fill(const Nta::Network::SctpHdr *sctp, FlowModel &m) {
         if (!sctp) {
-            m.m_SrcPort.SetEmpty(true);
-            m.m_DstPort.SetEmpty(true);
+            m.m_SctpSrcPort.SetEmpty(true);
+            m.m_SctDstPort.SetEmpty(true);
             return;
         }
-        m.m_SrcPort.SetValue(sctp->source);
-        m.m_DstPort.SetValue(sctp->dest);
+        m.m_SctpSrcPort.SetValue(sctp->source);
+        m.m_SctDstPort.SetValue(sctp->dest);
     }
 };
 
@@ -199,7 +199,17 @@ template <> struct FieldFiller<icmphdr, FlowModel> {
 };
 
 template <> struct FieldFiller<icmp6_hdr, FlowModel> {
-    static void Fill(const icmp6_hdr *icmpv6, FlowModel &m) {}
+    static void Fill(const icmp6_hdr *icmpv6, FlowModel &m) {
+        if(!icmpv6){
+            m.m_Icmp6Type.SetEmpty(true);
+            m.m_Icmp6Code.SetEmpty(true);
+            m.m_Icmp6Crc.SetEmpty(true);
+            return;
+        }
+        m.m_Icmp6Type.SetValue(icmpv6->icmp6_type);
+        m.m_Icmp6Code.SetValue(icmpv6->icmp6_code);
+        m.m_Icmp6Crc.SetValue(icmpv6->icmp6_cksum);
+    }
 };
 
 template <> struct FieldFiller<Nta::Network::Payload, FlowModel> {
