@@ -135,7 +135,9 @@ template <> struct FieldFiller<ip6_hdr, FlowModel> {
 };
 
 template <> struct FieldFiller<ip6_frag, FlowModel> {
-    static void Fill(const ip6_frag *, FlowModel &) {}
+    static void Fill(const ip6_frag *, FlowModel &) {
+        ///\todo continue after redesign NetDecoderBase::DecodeIpv6
+    }
 };
 
 template <> struct FieldFiller<udphdr, FlowModel> {
