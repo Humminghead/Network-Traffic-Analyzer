@@ -38,6 +38,10 @@ bool IsIp6Fragment(const Packet &p) {
     return p.ip6Fragment ? (htons(p.ip6Fragment->ip6f_offlg) & (IP_MF | IP_OFFMASK)) : false;
 }
 
+bool IsIp6Icmp(const Packet &p) {
+    return p.ip6Header ? p.ip6Header->ip6_nxt == IPPROTO_ICMPV6 : false;
+}
+
 bool IsIpFragment(const Packet &p) {
     return p.ip4Header != nullptr ? IsIp4Fragment(p) : p.ip6Header != nullptr ? IsIp6Fragment(p) : false;
 }

@@ -16,6 +16,7 @@ static int8_t GetGtpVersion(const GtpHeader *gtph);
 bool IsGtpv1HdrExt(const Packet &p);
 bool IsIp4Fragment(const Packet &p);
 bool IsIp6Fragment(const Packet &p);
+bool IsIp6Icmp(const Packet &p);
 bool IsIpFragment(const Packet &p);
 
 } // namespace Nta::Network::Util

@@ -98,13 +98,13 @@ template <> struct FieldFiller<iphdr, FlowModel> {
         if (!iph) {
             m.m_SourceAddrIp4.SetEmpty(true);
             m.m_DesinationAddrIp4.SetEmpty(true);
-            m.m_IpProtocol.SetEmpty(true);
+            m.m_IpNextProtocol.SetEmpty(true);
             return;
         }
 
         m.m_SourceAddrIp4.SetValue(iph->saddr);
         m.m_DesinationAddrIp4.SetValue(iph->daddr);
-        m.m_IpProtocol.SetValue(iph->protocol);
+        m.m_IpNextProtocol.SetValue(iph->protocol);
     }
 };
 
@@ -113,7 +113,7 @@ template <> struct FieldFiller<ip6_hdr, FlowModel> {
         if (!ip6h) {
             m.m_SourceAddrIp6.SetEmpty(true);
             m.m_DesinationAddrIp6.SetEmpty(true);
-            m.m_IpProtocol.SetEmpty(true);
+            m.m_IpNextProtocol.SetEmpty(true);
             return;
         }
 
@@ -130,7 +130,7 @@ template <> struct FieldFiller<ip6_hdr, FlowModel> {
             &(ip6h->ip6_dst.s6_addr[0]) + sizeof(in6_addr::s6_addr),
             std::back_inserter(m.m_DesinationAddrIp6.Value()));
 
-        m.m_IpProtocol.SetValue(ip6h->ip6_nxt);
+        m.m_IpNextProtocol.SetValue(ip6h->ip6_nxt);
     }
 };
 

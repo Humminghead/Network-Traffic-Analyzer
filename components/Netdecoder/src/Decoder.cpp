@@ -11,8 +11,11 @@
 #include "NetDecoder/Shift.h"
 #include "NetDecoder/Util/Packet.h"
 
-/*type + code + checksum + id + seq*/
+/* rfc792 type + code + checksum + id + seq*/
 constexpr size_t IcmpShift = sizeof(struct icmphdr);
+
+/* rfc4443 type + code + checksum*/
+constexpr size_t Icmp6Shift = sizeof(struct icmp6_hdr) - sizeof(icmp6_hdr::icmp6_dataun);
 
 namespace Nta::Network {
 
@@ -322,12 +325,18 @@ bool NetDecoder::ProcessTransportLayers(const uint8_t *&d, size_t &sz, Packet &p
 
         return true;
     } else if (proto == IPPROTO_ICMPV6) {
-        ///\todo проверить правильность определения размера данных ICMPv6
-        /// packet.l7_d = d + sizeof(icmp6_hdr);
         pkt.icmp6Header = reinterpret_cast<const struct icmp6_hdr *>(d);
-        sz -= sizeof(icmp6_hdr);
-        m_Impl->m_Bytes.m_CounterL4 = sizeof(icmp6_hdr);
+
+        if (sz < Icmp6Shift) return false;
+
+        //ICMPv6 message in general format
+        sz -= Icmp6Shift;
+        m_Impl->m_Bytes.m_CounterL4 = Icmp6Shift;
         m_Impl->m_Bytes.m_CounterL7 = sz;
+
+        //Message Body
+        pkt.payload.data = d + Icmp6Shift;
+        pkt.payload.size = sz;
         return true;
     } else if (proto == IPPROTO_SCTP) {
         return HandleSctp(d, sz, pkt);

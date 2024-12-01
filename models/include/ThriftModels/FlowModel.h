@@ -30,7 +30,7 @@ struct FlowModel {
     apache::thrift::serialize::TModelField<uint8_t> m_Icmp6Type{"ICMPv6 type", {}};
     apache::thrift::serialize::TModelField<uint8_t> m_Icmp6Code{"ICMPv6 code", {}};
     apache::thrift::serialize::TModelField<uint16_t> m_Icmp6Crc{"ICMPv6 checksum", {}};
-    apache::thrift::serialize::TModelField<uint8_t> m_IpProtocol{"IP protocol", {}};
+    apache::thrift::serialize::TModelField<uint8_t> m_IpNextProtocol{"IP next protocol", {}};
     apache::thrift::serialize::TModelField<uint32_t> m_SourceAddrIp4{"IP4 source addr", {}};
     apache::thrift::serialize::TModelField<uint32_t> m_DesinationAddrIp4{"IP4 destination addr", {}};
     apache::thrift::serialize::TModelField<std::vector<char>> m_SourceAddrIp6{"IP6 source addr", {}};
