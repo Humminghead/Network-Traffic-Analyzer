@@ -2,6 +2,7 @@
 #include "ConfigureSubsystem.h"
 #include "FieldFiller.hpp"
 #include "JsonObjectTransportSubsystem.h"
+#include "Util/Misc.h"
 
 #include <TPfrSerializer.h>
 #include <ThriftModels/FlowModel.h>
@@ -150,6 +151,9 @@ void TransportSubsystem::initialize(Poco::Util::Application &app) {
     m_Pimpl->m_Transport->open();
 
     m_Pimpl->m_ConsumerThread = std::make_unique<std::jthread>([&](const std::stop_token token) {
+        if (const auto core = m_Pimpl->m_ConfigureSubsystem->GetAppCore<int>(-1); core >= 0)
+            Util::Thread::Stick2Core(core);
+
         while (!token.stop_requested()) {
             m_Pimpl->m_ConsumerThreadActive.wait(false);
             m_Pimpl->m_Consumer->Consume();
