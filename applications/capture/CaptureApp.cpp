@@ -1,6 +1,7 @@
 #include "CaptureApp.h"
 #include "Handlers/Common/HandlerIface.h"
 #include "Util/Filesystem.h"
+#include "Util/Misc.h"
 #include <iostream>
 
 namespace Nta::Network {
@@ -12,16 +13,7 @@ int CaptureApp::main(const std::vector<std::string> &args) {
         DisplayHelp();
         return 0;
     }
-    // auto& logger = getSubsystem<Poco::Logger>();
-    // logger.setLevel(Poco::Message::PRIO_TRACE);
 
-    addSubsystem(m_Configure.get());
-    addSubsystem(m_Capture.get());
-    addSubsystem(m_Decode.get());
-    addSubsystem(m_Transport.get());
-    // addSubsystem(m_Out.get());
-
-    this->initialize(*this);
     const auto exitCode = Run();
     this->uninitialize();
 
@@ -61,16 +53,28 @@ void CaptureApp::DisplayHelp() {
 }
 
 int CaptureApp::Run() {
+    if (m_AppCore >= 0)
+        Util::Thread::Stick2Core(m_AppCore);
+
     m_Capture->GetHandler()->Open();
     m_Capture->GetHandler()->Loop();
     m_Capture->GetHandler()->Close();
+
     return Application::EXIT_OK;
 }
 
 void CaptureApp::initialize(Application &self) {
     m_Decode->SetLinkedSubSystem(m_Capture.get());
     m_Decode->SetLinkedSubSystem(m_Transport.get());
+
+    addSubsystem(m_Configure.get());
+    addSubsystem(m_Capture.get());
+    addSubsystem(m_Decode.get());
+    addSubsystem(m_Transport.get());
+
     Poco::Util::Application::initialize(self);
+
+    m_AppCore = m_Configure->GetAppCore<decltype(m_AppCore)>(-1);
 }
 
 CaptureApp::CaptureApp()

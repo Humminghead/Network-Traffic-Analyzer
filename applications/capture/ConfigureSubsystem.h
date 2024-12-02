@@ -11,6 +11,11 @@ class ConfigureSubsystem : public Poco::Util::Subsystem {
 
     auto GetRawJsonConfig() const noexcept -> const nlohmann::json & { return m_JsonCfg; }
 
+    template <typename ValueType>
+    auto GetAppCore(ValueType &&defaultValue = {}) const -> ValueType {
+        return {};
+    };
+
   protected:
     void initialize(Poco::Util::Application &app) override;
     void uninitialize() override;

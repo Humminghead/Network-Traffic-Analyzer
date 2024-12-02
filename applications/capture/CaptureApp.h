@@ -24,6 +24,7 @@ class CaptureApp : public Poco::Util::ServerApplication {
     std::unique_ptr<TransportSubsystem> m_Transport{nullptr};
     std::filesystem::path m_ConfigPath{""};
     bool m_HelpRequested{false};
+    int m_AppCore{-1};
 
     int main(const std::vector<std::string> &args) override;
 
