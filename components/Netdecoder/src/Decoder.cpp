@@ -175,6 +175,8 @@ bool NetDecoder::HandleUdp(const uint8_t *&d, size_t &sz, Packet &packet) noexce
 
     if (const auto dLen = htobe16(packet.udpHeader->len); dLen >= sizeof(udphdr)) {
         m_Impl->m_Bytes.m_CounterL7 = dLen - sizeof(udphdr);
+        packet.payload.data = d + sizeof(udphdr);
+        packet.payload.size = m_Impl->m_Bytes.m_CounterL7;
     } else {
         return false;
     }
@@ -261,6 +263,8 @@ bool NetDecoder::FullProcessing(const LinkLayer linkLayer, const uint8_t *&d, si
                 return false;
             if (Util::IsIpFragment(packet)) {
                 m_Impl->m_Bytes.m_CounterL7 = sz;
+                packet.payload.data = d;
+                packet.payload.size = sz;
                 return true;
             }
             if (!ProcessTransportLayers(tData, sz, packet))
@@ -271,6 +275,9 @@ bool NetDecoder::FullProcessing(const LinkLayer linkLayer, const uint8_t *&d, si
                 return false;
             if (Util::IsIpFragment(packet)) {
                 m_Impl->m_Bytes.m_CounterL7 = sz;
+                ///\todo
+                // packet.payload.data = d;
+                // packet.payload.size = sz;
                 return true;
             }
             if (!ProcessTransportLayers(tData, sz, packet))

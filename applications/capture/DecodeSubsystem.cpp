@@ -15,7 +15,7 @@ struct DecodeSubsystem::Impl {
     // Members
     std::string m_SubSystemName{"decode"};
     std::unique_ptr<Nta::Network::NetDecoder> m_Decoder{nullptr};
-    LinkLayer m_LinkLayer{LinkLayer::Eth};
+    LinkLayer m_LinkLayer{LinkLayer::Eth};///\todo add setting in config
     const ConfigureSubsystem *m_ConfigureSubsystem{nullptr};
     CaptureSubsystem *m_LinkedCaptureSubsystem{nullptr};
     TransportSubsystemBase *m_LinkedTransportSubsystem{nullptr};

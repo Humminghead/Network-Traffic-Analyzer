@@ -3,6 +3,7 @@
 #include "NetDecoder/PacketBase.h"
 #include "NetDecoder/PppOe/PppoeHeader.h"
 #include "NetDecoder/Sctp/Sctp.h"
+#include "NetDecoder/Util/Packet.h"
 
 #include <ThriftModels/FlowModel.h>
 
@@ -98,13 +99,21 @@ template <> struct FieldFiller<iphdr, FlowModel> {
         if (!iph) {
             m.m_SourceAddrIp4.SetEmpty(true);
             m.m_DesinationAddrIp4.SetEmpty(true);
-            m.m_IpNextProtocol.SetEmpty(true);
+            m.m_Ip4NextProtocol.SetEmpty(true);
+            m.m_Ip4IsFragment.SetEmpty(true);
+            m.m_Ip4FragmentId.SetEmpty(true);
+            m.m_Ip4FragmentOffset.SetEmpty(true);
             return;
         }
 
         m.m_SourceAddrIp4.SetValue(iph->saddr);
         m.m_DesinationAddrIp4.SetValue(iph->daddr);
-        m.m_IpNextProtocol.SetValue(iph->protocol);
+        m.m_Ip4NextProtocol.SetValue(iph->protocol);
+        if (Util::IsIp4FragmentFlagSet(iph)) {
+            m.m_Ip4IsFragment.SetValue(true);
+            m.m_Ip4FragmentId.SetValue(iph->id);
+            m.m_Ip4FragmentOffset.SetValue(iph->frag_off);
+        }
     }
 };
 
@@ -113,7 +122,8 @@ template <> struct FieldFiller<ip6_hdr, FlowModel> {
         if (!ip6h) {
             m.m_SourceAddrIp6.SetEmpty(true);
             m.m_DesinationAddrIp6.SetEmpty(true);
-            m.m_IpNextProtocol.SetEmpty(true);
+            m.m_Ip6NextProtocol.SetEmpty(true);
+            ///\todo fragmentation
             return;
         }
 
@@ -130,7 +140,7 @@ template <> struct FieldFiller<ip6_hdr, FlowModel> {
             &(ip6h->ip6_dst.s6_addr[0]) + sizeof(in6_addr::s6_addr),
             std::back_inserter(m.m_DesinationAddrIp6.Value()));
 
-        m.m_IpNextProtocol.SetValue(ip6h->ip6_nxt);
+        m.m_Ip6NextProtocol.SetValue(ip6h->ip6_nxt);
     }
 };
 

@@ -24,14 +24,18 @@ bool IsGtpv1HdrExt(const GtpHeader *p) {
     return p == nullptr ? false : (p->common.flags & GTPV1_HDR_EXT) == GTPV1_HDR_EXT;
 }
 
-bool IsIp4Fragment(const Packet &p) {
-    if (p.ip4Header == nullptr)
+bool IsIp4FragmentFlagSet(const iphdr *ip4Header) {
+    if (ip4Header == nullptr)
         return false;
-    const uint16_t iph_flags = htons(p.ip4Header->frag_off) & (IP_DF | IP_MF | IP_RF);
-    const uint16_t iph_frag_off = htons(p.ip4Header->frag_off) & IP_OFFMASK;
+    const uint16_t iph_flags = htons(ip4Header->frag_off) & (IP_DF | IP_MF | IP_RF);
+    const uint16_t iph_frag_off = htons(ip4Header->frag_off) & IP_OFFMASK;
     if ((iph_flags & IP_DF) == IP_DF)
         return false;
     return (((iph_flags & IP_MF) == IP_MF) || (iph_frag_off != 0));
+}
+
+bool IsIp4Fragment(const Packet &p) {    
+    return IsIp4FragmentFlagSet(p.ip4Header);
 }
 
 bool IsIp6Fragment(const Packet &p) {
