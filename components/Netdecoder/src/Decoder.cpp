@@ -273,15 +273,14 @@ bool NetDecoder::FullProcessing(const LinkLayer linkLayer, const uint8_t *&d, si
         case 0xDD86: // Ipv6
             if (!HandleIp6(tData, sz, packet))
                 return false;
-            if (Util::IsIpFragment(packet)) {
-                m_Impl->m_Bytes.m_CounterL7 = sz;
-                ///\todo
-                // packet.payload.data = d;
-                // packet.payload.size = sz;
-                return true;
-            }
-            if (!ProcessTransportLayers(tData, sz, packet))
+
+            if (!ProcessTransportLayers(tData, sz, packet)) {
+                if (sz > 0) {
+                    packet.payload.data = d;
+                    packet.payload.size = sz;
+                }
                 return false;
+            }
             break;
         case 0x0000:
             if (!HandleEth(tData, sz, packet))
@@ -298,8 +297,6 @@ bool NetDecoder::FullProcessing(const LinkLayer linkLayer, const uint8_t *&d, si
 bool NetDecoder::ProcessTransportLayers(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept {
     const uint16_t proto = Util::GetIpProtocol(pkt);
 
-    ///\todo Пересмотреть обработку заголовкой IPv6. В данной точке указатель d
-    /// указывает на payload после заговка ipV6
     if (auto version = Util::GetIpVersion(pkt); version != 4 && version != 6)
         return false;
 

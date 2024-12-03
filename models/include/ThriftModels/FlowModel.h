@@ -46,8 +46,9 @@ struct FlowModel {
 
     apache::thrift::serialize::TModelField<std::vector<char>> m_SourceAddrIp6{"IP6 src addr", {}};
     apache::thrift::serialize::TModelField<std::vector<char>> m_DesinationAddrIp6{"IP6 dst addr", {}};
-    apache::thrift::serialize::TModelField<uint8_t> m_Ip6NextProtocol{"IP6 next protocol", {}};
-    apache::thrift::serialize::TModelField<bool> m_Ip6IsFragment{"IP6 fragment flag", {}};
+    apache::thrift::serialize::TModelField<uint8_t> m_Ip6NextHeader{"IP6 next header", {}};
+    apache::thrift::serialize::TModelField<uint8_t> m_Ip6HopLimit{"IP6 hop limit", {}};
+    apache::thrift::serialize::TModelField<uint32_t> m_Ip6FlowLabel{"IP6 flow label", {}};
 
     apache::thrift::serialize::TModelField<uint16_t> m_TcpSrcPort{"TCP src port", {}};
     apache::thrift::serialize::TModelField<uint16_t> m_TcpDstPort{"TCP dst port", {}};
