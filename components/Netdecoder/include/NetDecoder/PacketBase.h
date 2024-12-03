@@ -67,8 +67,7 @@ struct Packet {
     MplsArray mplsLabels{};
 
     const struct iphdr *ip4Header{nullptr};
-    const struct ip6_hdr *ip6Header{nullptr};
-    const struct ip6_frag *ip6Fragment{nullptr};
+    const struct ip6_hdr *ip6Header{nullptr};    
 
     const struct udphdr *udpHeader{nullptr};
     const struct tcphdr *tcpHeader{nullptr};

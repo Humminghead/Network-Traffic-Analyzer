@@ -2,14 +2,12 @@
 #include "NetDecoder/Gtp/Gtp1Defs.h"
 #include "NetDecoder/Gtp/GtpHeader.h"
 #include "NetDecoder/PacketBase.h"
+#include <netinet/ip6.h>
 
 namespace Nta::Network::Util {
 
-///\todo: check it ???
 uint16_t GetIpProtocol(const Packet &p) {
-    return p.ip4Header != nullptr   ? p.ip4Header->protocol
-           : p.ip6Header != nullptr ? p.ip6Fragment != nullptr ? p.ip6Fragment->ip6f_nxt : p.ip6Header->ip6_nxt
-                                     : IPPROTO_MAX;
+    return p.ip4Header != nullptr ? p.ip4Header->protocol : p.ip6Header != nullptr ? p.ip6Header->ip6_nxt : IPPROTO_MAX;
 }
 
 int8_t GetIpVersion(const Packet &p) {
@@ -38,16 +36,12 @@ bool IsIp4Fragment(const Packet &p) {
     return IsIp4FragmentFlagSet(p.ip4Header);
 }
 
-bool IsIp6Fragment(const Packet &p) {
-    return p.ip6Fragment ? (htons(p.ip6Fragment->ip6f_offlg) & (IP_MF | IP_OFFMASK)) : false;
+bool IsIp6Fragment(const ip6_frag *p) {
+    return p ? (htons(p->ip6f_offlg) & (IP_MF | IP_OFFMASK)) : false;
 }
 
 bool IsIp6Icmp(const Packet &p) {
     return p.ip6Header ? p.ip6Header->ip6_nxt == IPPROTO_ICMPV6 : false;
-}
-
-bool IsIpFragment(const Packet &p) {
-    return p.ip4Header != nullptr ? IsIp4Fragment(p) : p.ip6Header != nullptr ? IsIp6Fragment(p) : false;
 }
 
 } // namespace Nta::Network::Util

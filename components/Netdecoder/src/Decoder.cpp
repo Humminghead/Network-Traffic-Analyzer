@@ -147,7 +147,7 @@ bool NetDecoder::HandleIp6(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept 
     }
 
     const auto sTmp = sz;
-    if (!DecodeIpv6(d, sz, pkt.ip6Header, pkt.ip6Fragment))
+    if (!DecodeIpv6(d, sz, pkt.ip6Header))
         return false;
 
     m_Impl->m_Bytes.m_CounterL3 += sTmp - sz;
@@ -261,7 +261,7 @@ bool NetDecoder::FullProcessing(const LinkLayer linkLayer, const uint8_t *&d, si
         case 0x0008: // IpV4
             if (!HandleIp4(tData, sz, packet))
                 return false;
-            if (Util::IsIpFragment(packet)) {
+            if (Util::IsIp4Fragment(packet)) {
                 m_Impl->m_Bytes.m_CounterL7 = sz;
                 packet.payload.data = d;
                 packet.payload.size = sz;

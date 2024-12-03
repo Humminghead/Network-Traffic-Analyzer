@@ -12,8 +12,7 @@ void Packet::Reset() {
     std::for_each(std::begin(vlansTags), std::end(vlansTags), [](auto *&p) { p = nullptr; });
     std::for_each(std::begin(mplsLabels), std::end(mplsLabels), [](auto *&p) { p = nullptr; });
     ip4Header = nullptr;
-    ip6Header = nullptr;
-    ip6Fragment = nullptr;
+    ip6Header = nullptr;    
     udpHeader = nullptr;
     icmpHeader = nullptr;    
     sctpHeader = nullptr;
