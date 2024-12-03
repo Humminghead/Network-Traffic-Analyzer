@@ -3,6 +3,7 @@
 #include "FieldFiller.hpp"
 #include "JsonObjectTransportSubsystem.h"
 #include "Util/Misc.h"
+#include "Util/Json.h"
 
 #include <TPfrSerializer.h>
 #include <ThriftModels/FlowModel.h>
@@ -122,7 +123,7 @@ bool TransportSubsystem::Send(Result &&result) {
 }
 
 void TransportSubsystem::initialize(Poco::Util::Application &app) {
-    auto obj = Util::Json::GetTo<Json::Objects::JsonObjectTransport>(
+    auto obj = Nta::Util::Json::GetTo<Json::Objects::JsonObjectTransport>(
         "transport", m_Pimpl->m_ConfigureSubsystem->GetRawJsonConfig());
 
     auto tc = std::make_shared<TConfiguration>(

@@ -61,7 +61,7 @@ bool NetDecoderBase::DecodeIpv4(const uint8_t *&data, size_t &size, const iphdr 
 }
 
 bool NetDecoderBase::DecodeIpv6(const uint8_t *&data, size_t &size, const ip6_hdr *&ip6h, const ip6_frag *&ip6frag) {
-
+    ///\todo Redesing it
     auto [ok, res] = d->m_Ip6h.Handle(data, size);
 
     if (!ok)

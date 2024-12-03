@@ -49,6 +49,13 @@ namespace Nta::Network {
 struct PppoeHeader;
 struct SctpHdr;
 
+struct Payload {
+    const uint8_t* data{nullptr};
+    size_t size{0};
+
+    void Reset() { *this = {}; }
+};
+
 struct Packet {
     using MplsArray = std::array<const mpls_label *, MAX_MPLS_CNT>;
     using VlansArray = std::array<const vlan_tag *, MAX_VLAN_CNT>;
@@ -71,7 +78,7 @@ struct Packet {
     const struct icmphdr *icmpHeader{nullptr};
     const struct icmp6_hdr *icmp6Header{nullptr};
 
-    // const uint8_t* payload{nullptr};
+    Payload payload{};
 
     void Reset();
     void ResetLowerLevels();
