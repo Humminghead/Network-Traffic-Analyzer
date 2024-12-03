@@ -3,6 +3,7 @@
 #include <cstdint>
 
 struct iphdr;
+struct ip6_frag;
 
 namespace Nta::Network {
 struct GtpHeader;
@@ -18,8 +19,6 @@ static int8_t GetGtpVersion(const GtpHeader *gtph);
 bool IsGtpv1HdrExt(const Packet &p);
 bool IsIp4FragmentFlagSet(const iphdr *ip4Header);
 bool IsIp4Fragment(const Packet &p);
-bool IsIp6Fragment(const Packet &p);
+bool IsIp6Fragment(const ip6_frag *p);
 bool IsIp6Icmp(const Packet &p);
-bool IsIpFragment(const Packet &p);
-
 } // namespace Nta::Network::Util

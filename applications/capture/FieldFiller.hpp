@@ -122,8 +122,9 @@ template <> struct FieldFiller<ip6_hdr, FlowModel> {
         if (!ip6h) {
             m.m_SourceAddrIp6.SetEmpty(true);
             m.m_DesinationAddrIp6.SetEmpty(true);
-            m.m_Ip6NextProtocol.SetEmpty(true);
-            ///\todo fragmentation
+            m.m_Ip6NextHeader.SetEmpty(true);
+            m.m_Ip6HopLimit.SetEmpty(true);
+            m.m_Ip6FlowLabel.SetEmpty(true);
             return;
         }
 
@@ -140,13 +141,9 @@ template <> struct FieldFiller<ip6_hdr, FlowModel> {
             &(ip6h->ip6_dst.s6_addr[0]) + sizeof(in6_addr::s6_addr),
             std::back_inserter(m.m_DesinationAddrIp6.Value()));
 
-        m.m_Ip6NextProtocol.SetValue(ip6h->ip6_nxt);
-    }
-};
-
-template <> struct FieldFiller<ip6_frag, FlowModel> {
-    static void Fill(const ip6_frag *, FlowModel &) {
-        ///\todo continue after redesign NetDecoderBase::DecodeIpv6
+        m.m_Ip6NextHeader.SetValue(ip6h->ip6_nxt);
+        m.m_Ip6HopLimit.SetValue(ip6h->ip6_hops);
+        m.m_Ip6FlowLabel.SetValue(ip6h->ip6_flow & 0xFFF00000);
     }
 };
 

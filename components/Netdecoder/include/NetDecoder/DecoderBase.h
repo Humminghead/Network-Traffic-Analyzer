@@ -32,7 +32,7 @@ class NetDecoderBase {
     bool DecodeEth(const uint8_t *&data, size_t &size, const struct ether_header *&eth);
     bool DecodeVlan(const uint8_t *&data, size_t &size, const struct vlan_tag *&vlan);
     bool DecodeIpv4(const uint8_t *&data, size_t &size, const struct iphdr *&iph);
-    bool DecodeIpv6(const uint8_t *&data, size_t &size, const struct ip6_hdr *&ip6h, const struct ip6_frag *&ip6frag);
+    bool DecodeIpv6(const uint8_t *&data, size_t &size, const struct ip6_hdr *&ip6h);
     bool DecodeUdp(const uint8_t *&data, size_t &size, const struct udphdr *&udph);
     bool DecodeTcp(const uint8_t *&data, size_t &size, const struct tcphdr *&tcph);
     bool DecodeSctp(const uint8_t *&data, size_t &size, const struct SctpHdr *&sctph);    
