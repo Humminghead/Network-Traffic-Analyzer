@@ -226,7 +226,7 @@ void TransportSubsystem::InitializeBuffer(
     } else if (type == "none") {
         m_Pimpl->m_Transport = m_Pimpl->m_Pipe;
     } else {
-        throw std::runtime_error("Unsupported buffer type!");
+        throw std::runtime_error("Unsupported buffer type: " + type + "!");
     }
 }
 
