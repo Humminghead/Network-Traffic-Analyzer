@@ -202,11 +202,9 @@ void TransportSubsystem::InitializeTransport(
         throw std::runtime_error("Unsupported transport: " + std::string{type});
     }
 
-    /// See example in thrift/test/cpp/src/TestClient.cpp
-    if (obj.m_UseZlib) {
-        ///\todo
-        // m_Pimpl->m_Pipe = std::make_shared<TZlibTransport>(m_Pimpl->m_Pipe);
-    }
+    //You can see example in thrift/test/cpp/src/TestClient.cpp
+    if (obj.m_UseZlib)
+        m_Pimpl->m_Pipe = std::make_shared<TZlibTransport>(m_Pimpl->m_Pipe);
 }
 
 void TransportSubsystem::InitializeBuffer(

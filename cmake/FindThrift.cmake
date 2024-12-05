@@ -59,6 +59,25 @@ else ()
   endif (NOT Thrift_FIND_QUIETLY)
 endif ()
 
+# find Z library
+find_library(Thrift_Z_LIB NAMES thriftz HINTS ${THRIFT_ROOT}/lib)
+
+if (Thrift_Z_LIB)
+  set(Thrift_Z_FOUND TRUE)
+  set(Thrift_LIBRARIES ${Thrift_LIBRARIES} ${Thrift_Z_LIB})
+
+  if (NOT Thrift_FIND_QUIETLY)
+    message(STATUS "thrift-z: ${Thrift_Z_LIB}")
+  endif (NOT Thrift_FIND_QUIETLY)
+else ()
+  set(Thrift_NB_FOUND FALSE)
+
+  if (NOT Thrift_FIND_QUIETLY)
+    message(STATUS "libevent is required for thrift broker support")
+  endif (NOT Thrift_FIND_QUIETLY)
+endif ()
+
+
 # find executable
 exec_program(thrift ARGS -version OUTPUT_VARIABLE Thrift_VERSION
              RETURN_VALUE Thrift_RETURN)
@@ -75,4 +94,4 @@ if (Thrift_VERSION MATCHES "^Thrift version")
   endif(NOT Thrift_FIND_QUIETLY)
 endif ()
 
-mark_as_advanced(Thrift_INCLUDE_DIR Thrift_LIB Thrift_NB_LIB Thrift_LIBRARIES)
+mark_as_advanced(Thrift_INCLUDE_DIR Thrift_LIB Thrift_NB_LIB Thrift_LIBRARIES Thrift_Z_LIB)

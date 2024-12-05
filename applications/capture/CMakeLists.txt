@@ -9,6 +9,7 @@ file(GLOB_RECURSE CPP_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
 
 #find_package(tpfrserializer REQUIRED)
 find_package(Thrift 0.13.0 REQUIRED)
+# find_package(Thrift-z 0.13.0 REQUIRED)
 # find_package(Boost 1.86.0 REQUIRED)
 
 add_executable(${PROJECT_NAME} ${CPP_FILES})
@@ -20,6 +21,7 @@ target_link_libraries(
           NtaNetDecoder
           tpfrserializer
           ${Thrift_LIB}
+          ${Thrift_Z_LIB}
           models
           nlohmann_json
           # boost_pfr
