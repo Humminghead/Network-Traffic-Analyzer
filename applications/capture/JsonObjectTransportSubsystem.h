@@ -4,6 +4,7 @@
 #include <cstring>
 #include <nlohmann/json.hpp>
 #include <string>
+#include <filesystem>
 
 namespace Nta::Json::Objects {
 struct JsonObjectTransport {
@@ -23,6 +24,11 @@ struct JsonObjectTransport {
     std::size_t m_MaxFrameSize{0};
     std::size_t m_RecursionLimit{0};
     std::size_t m_FramesCount{0};
+    std::string m_Ciphers{};
+    std::filesystem::path m_CaCertFilePath{};
+    std::filesystem::path m_ServerCertPath{};
+    std::filesystem::path m_PrivateKeyPath{};
+    bool m_Authentication{true};
 };
 
 [[maybe_unused]] static void to_json(nlohmann::json &j, const JsonObjectTransport &t) {
@@ -39,7 +45,12 @@ struct JsonObjectTransport {
         {"max_frame_size", t.m_MaxFrameSize},
         {"recursion_limit", t.m_RecursionLimit},
         {"message_queue_size", t.m_MsgQueueSize},
-        {"frames_count", t.m_FramesCount},
+        {"frames_count", t.m_FramesCount},        
+        {"ciphers",t.m_Ciphers},
+        {"ca_file_path",t.m_CaCertFilePath},
+        {"server_cert_path",t.m_ServerCertPath},
+        {"private_key_path",t.m_PrivateKeyPath},
+        {"authentication",t.m_Authentication}
     };
 }
 [[maybe_unused]] static void from_json(const nlohmann::json &j, JsonObjectTransport &t) {
@@ -56,6 +67,11 @@ struct JsonObjectTransport {
     Util::Json::GetTo(j, "recursion_limit", t.m_RecursionLimit);
     Util::Json::GetTo(j, "message_queue_size", t.m_MsgQueueSize);
     Util::Json::GetTo(j, "frames_count", t.m_FramesCount);
+    Util::Json::GetTo(j, "ciphers", t.m_Ciphers);
+    Util::Json::GetTo(j, "ca_file_path", t.m_CaCertFilePath);
+    Util::Json::GetTo(j, "server_cert_path", t.m_ServerCertPath);
+    Util::Json::GetTo(j, "private_key_path", t.m_PrivateKeyPath);
+    Util::Json::GetTo(j, "authentication", t.m_Authentication);
 }
 } // namespace Nta::Json::Objects
 
