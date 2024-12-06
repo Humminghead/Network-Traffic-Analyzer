@@ -81,6 +81,8 @@ class TransportSubsystem::Impl {
   public:
     const ConfigureSubsystem *m_ConfigureSubsystem{nullptr};
 
+    std::shared_ptr<TSSLSocketFactory>m_SslSocketFactorty{nullptr};
+
     std::shared_ptr<TTransport> m_Pipe{nullptr};
     std::shared_ptr<TTransport> m_Transport{nullptr};
     std::shared_ptr<TProtocol> m_Protocol{nullptr};
@@ -191,7 +193,34 @@ void TransportSubsystem::InitializeTransport(
     } else if (type == "socket") {
         m_Pimpl->m_Pipe = std::make_shared<TSocket>(obj.m_Host, obj.m_Port);
     } else if (type == "socket_ssl") {
-        // m_Pimpl->m_Pipe = std::make_shared<TSSLSocket>();
+        //https://thrift.apache.org/lib/cpp
+        //https://scriptcrunch.com/create-ca-tls-ssl-certificates-keys/
+        m_Pimpl->m_SslSocketFactorty = std::make_shared<TSSLSocketFactory>();
+        m_Pimpl->m_SslSocketFactorty->ciphers(obj.m_Ciphers);
+
+        //CA.pem
+        if (obj.m_CaCertFilePath.empty())
+            throw std::runtime_error("Server trusted cert file (CA.pem) path is empty!");
+        if (auto ext = obj.m_CaCertFilePath.extension(); ".pem" != ext)
+            throw std::runtime_error("Wrong server trusted cert CA file extension: " + ext.string() + " instead \".pem\"!");
+        m_Pimpl->m_SslSocketFactorty->loadTrustedCertificates(obj.m_CaCertFilePath.c_str());
+
+        //client.crt
+        if (obj.m_ServerCertPath.empty())
+            throw std::runtime_error("Server cert file path is empty!");
+        if (auto ext = obj.m_ServerCertPath.extension(); ".crt" != ext)
+            throw std::runtime_error("Server cert file extension: " + ext.string() + " instead \".crt\"!");
+        m_Pimpl->m_SslSocketFactorty->loadCertificate(obj.m_ServerCertPath.c_str());
+
+        //client.key
+        if (obj.m_PrivateKeyPath.empty())
+            throw std::runtime_error("Private key file path is empty!");
+        if (auto ext = obj.m_PrivateKeyPath.extension(); ".key" != ext)
+            throw std::runtime_error("Private key file extension: " + ext.string() + " instead \".key\"!");
+        m_Pimpl->m_SslSocketFactorty->loadPrivateKey(obj.m_PrivateKeyPath.c_str());
+
+        m_Pimpl->m_SslSocketFactorty->authenticate(true);
+        m_Pimpl->m_Pipe = m_Pimpl->m_SslSocketFactorty->createSocket(obj.m_Host, obj.m_Port);
     } else if (type == "shm") {
         ///\todo
     } else if (type == "http") {
