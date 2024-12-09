@@ -224,10 +224,10 @@ void TransportSubsystem::InitializeTransport(
     } else if (type == "shm") {
         ///\todo
     } else if (type == "http") {
+        ///\todo add service name configuration
         m_Pimpl->m_Pipe = std::make_shared<THttpClient>(obj.m_Host, obj.m_Port, "/service", tc);
-    } else if (type == "descriptor") {
-        ///\todo
     } else {
+        ///\todo type == "descriptor", type == "pipe", type == "header"
         throw std::runtime_error("Unsupported transport: " + std::string{type});
     }
 
