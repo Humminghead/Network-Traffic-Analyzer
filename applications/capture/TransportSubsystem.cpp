@@ -69,7 +69,13 @@ class TransportSubsystemFlowConsumer {
         : m_Serializer{serializer}, m_Queue{std::move(pq)} {}
 
     void Consume() {
-        m_Queue->consume_all([this](auto &&el) { m_Serializer->serialize(el); });
+        m_Queue->consume_all([this](auto &&el) {
+            try {
+                m_Serializer->serialize(el);
+            } catch (const apache::thrift::transport::TTransportException& e) {
+                std::cerr << e.what() << std::endl;
+            }
+        });
     }
 
   private:
@@ -147,7 +153,7 @@ void TransportSubsystem::initialize(Poco::Util::Application &app) {
         throw std::runtime_error("Frames count should be greater than 0!");
 
     m_Pimpl->m_Serialzer = std::make_shared<serialize::TPfrSerializer<FlowModel>>(m_Pimpl->m_Protocol);
-    m_Pimpl->m_Queue = std::make_shared<boost::lockfree::spsc_queue<FlowModel>>(obj.m_MsgQueueSize);
+    m_Pimpl->m_Queue = std::make_shared<boost::lockfree::spsc_queue<FlowModel>>(obj.m_MsgQueueSize);    
     m_Pimpl->m_Producer = std::make_shared<TransportSubsystemFlowProducer>(m_Pimpl->m_Queue);
     m_Pimpl->m_Consumer = std::make_shared<TransportSubsystemFlowConsumer>(m_Pimpl->m_Serialzer, m_Pimpl->m_Queue);
 
