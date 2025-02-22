@@ -4,17 +4,16 @@
 #include <memory>
 
 namespace Nta::Json::Objects {
-struct JsonObjectPcap;
+struct JsonObjectDpdk;
 }
 
 namespace Nta::Network {
 
-class HandlerPcap : public HandlerAbstract {
-  public:
-    // enum class Source { File, Hw, Unset };
+class HandlerDpdk : public HandlerAbstract {
+public:
 
-    HandlerPcap(const Json::Objects::JsonObjectPcap &config);
-    virtual ~HandlerPcap() noexcept;
+    HandlerDpdk(const Json::Objects::JsonObjectDpdk &config);
+    virtual ~HandlerDpdk() noexcept;
 
     /*!
      * \brief Open
@@ -55,13 +54,7 @@ class HandlerPcap : public HandlerAbstract {
      */
     auto GetIfaceType() const -> const HandlerIfaces override { return HandlerIfaces::Pcap; }
 
-  private:
-    /*!
-     * \brief openPcap
-     * \param source
-     */
-    void OpenPcap();
-
+private:
     struct Impl;
     std::unique_ptr<Impl, void (*)(Impl *)> m_Impl;
 };
