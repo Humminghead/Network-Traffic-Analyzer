@@ -17,7 +17,7 @@ target_link_libraries(
   ${PROJECT_NAME}
   PRIVATE Poco::Util
           NtaUtil
-          NtaHandlers
+          Pcap
           NtaNetDecoder
           tpfrserializer
           ${Thrift_LIB}
