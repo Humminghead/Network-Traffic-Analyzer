@@ -25,4 +25,12 @@ struct JsonObjectHandler {
         Util::Json::GetTo(j, "device", p.m_Device);
     }
 };
+
+[[maybe_unused]] static void to_json(nlohmann::json &j, const JsonObjectHandler &p) {
+    j = JsonObjectHandler::ToJson(p);
+}
+
+[[maybe_unused]] static void from_json(const nlohmann::json &j, JsonObjectHandler &p) {
+    JsonObjectHandler::FromJson(j, p);
+}
 } // namespace Nta::Json::Objects

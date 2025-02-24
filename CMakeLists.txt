@@ -40,11 +40,11 @@ FetchContent_Declare(
     GIT_TAG v3.11.3
 )
 
-# FetchContent_Declare(
-#     BoostLib
-#     GIT_REPOSITORY https://github.com/boostorg/boost.git
-#     GIT_TAG develop
-# )
+FetchContent_Declare(
+    PcapPlusPlus
+    GIT_REPOSITORY https://github.com/seladb/PcapPlusPlus.git
+    GIT_TAG dev
+)
 
 # FetchContent_Declare(
 #     Thrift
@@ -53,7 +53,7 @@ FetchContent_Declare(
 # )
 
 FetchContent_MakeAvailable(    
-    # BoostLib
+    PcapPlusPlus
     Poco
     # Thrift
     TPfr

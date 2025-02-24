@@ -1,5 +1,7 @@
 #include "CaptureSubsystem.h"
 #include "ConfigureSubsystem.h"
+#include "Handlers/Dpdk/HandlerDpdk.h"
+#include "Handlers/Dpdk/JsonObjectDpdk.h"
 #include "Handlers/Pcap/HandlerPcap.h"
 #include "Handlers/Pcap/JsonObjectPcap.h"
 #include "Util/Misc.h"
@@ -35,7 +37,7 @@ void CaptureSubsystem::initialize(Poco::Util::Application &app) {
     if (!m_Pimpl->m_ConfigureSubsystem)
         throw std::runtime_error("ConfigureSubsystem wasn't set in " + m_Pimpl->m_SubSystemName + " subsustem!");
 
-    auto config = Nta::Util::Json::GetTo<Nta::Json::Objects::JsonObjectPcap>(
+    auto config = Nta::Util::Json::GetTo<Nta::Json::Objects::JsonObjectHandler>(
         "handler", m_Pimpl->m_ConfigureSubsystem->GetRawJsonConfig());
 
     std::string tempType{};
@@ -44,8 +46,16 @@ void CaptureSubsystem::initialize(Poco::Util::Application &app) {
     });
 
     if (tempType == "pcap") {
-        m_Pimpl->m_Handler = std::make_shared<Nta::Network::HandlerPcap>(config);
-    } else if (tempType.empty()) {
+        auto pcapConfig = Nta::Util::Json::GetTo<Nta::Json::Objects::JsonObjectPcap>(
+            "handler", m_Pimpl->m_ConfigureSubsystem->GetRawJsonConfig());
+        m_Pimpl->m_Handler = std::make_shared<Nta::Network::HandlerPcap>(pcapConfig);
+    }
+    if (tempType == "dpdk") {
+        auto dpdkConfig = Nta::Util::Json::GetTo<Nta::Json::Objects::JsonObjectDpdk>(
+            "handler", m_Pimpl->m_ConfigureSubsystem->GetRawJsonConfig());
+        m_Pimpl->m_Handler = std::make_shared<Nta::Network::HandlerDpdk>(dpdkConfig);
+    }
+    else if (tempType.empty()) {
         throw std::runtime_error("Empty device type string in config!");
     } else {
         throw std::runtime_error("Unsupported device type \"" + tempType + "\"!");
