@@ -4,7 +4,7 @@
 #include <memory>
 
 namespace Nta::Json::Objects {
-struct JsonObjectDpdk;
+struct DpdkObject;
 }
 
 namespace Nta::Network {
@@ -12,7 +12,7 @@ namespace Nta::Network {
 class HandlerDpdk : public HandlerAbstract {
 public:
 
-    HandlerDpdk(const Json::Objects::JsonObjectDpdk &config);
+    HandlerDpdk(const Json::Objects::DpdkObject &config);
     virtual ~HandlerDpdk() noexcept;
 
     /*!

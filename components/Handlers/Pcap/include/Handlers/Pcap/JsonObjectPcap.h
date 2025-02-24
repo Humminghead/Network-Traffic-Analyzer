@@ -6,7 +6,7 @@
 #include <string>
 
 namespace Nta::Json::Objects {
-struct JsonObjectPcap : JsonObjectHandler {
+struct JsonObjectPcap : HandlerObject {
     std::string m_BpfFilter{};
     bool m_PromiscuousMode{false};
 
@@ -33,12 +33,12 @@ struct JsonObjectPcap : JsonObjectHandler {
         [&j](auto&&... jIn) {
             (j.merge_patch(jIn), ...);
         },
-        std::make_tuple(JsonObjectHandler::ToJson(p), JsonObjectPcap::ToJson(p)));
+        std::make_tuple(HandlerObject::ToJson(p), JsonObjectPcap::ToJson(p)));
     // clang-format on
 }
 
 [[maybe_unused]] static void from_json(const nlohmann::json &j, JsonObjectPcap &p) {
-    JsonObjectHandler::FromJson(j, p);
+    HandlerObject::FromJson(j, p);
     JsonObjectPcap::FromJson(j, p);
 }
 

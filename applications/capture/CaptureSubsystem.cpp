@@ -37,7 +37,7 @@ void CaptureSubsystem::initialize(Poco::Util::Application &app) {
     if (!m_Pimpl->m_ConfigureSubsystem)
         throw std::runtime_error("ConfigureSubsystem wasn't set in " + m_Pimpl->m_SubSystemName + " subsustem!");
 
-    auto config = Nta::Util::Json::GetTo<Nta::Json::Objects::JsonObjectHandler>(
+    auto config = Nta::Util::Json::GetTo<Nta::Json::Objects::HandlerObject>(
         "handler", m_Pimpl->m_ConfigureSubsystem->GetRawJsonConfig());
 
     std::string tempType{};
@@ -51,7 +51,7 @@ void CaptureSubsystem::initialize(Poco::Util::Application &app) {
         m_Pimpl->m_Handler = std::make_shared<Nta::Network::HandlerPcap>(pcapConfig);
     }
     if (tempType == "dpdk") {
-        auto dpdkConfig = Nta::Util::Json::GetTo<Nta::Json::Objects::JsonObjectDpdk>(
+        auto dpdkConfig = Nta::Util::Json::GetTo<Nta::Json::Objects::DpdkObject>(
             "handler", m_Pimpl->m_ConfigureSubsystem->GetRawJsonConfig());
         m_Pimpl->m_Handler = std::make_shared<Nta::Network::HandlerDpdk>(dpdkConfig);
     }

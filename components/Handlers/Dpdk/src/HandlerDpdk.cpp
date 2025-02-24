@@ -1,6 +1,7 @@
 #include "Handlers/Dpdk/HandlerDpdk.h"
 
 #include "Handlers/Dpdk/JsonObjectDpdk.h"
+#include "Handlers/Dpdk/Acl/LookupAcl.h"
 
 #include <DpdkDeviceList.h>
 #include <memory>
@@ -8,10 +9,10 @@
 namespace Nta::Network {
 
 struct HandlerDpdk::Impl {
-    Json::Objects::JsonObjectDpdk m_Config;
+    Json::Objects::DpdkObject m_Config;
 };
 
-HandlerDpdk::HandlerDpdk(const Json::Objects::JsonObjectDpdk &config)
+HandlerDpdk::HandlerDpdk(const Json::Objects::DpdkObject &config)
     : m_Impl{new HandlerDpdk::Impl(), [](auto p) { delete p; }} {
     m_Impl->m_Config = config;
 }
