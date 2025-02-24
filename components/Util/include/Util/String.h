@@ -1,7 +1,9 @@
 #pragma once
 
+#include <algorithm>
 #include <charconv>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <system_error>
 
@@ -12,6 +14,7 @@ namespace Nta::Util::String {
  * \param string with int value
  * \return int if conversion successful. Otherwise return std::nullopt
  */
+static
 #if __cplusplus >= 202100L
 constexpr
 #endif
@@ -26,6 +29,12 @@ auto ToInt(std::string_view s) -> std::optional<int>
         return value;
     else
         return std::nullopt;
+};
+
+static auto RemoveSpaces(std::string &&str)
+{
+    str.erase(std::remove(str.begin(), str.end(), ' '), str.end());
+    return str;
 };
 
 } // namespace Nta::Util::String
