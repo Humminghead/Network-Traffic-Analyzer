@@ -1,0 +1,42 @@
+{
+	"app_core":27,
+	"handler":
+		{			
+			"eal_core_mask":3,
+			"eal_mbuf_size":65535,
+			"eal_main_lcore":0,
+			"eal_memory_channels":4,
+			// "eal_memory_ranks":"auto",
+			"eal_master_lcore":0,
+			"device":"wlx340a33e0dd2e",            
+			"type":"dpdk",
+			"promiscuous":true,
+			"eal_cmd_line_arguments":[
+				{"--vdev":"net_pcap0,  rx_pcap=/media/user/other/Pcap/local/ip4-nbns-brow-udp-ssdp.pcap,  tx_pcap=/media/user/other/Pcap/local/ip4-nbns-brow-udp-ssdp.pcap1"},
+				{"--vdev":"net_pcap1,rx_pcap=/media/user/other/Pcap/local/ip4-nbns-brow-udp-ssdp.pcap"}
+			]
+		},	
+	"transport":{
+		"type":"file",
+		"workdir":"/mnt/ramdisk",		
+		"use_zlib":false,
+		"multiplexed":false,
+		"buffer_type": "buffered",
+		// "protocol": "compact",
+		"protocol": "debug",
+		// "max_message_size": 1024,
+        // "max_frame_size":999,
+        // "recursion_limit": 10,
+        "message_queue_size": 3000000,
+        "frames_count": 500
+        
+        // "type":"socket_ssl",
+        // "host":"127.0.0.1",
+		// "port":9199,
+        // "ciphers":"ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH",
+        // "ca_file_path":"/tmp/thrift/test/keys/CA.pem",
+        // "server_cert_path":"/tmp/thrift/test/keys/client.crt",
+        // "private_key_path":"/tmp/thrift/test/keys/client.key",
+        // "authentication":true
+	}
+}
