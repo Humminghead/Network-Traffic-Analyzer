@@ -16,6 +16,7 @@ struct HandlerDpdk::Impl {
     RteLookupAcl m_Acl;
     std::vector<RteAclLookupRule<FiveTupleIp4Defs.size()>> fiveTupleIp4Rules{};
     RteRuleMaker<FiveTupleIp4> fiveTupleMaker{};
+    RteAclContext ctx{};
 };
 
 HandlerDpdk::HandlerDpdk(const Json::Objects::DpdkObject &config)
@@ -66,13 +67,14 @@ void HandlerDpdk::Open() {
     if (!m_Impl->inited.load())
         throw std::runtime_error("DPDK initialization failed!");
 
-    RteAclContext ctx{"Handler DPDK context", FiveTupleIp4Defs.size(), 8};
-    ctx.AddRules(m_Impl->fiveTupleIp4Rules);
-    ctx.SetNumFields(FiveTupleIp4Defs.size());
-    ctx.SetNumCategories(2);
-    ctx.SetCfgDefs(FiveTupleIp4Defs);
-
-    ctx.Build();
+    m_Impl->ctx.SetName("Handler DPDK context");
+    m_Impl->ctx.SetNumFieldsAndRuleSize(FiveTupleIp4Defs.size());
+    m_Impl->ctx.SetMaxRuleCount(8);
+    m_Impl->ctx.Create();
+    m_Impl->ctx.AddRules(m_Impl->fiveTupleIp4Rules);
+    m_Impl->ctx.SetNumCategories(2);///\todo move in config
+    m_Impl->ctx.SetCfgDefs(FiveTupleIp4Defs);
+    m_Impl->ctx.Build();
 }
 
 void HandlerDpdk::Close() {}

@@ -70,14 +70,19 @@ class RteAclContext {
      * \param Maximum number of rules
      * \param Socket ID to allocate memory for
      */
-    RteAclContext(const std::string_view name, uint32_t ruleSize, uint32_t maxRuleNum, int socketId = SOCKET_ID_ANY)
-        : m_Cfg{.num_fields = ruleSize}, m_Prm{
+    RteAclContext(const std::string_view name, const uint32_t numFields, const uint32_t maxRuleNum, const int socketId = SOCKET_ID_ANY)
+        : m_Cfg{.num_fields = numFields}, m_Prm{
                                              .name = name.data(),
                                              .socket_id = socketId,
-                                             .rule_size = static_cast<uint32_t>(RTE_ACL_RULE_SZ(ruleSize)),
+                                             .rule_size = static_cast<uint32_t>(RTE_ACL_RULE_SZ(numFields)),
                                              .max_rule_num = maxRuleNum} {
         Create(m_Prm);
     }
+
+    /*!
+     * \brief Creates an empty AC context with the inner parameters
+     */
+    void Create() { Create(m_Prm); }
 
     /*!
      * \brief Creates an empty AC context
@@ -100,13 +105,40 @@ class RteAclContext {
      * \brief Set number of field definitions
      * \param number of fields
      */
-    auto SetNumFields(const uint32_t num) { m_Cfg.num_fields = num; }
+    auto SetNumFields(const uint32_t numFields) { m_Cfg.num_fields = numFields; }
 
     /*!
      * \brief Set maximal possibe rule count in context
      * \param rule count
      */
     auto SetMaxRuleCount(const size_t maxRuleCount) { m_Prm.max_rule_num = maxRuleCount; }
+
+    /*!
+     * \brief Set name of the context
+     * \param name
+     */
+    auto SetName(const std::string_view name) { m_Prm.name = name.data(); }
+
+    /*!
+     * \brief Set socket ID to allocate memory for
+     * \param id
+     */
+    auto SetSocketId(const int id) { m_Prm.socket_id = id; }
+
+    /*!
+     * \brief Set size of each rule
+     * \param num of fields
+     */
+    auto SetRuleSize(const uint32_t numFields) { m_Prm.rule_size = static_cast<uint32_t>(RTE_ACL_RULE_SZ(numFields)); }
+
+    /*!
+     * \brief Sets size of each rule and number of fields defenitions
+     * \param num of fields
+     */
+    auto SetNumFieldsAndRuleSize(const uint32_t numFields) {
+        m_Cfg.num_fields = numFields;
+        m_Prm.rule_size = static_cast<uint32_t>(RTE_ACL_RULE_SZ(numFields));
+    }
 
     /*!
      * \brief Sets array of field definitions that can be used
@@ -139,7 +171,8 @@ class RteAclContext {
 
     ContextPtr m_Context{nullptr, m_ContextDeleter};
     rte_acl_config m_Cfg;
-    rte_acl_param m_Prm{};
+    rte_acl_param m_Prm{.name = "ACL context",
+                        .socket_id = SOCKET_ID_ANY};
 };
 
 class RteLookupAcl {
