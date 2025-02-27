@@ -5,8 +5,8 @@ find_package(PkgConfig)
 
 project(NtaHandlerDpdk LANGUAGES CXX)
 
-# Pcap
-# include(FindPCAP)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 pkg_check_modules(DPDK "libdpdk")
 

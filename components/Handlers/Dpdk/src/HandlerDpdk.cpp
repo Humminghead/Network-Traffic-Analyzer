@@ -2,14 +2,20 @@
 
 #include "Handlers/Dpdk/JsonObjectDpdk.h"
 #include "Handlers/Dpdk/Acl/LookupAcl.h"
+#include "Handlers/Dpdk/RuleMaker.h"
 
 #include <DpdkDeviceList.h>
+#include <atomic>
 #include <memory>
 
 namespace Nta::Network {
 
 struct HandlerDpdk::Impl {
+    std::atomic_bool inited{false};
     Json::Objects::DpdkObject m_Config;
+    RteLookupAcl m_Acl;
+    std::vector<RteAclLookupRule<FiveTupleIp4Defs.size()>> fiveTupleIp4Rules{};
+    RteRuleMaker<FiveTupleIp4> fiveTupleMaker{};
 };
 
 HandlerDpdk::HandlerDpdk(const Json::Objects::DpdkObject &config)
@@ -22,6 +28,9 @@ HandlerDpdk::~HandlerDpdk() noexcept {
 }
 
 void HandlerDpdk::Open() {
+    if (m_Impl->inited)
+        throw std::runtime_error("Handler already opned!");
+
     char **tempArgv{nullptr};
     size_t i=0,beg = 0, end = 0;
 
@@ -33,17 +42,37 @@ void HandlerDpdk::Open() {
         argPtrs.push_back(v.c_str());
     }
 
+    m_Impl->fiveTupleIp4Rules.reserve(m_Impl->m_Config.m_PacketCx.size());
+
+    for(const auto& cx: m_Impl->m_Config.m_PacketCx){
+        if (cx.type == "acl") {
+            std::for_each(std::begin(cx.rules),std::end(cx.rules),[&](auto &rule){
+               m_Impl->fiveTupleIp4Rules.push_back(m_Impl->fiveTupleMaker.Make(rule));
+            });
+        } else {
+            ///\todo log or throw
+        }
+    }    
+
     tempArgv = const_cast<char **>(argPtrs.data());
-    bool ok = pcpp::DpdkDeviceList::initDpdk(
+    m_Impl->inited.store(pcpp::DpdkDeviceList::initDpdk(
         m_Impl->m_Config.m_CoreMask,
         m_Impl->m_Config.m_BufPoolSizePerDevice,
         0,
         m_Impl->m_Config.m_MainLcore,
         argPtrs.size(),
-        tempArgv);
+        tempArgv));
 
-    if (!ok)
+    if (!m_Impl->inited.load())
         throw std::runtime_error("DPDK initialization failed!");
+
+    RteAclContext ctx{"Handler DPDK context", FiveTupleIp4Defs.size(), 8};
+    ctx.AddRules(m_Impl->fiveTupleIp4Rules);
+    ctx.SetNumFields(FiveTupleIp4Defs.size());
+    ctx.SetNumCategories(2);
+    ctx.SetCfgDefs(FiveTupleIp4Defs);
+
+    ctx.Build();
 }
 
 void HandlerDpdk::Close() {}

@@ -7,6 +7,7 @@
 
 namespace Nta::Json::Objects {
 
+//-----------------------------------------------------------------------------------
 struct DpdkEalCmdLineArg{
     std::string key;
     std::string value;
@@ -21,6 +22,7 @@ struct DpdkEalCmdLineArg{
     p.value = Util::String::RemoveSpaces(j.items().begin().value());
 }
 
+//-----------------------------------------------------------------------------------
 struct DpdkEalCmdLine{
     std::vector<DpdkEalCmdLineArg> args;
 };
@@ -32,12 +34,30 @@ struct DpdkEalCmdLine{
     j.get_to(p.args);
 }
 
+//-----------------------------------------------------------------------------------
+struct InputPacketClassification{
+    std::string type {};
+    std::vector<std::string> rules{};
+};
+
+[[maybe_unused]] static void to_json(nlohmann::json &j, const InputPacketClassification &p) {
+}
+
+[[maybe_unused]] static void from_json(const nlohmann::json &j, InputPacketClassification &p) {
+    j.at("type").get_to(p.type);
+    std::transform(
+        std::begin(p.type), std::end(p.type), std::begin(p.type), [](const char c) { return std::tolower(c); });
+    j.at("rules").get_to(p.rules);
+}
+
+//-----------------------------------------------------------------------------------
 struct DpdkObject : HandlerObject {
     uint32_t m_CoreMask{0};
     uint32_t m_BufPoolSizePerDevice{0};
     uint32_t m_MainLcore{0};
     uint32_t m_NumOfMemoryChannels{0};
     DpdkEalCmdLine m_EalCmdLine{};
+    std::vector<InputPacketClassification> m_PacketCx{};
     bool m_PromiscuousMode{false};
 
     [[maybe_unused]] static auto ToJson(const DpdkObject &p) -> nlohmann::json {
@@ -48,6 +68,7 @@ struct DpdkObject : HandlerObject {
              {"eal_main_lcore", p.m_MainLcore},
              {"eal_memory_channels", p.m_NumOfMemoryChannels},
              {"eal_cmd_line_arguments", p.m_EalCmdLine},
+             {"input_packet_classification", p.m_PacketCx},
              {"promiscuous", p.m_PromiscuousMode}
         };
         // clang-format on
@@ -60,6 +81,7 @@ struct DpdkObject : HandlerObject {
         j.at("eal_memory_channels").get_to(p.m_NumOfMemoryChannels);
         Util::Json::GetTo(j, "eal_cmd_line_arguments", p.m_EalCmdLine);
         Util::Json::GetTo(j, "eal_main_lcore", p.m_MainLcore);
+        Util::Json::GetTo(j, "input_packet_classification", p.m_PacketCx);
         Util::Json::GetTo(j, "promiscuous", p.m_PromiscuousMode);
     }
 };

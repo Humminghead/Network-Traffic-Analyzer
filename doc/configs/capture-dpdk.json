@@ -12,9 +12,19 @@
 			"type":"dpdk",
 			"promiscuous":true,
 			"eal_cmd_line_arguments":[
-				{"--vdev":"net_pcap0,  rx_pcap=/media/user/other/Pcap/local/ip4-nbns-brow-udp-ssdp.pcap,  tx_pcap=/media/user/other/Pcap/local/ip4-nbns-brow-udp-ssdp.pcap1"},
-				{"--vdev":"net_pcap1,rx_pcap=/media/user/other/Pcap/local/ip4-nbns-brow-udp-ssdp.pcap"}
-			]
+				{"--vdev":"net_pcap0,rx_pcap=/media/user/other/Pcap/local/ip4-nbns-brow-udp-ssdp.pcap,tx_pcap=/media/user/other/Pcap/local/ip4-nbns-brow-udp-ssdp.pcap1"}
+				// {"--vdev":"net_pcap1,rx_pcap=/media/user/other/Pcap/local/ip4-nbns-brow-udp-ssdp.pcap"}
+			],
+			"input_packet_classification":[
+				{
+					"type":"acL",
+					"rules":[
+						// "R0.0.0.0/0 0.0.0.0/0 0 : 137 0 : 137 0x00/0x00 0"
+						// "R1.2.3.4/5 6.7.8.9/10 11 : 12 13 : 14 0x77/0x88 15"
+						"R192.168.131.0/24 192.168.131.0/24 0 : 137 0 : 137 17/0xFF 0"
+					]
+				}
+			]	
 		},	
 	"transport":{
 		"type":"file",

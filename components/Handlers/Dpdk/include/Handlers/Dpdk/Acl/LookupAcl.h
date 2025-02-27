@@ -1,0 +1,158 @@
+#pragma once
+
+#include <array>
+#include <functional>
+#include <memory>
+#include <rte_acl.h>
+#include <stdexcept>
+
+namespace Nta::Network {
+
+/*!
+ * \brief Several implementations of classify algorithm
+ * https://doc.dpdk.org/guides/prog_guide/packet_classif_access_ctrl.html#overview
+ * 7.1.3. Classification methods
+ */
+enum class RTE_ACL_CLASSIFY {
+    SCALAR, // generic implementation, doesn’t require any specific HW support. Requires max SIMD
+            // bitwidth to be at least 64.
+
+    SSE, // vector implementation, can process up to 8 flows in parallel. Requires SSE 4.1 support.
+         // Requires max SIMD bitwidth to be at least 128.
+
+    AVX2, // vector implementation, can process up to 16 flows in parallel. Requires AVX2 support.
+          // Requires max SIMD bitwidth to be at least 256.
+
+    NEON, // vector implementation, can process up to 8 flows in parallel. Requires NEON support.
+          // Requires max SIMD bitwidth to be at least 128.
+
+    ALTIVEC, // vector implementation, can process up to 8 flows in parallel. Requires ALTIVEC support.
+             // Requires max SIMD bitwidth to be at least 128.
+
+    AVX512X16, // vector implementation, can process up to 16 flows in parallel. Uses 256-bit width
+               // SIMD registers. Requires AVX512 support. Requires max SIMD bitwidth to be at least
+               // 256.
+
+    AVX512X32, // vector implementation, can process up to 32 flows in parallel. Uses 512-bit width
+               // SIMD registers. Requires AVX512 support. Requires max SIMD bitwidth to be at least
+               // 512.
+};
+
+template <size_t N> struct RteAclLookupRule {
+    struct rte_acl_rule_data data;
+    std::array<rte_acl_field, N> fields;
+};
+
+/*!
+ * \brief Creates for a given set of rules internal structure for further run-time traversal.
+ * https://doc.dpdk.org/guides/prog_guide/packet_classif_access_ctrl.html#overview
+ * 7.1.2. RT memory size limit
+ */
+class RteAclContext {
+  public:
+    /*!
+     * \brief Sets maximum memory limit for internal RT structures for given AC context.Setting it to zero makes
+     * rte_acl_build() to use the default behavior: try to minimize size of the RT structures, but doesn’t expose any
+     * hard limit on it.
+     *
+     * Example:
+     * try to build AC context, with RT structures less then 8MB:
+     * cfg.max_size = 0x800000;
+     *
+     * \param size
+     */
+    RteAclContext(const size_t maxSize = 0) : m_Cfg{.max_size = maxSize} {}
+
+    /*!
+     * \brief Creates context with parameters of the dpdk ACL context.
+     * \param Name of the ACL context
+     * \param Size of each rule
+     * \param Maximum number of rules
+     * \param Socket ID to allocate memory for
+     */
+    RteAclContext(const std::string_view name, uint32_t ruleSize, uint32_t maxRuleNum, int socketId = SOCKET_ID_ANY)
+        : m_Cfg{.num_fields = ruleSize}, m_Prm{
+                                             .name = name.data(),
+                                             .socket_id = socketId,
+                                             .rule_size = static_cast<uint32_t>(RTE_ACL_RULE_SZ(ruleSize)),
+                                             .max_rule_num = maxRuleNum} {
+        Create(m_Prm);
+    }
+
+    /*!
+     * \brief Creates an empty AC context
+     * \param AC context creation parameters
+     */
+    void Create(const rte_acl_param &param);
+
+    /*!
+     * \brief Returns rte_acl_ctx raw pointer
+     */
+    auto RawPointer() const { return m_Context.get(); }
+
+    /*!
+     * \brief Set number of categories to build with
+     * \param number of categories
+     */
+    auto SetNumCategories(const uint32_t num) { m_Cfg.num_categories = num; }
+
+    /*!
+     * \brief Set number of field definitions
+     * \param number of fields
+     */
+    auto SetNumFields(const uint32_t num) { m_Cfg.num_fields = num; }
+
+    /*!
+     * \brief Set maximal possibe rule count in context
+     * \param rule count
+     */
+    auto SetMaxRuleCount(const size_t maxRuleCount) { m_Prm.max_rule_num = maxRuleCount; }
+
+    /*!
+     * \brief Sets array of field definitions that can be used
+     * \param d
+     */
+    template <size_t N> auto SetCfgDefs(const std::array<rte_acl_field_def, N> &d) {
+        memcpy(m_Cfg.defs, d.data(), sizeof(d));
+    }
+
+    /*!
+     * \brief Build runtime structures for ACL context
+     */
+    auto Build() -> void;
+
+    /*!
+     * \brief Add rules to the context
+     * \param context
+     * \param rules
+     */
+    template <size_t N> void AddRules(const std::vector<RteAclLookupRule<N>> &rules) {
+        if (auto ret = rte_acl_add_rules(RawPointer(), (const rte_acl_rule *)rules.data(), rules.size()); ret != 0) {
+            throw std::runtime_error("Handle error at adding ACL rules!");
+        }
+    }
+
+  private:
+    using ContextPtr = std::unique_ptr<rte_acl_ctx, std::function<void(rte_acl_ctx *)>>;
+
+    static void m_ContextDeleter(rte_acl_ctx *p) { rte_free(p); };
+
+    ContextPtr m_Context{nullptr, m_ContextDeleter};
+    rte_acl_config m_Cfg;
+    rte_acl_param m_Prm{};
+};
+
+class RteLookupAcl {
+  public:
+    using Result = std::pair<int, std::vector<uint32_t>>;
+    /*!
+     * \brief Classify
+     * \param ctx
+     * \param data
+     * \param categories
+     * \return
+     */
+    Result Classify(const RteAclContext &ctx, std::vector<const uint8_t *> &packets, const uint32_t categories = 1);
+};
+
+} // namespace Nta::Network
