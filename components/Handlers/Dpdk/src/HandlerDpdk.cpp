@@ -76,8 +76,11 @@ void HandlerDpdk::Open() {
     ctx.SetMaxRuleCount(8);
     ctx.Create();
 
-    if (rte_acl_set_ctx_classify(ctx.RawPointer(), RTE_ACL_CLASSIFY_AVX2) != 0)
-        rte_exit(EXIT_FAILURE, "Failed to setup classify method for  ACL context\n");
+    if (!ctx.SetClassify(RTE_ACL_CLASSIFY_AVX2)) ///\todo add in config
+    {
+        if (!ctx.SetClassify(RTE_ACL_CLASSIFY_SCALAR))
+            throw std::runtime_error("Failed to setup classify method for  ACL context\n");
+    }
 
     ctx.AddRules(m_Impl->fiveTupleIp4Rules);
     ctx.SetNumCategories(1);///\todo move in config
@@ -91,20 +94,16 @@ void HandlerDpdk::Open() {
     }
 
     // Open DPDK devices
-    auto device = deviceList.at(0);
-    auto totalNumOfRxQueues = device->getTotalNumOfRxQueues();
-    auto totalNumOfTxQueues = device->getTotalNumOfTxQueues();
+    auto device = std::make_shared<DpdkDevice>(deviceList.at(0));
+    auto totalNumOfRxQueues = device->GetTotalNumOfRxQueues();
+    auto totalNumOfTxQueues = device->GetTotalNumOfTxQueues();
 
-    pcpp::DpdkDevice::DpdkDeviceConfiguration config(
-        128, 512, 100, pcpp::DpdkDevice::DpdkRssHashFunction::RSS_NONE, nullptr, 0);
-
-    if (!device->openMultiQueues(totalNumOfRxQueues, totalNumOfTxQueues,config))
+    if (!device->OpenMultiQueues(totalNumOfRxQueues, totalNumOfTxQueues))
     {
         throw std::runtime_error(
-            "Couldn't open device1 #" + std::to_string(device->getDeviceId()) + ", PMD '" + device->getPMDName() + "'");
+            "Couldn't open device1 #" + std::to_string(device->GetDeviceId()) + ", PMD '" + device->GetPMDName() + "'");
     }
 
-    // m_Impl->workers.push_back(std::make_unique<Worker>(device, device));
     m_Impl->workers.push_back(new Worker(device, device, std::move(ctx)));
     m_Impl->workers.push_back(new Dummy());
 

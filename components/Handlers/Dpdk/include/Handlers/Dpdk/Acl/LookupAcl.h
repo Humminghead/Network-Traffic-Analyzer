@@ -125,6 +125,13 @@ class RteAclContext {
     }
 
     /*!
+     * \brief Override the default classifier function for a given ACL context
+     * \param New default classify algorithm for given ACL context
+     * \return true if operation completed successfully
+     */
+    auto SetClassify(enum rte_acl_classify_alg alg) -> bool;
+
+    /*!
      * \brief Build runtime structures for ACL context
      */
     auto Build() -> void;
@@ -152,7 +159,7 @@ class RteAclContext {
 
 class RteLookupAcl {
   public:
-    using Result = std::pair<int, std::vector<uint32_t>>;
+    using Result = std::pair<bool, std::vector<uint32_t>>;
     /*!
      * \brief Classify
      * \param ctx
@@ -171,11 +178,17 @@ class RteLookupAcl {
      * \param categories
      * \return
      */
-    Result Classify(const RteAclContext &ctx, const uint8_t **data,const uint32_t nbRx, uint32_t *results, uint32_t num, const uint32_t categories = 1);
+    Result Classify(
+        const RteAclContext &ctx,
+        const uint8_t **data,
+        const uint32_t nbRx,
+        uint32_t *results,
+        uint32_t num,
+        const uint32_t categories = 1);
 
-    Result Classify(const RteAclContext &ctx, const std::vector<rte_mbuf *>& rxPkts, const uint32_t categories = 1);
+    Result Classify(const RteAclContext &ctx, const std::vector<rte_mbuf *> &rxPkts, const uint32_t categories = 1);
 };
 
-auto PrefetchCpuCache(const std::vector<rte_mbuf *>& rxPkts, const size_t prefetchCount)  -> void;
+auto PrefetchCpuCache(const std::vector<rte_mbuf *> &rxPkts, const size_t prefetchCount) -> void;
 
 } // namespace Nta::Network

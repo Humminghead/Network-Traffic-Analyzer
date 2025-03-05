@@ -4,24 +4,11 @@
 #include <rte_mbuf.h>
 #include <rte_prefetch.h>
 
-
-// #define OFF_ETHHEAD	(sizeof(struct rte_ether_hdr))
-// #define OFF_IPV42PROTO (offsetof(struct rte_ipv4_hdr, next_proto_id))
-
-#define MBUF_IPV4_2PROTO(m)	\
-rte_pktmbuf_mtod_offset((m), uint8_t *, OFF_ETHHEAD + OFF_IPV42PROTO)
-/*
-#define rte_pktmbuf_mtod_offset(m, t, o)	\
-((t)(void *)((char *)(m)->buf_addr + (m)->data_off + (o)))
-*/
-
-struct EthHeader
-{
+struct EthHeader {
     constexpr static auto offset = sizeof(struct rte_ether_hdr);
 };
 
-struct IpV4HeaderPtoto
-{
+struct IpV4HeaderPtoto {
     constexpr static auto offset = offsetof(struct rte_ipv4_hdr, next_proto_id);
 };
 
@@ -38,6 +25,12 @@ void Nta::Network::RteAclContext::Create(const rte_acl_param &prm) {
     }
 }
 
+auto Nta::Network::RteAclContext::SetClassify(enum rte_acl_classify_alg alg) -> bool {
+    if (rte_acl_set_ctx_classify(RawPointer(), alg) != 0)
+        return false;
+    return true;
+}
+
 auto Nta::Network::RteAclContext::Build() -> void {
     auto ret = rte_acl_build(RawPointer(), &m_Cfg);
     if (ret != 0) {
@@ -52,7 +45,7 @@ Nta::Network::RteLookupAcl::Result Nta::Network::RteLookupAcl::Classify(
     std::vector<uint32_t> searchResult;
     searchResult.resize(packets.size());
     return {
-        rte_acl_classify(ctx.RawPointer(), packets.data(), searchResult.data(), packets.size(), categories),
+        0 == rte_acl_classify(ctx.RawPointer(), packets.data(), searchResult.data(), packets.size(), categories),
         searchResult};
 }
 
@@ -65,10 +58,10 @@ Nta::Network::RteLookupAcl::Result Nta::Network::RteLookupAcl::Classify(
     const uint32_t categories) {
     std::vector<uint32_t> searchResult;
     searchResult.resize(nbRx);
-    return {rte_acl_classify(ctx.RawPointer(), data, results, num, categories), searchResult};
+    return {0 == rte_acl_classify(ctx.RawPointer(), data, results, num, categories), searchResult};
 }
 
-auto Nta::Network::PrefetchCpuCache(const std::vector<rte_mbuf *>& rxPkts, const size_t prefetchCount)  -> void {
+auto Nta::Network::PrefetchCpuCache(const std::vector<rte_mbuf *> &rxPkts, const size_t prefetchCount) -> void {
     for (auto i = 0; i < prefetchCount && i < rxPkts.size(); i++) {
         rte_prefetch0(rte_pktmbuf_mtod(rxPkts[i], void *));
     }
@@ -83,11 +76,9 @@ Nta::Network::RteLookupAcl::Result Nta::Network::RteLookupAcl::Classify(
 
     for (auto *mbuf : rxPkts) {
         if (!mbuf)
-            break;        
+            break;
         packetPointers.push_back(GetRtePktMbufMtodOffset<EthHeader, IpV4HeaderPtoto>(mbuf));
     }
 
-    auto res = Classify(ctx, packetPointers, categories);
-
-    return res;
+    return Classify(ctx, packetPointers, categories);
 }

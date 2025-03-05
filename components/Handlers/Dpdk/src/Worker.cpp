@@ -3,28 +3,37 @@
 
 namespace Nta::Network {
 
-uint16_t Worker::RecivePackets(pcpp::DpdkDevice *device, const uint16_t queueId /*, pcpp::MBufRawPacket **packets*/) {
-    if (unlikely(!device->isOpened())) {
+uint16_t DpdkDevice::RecivePackets(const uint16_t queueId) {
+    if (unlikely(!m_Dev->isOpened())) {
         throw std::runtime_error("Device not opened!");
     }
 
-    if (unlikely(queueId >= device->getTotalNumOfRxQueues())) {
+    if (unlikely(queueId >= m_Dev->getTotalNumOfRxQueues())) {
         throw std::runtime_error("RX queue ID #" + std::to_string(queueId) + " not available for this device");
     }
 
-    // if (unlikely(packets == nullptr)) {
-    //     throw std::runtime_error("Provided address of array to store packets is nullptr");
-    // }
-
-    return rte_eth_rx_burst(device->getDeviceId(), queueId, m_BufArray.data(), m_BufArray.size());
+    return rte_eth_rx_burst(m_Dev->getDeviceId(), queueId, m_BufArray.data(), m_BufArray.size());
 }
 
-Worker::Worker(pcpp::DpdkDevice *rxDevice, pcpp::DpdkDevice *txDevice, RteAclContext &&context, const size_t rxPacketMaxCount)
-    : m_RxDevice{rxDevice}
-    , m_TxDevice{txDevice}
-    , m_AclContext{std::move(context)}
-    , m_BufArray{rxPacketMaxCount}
-{}
+uint16_t DpdkDevice::SendPackets(const uint16_t queueId, MbufArray &bufArray) {
+    if (unlikely(!m_Dev->isOpened())) {
+        throw std::runtime_error("Device not opened!");
+    }
+
+    if (unlikely(queueId >= m_Dev->getNumOfOpenedTxQueues())) {
+        throw std::runtime_error("TX queue isn't opened in device!");
+    }
+
+    rte_mbuf **mBufArr = bufArray.data();
+
+    return rte_eth_tx_burst(m_Dev->getDeviceId(), queueId, mBufArr, bufArray.size());
+}
+
+Worker::Worker(std::shared_ptr<DpdkDevice> rxDevice, std::shared_ptr<DpdkDevice> txDevice, RteAclContext &&context)
+    : m_RxDevice{rxDevice}, m_TxDevice{txDevice}, m_AclContext{std::move(context)} // , m_BufArray{rxPacketMaxCount}
+{
+    m_MatchPackets.reserve(64);//Eq to DpdkDevice::m_BufArray{64};
+}
 
 bool Worker::run(uint32_t coreId) {
     if (!m_RxDevice || !m_TxDevice)
@@ -35,21 +44,30 @@ bool Worker::run(uint32_t coreId) {
 
     while (!m_Stop.load()) {
         // receive packets from RX device
-        if (uint16_t numOfPackets = RecivePackets(m_RxDevice, 0); numOfPackets > 0) {
+        if (uint16_t numOfPackets = m_RxDevice->RecivePackets(0); numOfPackets > 0) {
 
-            PrefetchCpuCache(m_BufArray,3);
-            m_AclLookUp.Classify(m_AclContext,m_BufArray);;
+            auto mBufArray = m_RxDevice->GetMbufArray();
 
-            // send received packet on the TX device
-            // m_TxDevice->sendPackets(mbufArr, numOfPackets, 0);
-            auto erased = std::erase_if(m_BufArray, [](rte_mbuf *buf) {
+            PrefetchCpuCache(mBufArray, 3); ///\todo add 2 cfg
+            if (auto [ok, pktIdxs] = m_AclLookUp.Classify(m_AclContext, mBufArray); ok) {
+                std::for_each_n(std::begin(pktIdxs), numOfPackets, [&](auto &idx) {
+                    if (idx != 0)
+                        m_MatchPackets.push_back(mBufArray[idx]);
+                });
+
+                // send received packet on the TX device
+                m_TxDevice->SendPackets(0, m_MatchPackets);
+                m_MatchPackets.clear();
+            }
+
+            auto erased = std::erase_if(mBufArray, [](rte_mbuf *buf) {
                 if (likely(buf != nullptr)) {
                     rte_pktmbuf_free(buf);
                     return true;
                 }
                 return false;
             });
-            m_BufArray.insert(std::end(m_BufArray), erased, nullptr);
+            mBufArray.insert(std::end(mBufArray), erased, nullptr);
         }
     }
     return m_Stop.load();
