@@ -3,8 +3,10 @@
 #include "Handlers/Dpdk/JsonObjectDpdk.h"
 #include "Handlers/Dpdk/Acl/LookupAcl.h"
 #include "Handlers/Dpdk/RuleMaker.h"
+#include "Handlers/Dpdk/Worker.h"
 
 #include <DpdkDeviceList.h>
+#include <DpdkDevice.h>
 #include <atomic>
 #include <memory>
 
@@ -15,8 +17,9 @@ struct HandlerDpdk::Impl {
     Json::Objects::DpdkObject m_Config;
     RteLookupAcl m_Acl;
     std::vector<RteAclLookupRule<FiveTupleIp4Defs.size()>> fiveTupleIp4Rules{};
-    RteRuleMaker<FiveTupleIp4> fiveTupleMaker{};
-    RteAclContext ctx{};
+    RteRuleMaker<FiveTupleIp4> fiveTupleMaker{};    
+    // std::vector<std::unique_ptr<pcpp::DpdkWorkerThread>> workers;
+    std::vector<pcpp::DpdkWorkerThread*> workers;
 };
 
 HandlerDpdk::HandlerDpdk(const Json::Objects::DpdkObject &config)
@@ -59,7 +62,7 @@ void HandlerDpdk::Open() {
     m_Impl->inited.store(pcpp::DpdkDeviceList::initDpdk(
         m_Impl->m_Config.m_CoreMask,
         m_Impl->m_Config.m_BufPoolSizePerDevice,
-        0,
+        0,///\todo
         m_Impl->m_Config.m_MainLcore,
         argPtrs.size(),
         tempArgv));
@@ -67,14 +70,49 @@ void HandlerDpdk::Open() {
     if (!m_Impl->inited.load())
         throw std::runtime_error("DPDK initialization failed!");
 
-    m_Impl->ctx.SetName("Handler DPDK context");
-    m_Impl->ctx.SetNumFieldsAndRuleSize(FiveTupleIp4Defs.size());
-    m_Impl->ctx.SetMaxRuleCount(8);
-    m_Impl->ctx.Create();
-    m_Impl->ctx.AddRules(m_Impl->fiveTupleIp4Rules);
-    m_Impl->ctx.SetNumCategories(2);///\todo move in config
-    m_Impl->ctx.SetCfgDefs(FiveTupleIp4Defs);
-    m_Impl->ctx.Build();
+    RteAclContext ctx{};
+    ctx.SetName("handler-dpdk-context");
+    ctx.SetNumFieldsAndRuleSize(FiveTupleIp4Defs.size());
+    ctx.SetMaxRuleCount(8);
+    ctx.Create();
+
+    if (rte_acl_set_ctx_classify(ctx.RawPointer(), RTE_ACL_CLASSIFY_AVX2) != 0)
+        rte_exit(EXIT_FAILURE, "Failed to setup classify method for  ACL context\n");
+
+    ctx.AddRules(m_Impl->fiveTupleIp4Rules);
+    ctx.SetNumCategories(1);///\todo move in config
+    ctx.SetCfgDefs(FiveTupleIp4Defs);
+    ctx.Build();
+
+    // Find DPDK devices
+    auto &deviceList = pcpp::DpdkDeviceList::getInstance().getDpdkDeviceList();
+    if (deviceList.empty()) {
+        throw std::runtime_error("DPDK device list is empty!");
+    }
+
+    // Open DPDK devices
+    auto device = deviceList.at(0);
+    auto totalNumOfRxQueues = device->getTotalNumOfRxQueues();
+    auto totalNumOfTxQueues = device->getTotalNumOfTxQueues();
+
+    pcpp::DpdkDevice::DpdkDeviceConfiguration config(
+        128, 512, 100, pcpp::DpdkDevice::DpdkRssHashFunction::RSS_NONE, nullptr, 0);
+
+    if (!device->openMultiQueues(totalNumOfRxQueues, totalNumOfTxQueues,config))
+    {
+        throw std::runtime_error(
+            "Couldn't open device1 #" + std::to_string(device->getDeviceId()) + ", PMD '" + device->getPMDName() + "'");
+    }
+
+    // m_Impl->workers.push_back(std::make_unique<Worker>(device, device));
+    m_Impl->workers.push_back(new Worker(device, device, std::move(ctx)));
+    m_Impl->workers.push_back(new Dummy());
+
+    // Start capture in async mode
+    if (!pcpp::DpdkDeviceList::getInstance().startDpdkWorkerThreads(m_Impl->m_Config.m_CoreMask, m_Impl->workers))
+    {
+        throw std::runtime_error("Couldn't start worker threads!");
+    }
 }
 
 void HandlerDpdk::Close() {}
@@ -85,7 +123,13 @@ auto HandlerDpdk::GetCallback() -> std::function<CallBackFunctionType> {
     return {};
 }
 
-void HandlerDpdk::Loop() {}
+void HandlerDpdk::Loop() {
+    auto lcoreId = RTE_MAX_LCORE;
+    RTE_LCORE_FOREACH_WORKER(lcoreId) {
+        if (rte_eal_wait_lcore(lcoreId) < 0)
+            return;
+    }
+}
 
 bool HandlerDpdk::SingleShot() {
     return false;

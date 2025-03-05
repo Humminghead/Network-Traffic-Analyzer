@@ -2,7 +2,7 @@
 	"app_core":27,
 	"handler":
 		{			
-			"eal_core_mask":3,
+			"eal_core_mask":7,
 			"eal_mbuf_size":65535,
 			"eal_main_lcore":0,
 			"eal_memory_channels":4,
@@ -12,8 +12,9 @@
 			"type":"dpdk",
 			"promiscuous":true,
 			"eal_cmd_line_arguments":[
-				{"--vdev":"net_pcap0,rx_pcap=/media/user/other/Pcap/local/ip4-nbns-brow-udp-ssdp.pcap,tx_pcap=/media/user/other/Pcap/local/ip4-nbns-brow-udp-ssdp.pcap1"}
-				// {"--vdev":"net_pcap1,rx_pcap=/media/user/other/Pcap/local/ip4-nbns-brow-udp-ssdp.pcap"}
+				// {"--vdev":"net_pcap0,rx_iface=wlx340a33e0dd2e,tx_pcap=/mnt/ramdisk/wlx340a33e0dd2e-tx.pcap"}				
+				{"--vdev":"net_pcap0,rx_pcap=/media/user/other/Pcap/local/ip4-nbns-brow-udp-ssdp.pcap,tx_pcap=/mnt/ramdisk/ip4-nbns-brow-udp-ssdp-tx.pcap"}
+				// {"--vdev":"eth_af_packet0,iface=vmnet0,blocksz=4096,framesz=2048,framecnt=512,qpairs=1,qdisc_bypass=0"}
 			],
 			"input_packet_classification":[
 				{
@@ -21,7 +22,7 @@
 					"rules":[
 						// "R0.0.0.0/0 0.0.0.0/0 0 : 137 0 : 137 0x00/0x00 0"
 						// "R1.2.3.4/5 6.7.8.9/10 11 : 12 13 : 14 0x77/0x88 15"
-						"R192.168.131.0/24 192.168.131.0/24 0 : 137 0 : 137 17/0xFF 0"
+						"R192.168.131.0/24 192.168.131.0/24 0 : 140 0 : 140 17/0xFF 0"
 					]
 				}
 			]	

@@ -6,37 +6,9 @@
 #include <rte_acl.h>
 #include <stdexcept>
 
+struct rte_mbuf;
+
 namespace Nta::Network {
-
-/*!
- * \brief Several implementations of classify algorithm
- * https://doc.dpdk.org/guides/prog_guide/packet_classif_access_ctrl.html#overview
- * 7.1.3. Classification methods
- */
-enum class RTE_ACL_CLASSIFY {
-    SCALAR, // generic implementation, doesn’t require any specific HW support. Requires max SIMD
-            // bitwidth to be at least 64.
-
-    SSE, // vector implementation, can process up to 8 flows in parallel. Requires SSE 4.1 support.
-         // Requires max SIMD bitwidth to be at least 128.
-
-    AVX2, // vector implementation, can process up to 16 flows in parallel. Requires AVX2 support.
-          // Requires max SIMD bitwidth to be at least 256.
-
-    NEON, // vector implementation, can process up to 8 flows in parallel. Requires NEON support.
-          // Requires max SIMD bitwidth to be at least 128.
-
-    ALTIVEC, // vector implementation, can process up to 8 flows in parallel. Requires ALTIVEC support.
-             // Requires max SIMD bitwidth to be at least 128.
-
-    AVX512X16, // vector implementation, can process up to 16 flows in parallel. Uses 256-bit width
-               // SIMD registers. Requires AVX512 support. Requires max SIMD bitwidth to be at least
-               // 256.
-
-    AVX512X32, // vector implementation, can process up to 32 flows in parallel. Uses 512-bit width
-               // SIMD registers. Requires AVX512 support. Requires max SIMD bitwidth to be at least
-               // 512.
-};
 
 template <size_t N> struct RteAclLookupRule {
     struct rte_acl_rule_data data;
@@ -70,12 +42,16 @@ class RteAclContext {
      * \param Maximum number of rules
      * \param Socket ID to allocate memory for
      */
-    RteAclContext(const std::string_view name, const uint32_t numFields, const uint32_t maxRuleNum, const int socketId = SOCKET_ID_ANY)
+    RteAclContext(
+        const std::string_view name,
+        const uint32_t numFields,
+        const uint32_t maxRuleNum,
+        const int socketId = SOCKET_ID_ANY)
         : m_Cfg{.num_fields = numFields}, m_Prm{
-                                             .name = name.data(),
-                                             .socket_id = socketId,
-                                             .rule_size = static_cast<uint32_t>(RTE_ACL_RULE_SZ(numFields)),
-                                             .max_rule_num = maxRuleNum} {
+                                              .name = name.data(),
+                                              .socket_id = socketId,
+                                              .rule_size = static_cast<uint32_t>(RTE_ACL_RULE_SZ(numFields)),
+                                              .max_rule_num = maxRuleNum} {
         Create(m_Prm);
     }
 
@@ -171,8 +147,7 @@ class RteAclContext {
 
     ContextPtr m_Context{nullptr, m_ContextDeleter};
     rte_acl_config m_Cfg;
-    rte_acl_param m_Prm{.name = "ACL context",
-                        .socket_id = SOCKET_ID_ANY};
+    rte_acl_param m_Prm{.name = "ACL context", .socket_id = SOCKET_ID_ANY};
 };
 
 class RteLookupAcl {
@@ -186,6 +161,21 @@ class RteLookupAcl {
      * \return
      */
     Result Classify(const RteAclContext &ctx, std::vector<const uint8_t *> &packets, const uint32_t categories = 1);
+
+    /*!
+     * \brief Classify
+     * \param ctx
+     * \param data
+     * \param results
+     * \param num
+     * \param categories
+     * \return
+     */
+    Result Classify(const RteAclContext &ctx, const uint8_t **data,const uint32_t nbRx, uint32_t *results, uint32_t num, const uint32_t categories = 1);
+
+    Result Classify(const RteAclContext &ctx, const std::vector<rte_mbuf *>& rxPkts, const uint32_t categories = 1);
 };
+
+auto PrefetchCpuCache(const std::vector<rte_mbuf *>& rxPkts, const size_t prefetchCount)  -> void;
 
 } // namespace Nta::Network

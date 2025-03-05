@@ -18,13 +18,12 @@ template <typename Rule> class RteRuleMaker;
 template <IsFiveTupleIp4 Rule> class RteRuleMaker<Rule> {
   public:
     [[nodiscard("Rule was generated, but not used")]] auto Make(const std::string &rule) {
+        using EmptyRule = RteAclLookupRule<FiveTupleIp4Defs.size()>;
+        if (rule.empty())
+            return EmptyRule{};
 
-        ///\todo
-        // if (rule.empty())
-        //     return ;
-
-        // if ('R' != rule[0])
-        //     return;
+        if ('R' != rule[0])
+            return EmptyRule{};
 
         uint8_t ipSrcMask{}, ipDstMask{};
         uint32_t ipSrc{}, ipDst{}, outputPortNumber{};
@@ -74,8 +73,8 @@ template <IsFiveTupleIp4 Rule> class RteRuleMaker<Rule> {
             return RteAclLookupRule<FiveTupleIp4Defs.size()>{
                 .data =
                     {
-                        .category_mask = 0x03, // Number of categories (num_categories)
-                        .priority = 1,
+                        .category_mask = (uint32_t)-1,//0x01, // Number of categories (num_categories)
+                        .priority = RTE_ACL_MAX_PRIORITY,
                         .userdata = 1,
                     },
                 .fields{{
@@ -87,7 +86,7 @@ template <IsFiveTupleIp4 Rule> class RteRuleMaker<Rule> {
                 }}};
             // clang-format on
         }
-        return RteAclLookupRule<FiveTupleIp4Defs.size()>{};
+        return EmptyRule{};
     }
 };
 } // namespace Nta::Network
