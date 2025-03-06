@@ -23,11 +23,7 @@ template <IsFiveTupleIp4 Rule> class RteRuleMaker<Rule> {
             return EmptyRule{};
 
         if ('R' != rule[0])
-            return EmptyRule{};
-
-        uint8_t ipSrcMask{}, ipDstMask{};
-        uint32_t ipSrc{}, ipDst{}, outputPortNumber{};
-        uint16_t sPortLow{}, sPortHi{}, dPortLow{}, dPortHi, proto{}, protoMask{};
+            return EmptyRule{};      
 
         std::regex regex{"[0-9x]{1,4}", std::regex::extended};
         const size_t matchValuesCount = 17;
@@ -36,7 +32,7 @@ template <IsFiveTupleIp4 Rule> class RteRuleMaker<Rule> {
         if (std::regex_search(rule, matches, regex)) {
             using RuleIter = std::remove_reference_t<decltype(rule)>::const_iterator;
 
-            std::vector<uint8_t> values;
+            std::vector<uint16_t> values;
             values.reserve(matchValuesCount);
 
             for (std::regex_iterator<RuleIter> it(std::begin(rule), std::end(rule), regex);
@@ -45,29 +41,13 @@ template <IsFiveTupleIp4 Rule> class RteRuleMaker<Rule> {
 
                 if (auto pos = it->str().find('x'); pos != std::string::npos && pos > 0) {
                     values.push_back(std::stoi(it->str(), &++pos, 16));
-                } else
+                } else {
                     values.push_back(std::stoi(it->str()));
+                }
             }
 
             if (matchValuesCount != values.size())
                 throw std::runtime_error("Wrong rule string format!");
-
-            ipSrc = RTE_IPV4(values[0], values[1], values[2], values[3]);
-            ipSrcMask = values[4];
-
-            ipDst = RTE_IPV4(values[5], values[6], values[7], values[8]);
-            ipDstMask = values[9];
-
-            sPortLow = values[10];
-            sPortHi = values[11];
-
-            dPortLow = values[12];
-            dPortHi = values[13];
-
-            proto = values[14];
-            protoMask = values[15];
-
-            outputPortNumber = values[16];
 
             // clang-format off
             return RteAclLookupRule<FiveTupleIp4Defs.size()>{
@@ -78,7 +58,7 @@ template <IsFiveTupleIp4 Rule> class RteRuleMaker<Rule> {
                         .userdata = 1,
                     },
                 .fields{{
-                    {.value{.u8 = values[14]}, .mask_range{.u32 = values[15]}},//PROTO
+                    {.value{.u8 = static_cast<uint8_t>(values[14])}, .mask_range{.u32 = values[15]}},//PROTO
                     {.value{.u32 = RTE_IPV4(values[0], values[1], values[2], values[3])}, .mask_range{.u32 = values[4]}},//IP_SRC
                     {.value{.u32 = RTE_IPV4(values[5], values[6], values[7], values[8])}, .mask_range{.u32 = values[9]}},//IP_DST
                     {.value{.u16 = values[10]}, .mask_range{.u16 = values[11]}},//PORT_SRC
