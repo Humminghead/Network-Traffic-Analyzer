@@ -10,15 +10,17 @@
 
 namespace Nta::Network {
 
-/*
- * That effectively defines order of IPV4VLAN classifications:
- *  - PROTO
- *  - VLAN (TAG and DOMAIN)
- *  - SRC IP ADDRESS
- *  - DST IP ADDRESS
- *  - PORTS (SRC and DST)
+/*!
+ * \brief defines order of IPV4VLAN classifications
+ * \details
+ *  That effectively defines order of IPV4VLAN classifications:
+ *  - Proto
+ *  - Vlan (TAG and DOMAIN)
+ *  - IpSrc SRC IP ADDRESS
+ *  - IpDst DST IP ADDRESS
+ *  - Ports (SRC and DST)
  */
-enum class FiveTupleIp4InputIndex : uint8_t { PROTO = 0, VLAN, SRC, DST, PORTS, NUM };
+enum class FiveTupleIp4InputIndex : uint8_t { Proto = 0, Vlan, IpSrc, IpDst, Ports, Num };
 
 struct FiveTupleIp4 {
     uint8_t proto;
@@ -34,7 +36,7 @@ constexpr static std::array<rte_acl_field_def, 5> FiveTupleIp4Defs = {
          .type = RTE_ACL_FIELD_TYPE_BITMASK,
          .size = sizeof(uint8_t),
          .field_index = 0,
-         .input_index = static_cast<decltype(rte_acl_field_def::input_index)>(FiveTupleIp4InputIndex::PROTO),
+         .input_index = static_cast<decltype(rte_acl_field_def::input_index)>(FiveTupleIp4InputIndex::Proto),
          .offset = offsetof(struct FiveTupleIp4, proto),
      },
 
@@ -43,7 +45,7 @@ constexpr static std::array<rte_acl_field_def, 5> FiveTupleIp4Defs = {
          .type = RTE_ACL_FIELD_TYPE_MASK,
          .size = sizeof(uint32_t),
          .field_index = 1,
-         .input_index = static_cast<decltype(rte_acl_field_def::input_index)>(FiveTupleIp4InputIndex::SRC),
+         .input_index = static_cast<decltype(rte_acl_field_def::input_index)>(FiveTupleIp4InputIndex::IpSrc),
          .offset = offsetof(struct rte_ipv4_hdr, src_addr) - offsetof(struct rte_ipv4_hdr, next_proto_id),
      },
 
@@ -52,7 +54,7 @@ constexpr static std::array<rte_acl_field_def, 5> FiveTupleIp4Defs = {
          .type = RTE_ACL_FIELD_TYPE_MASK,
          .size = sizeof(uint32_t),
          .field_index = 2,
-         .input_index = static_cast<decltype(rte_acl_field_def::input_index)>(FiveTupleIp4InputIndex::DST),
+         .input_index = static_cast<decltype(rte_acl_field_def::input_index)>(FiveTupleIp4InputIndex::IpDst),
          .offset = offsetof(struct rte_ipv4_hdr, dst_addr) - offsetof(struct rte_ipv4_hdr, next_proto_id),
      },
 
@@ -64,7 +66,7 @@ constexpr static std::array<rte_acl_field_def, 5> FiveTupleIp4Defs = {
          .type = RTE_ACL_FIELD_TYPE_RANGE,
          .size = sizeof(uint16_t),
          .field_index = 3,
-         .input_index = static_cast<decltype(rte_acl_field_def::input_index)>(FiveTupleIp4InputIndex::PORTS),
+         .input_index = static_cast<decltype(rte_acl_field_def::input_index)>(FiveTupleIp4InputIndex::Ports),
          .offset = sizeof(struct rte_ipv4_hdr) - offsetof(struct rte_ipv4_hdr, next_proto_id),
      },
 
@@ -72,7 +74,7 @@ constexpr static std::array<rte_acl_field_def, 5> FiveTupleIp4Defs = {
          .type = RTE_ACL_FIELD_TYPE_RANGE,
          .size = sizeof(uint16_t),
          .field_index = 4,
-         .input_index = static_cast<decltype(rte_acl_field_def::input_index)>(FiveTupleIp4InputIndex::PORTS),
+         .input_index = static_cast<decltype(rte_acl_field_def::input_index)>(FiveTupleIp4InputIndex::Ports),
          .offset = sizeof(struct rte_ipv4_hdr) - offsetof(struct rte_ipv4_hdr, next_proto_id) + sizeof(uint16_t),
      }}};
 } // namespace Nta::Network
