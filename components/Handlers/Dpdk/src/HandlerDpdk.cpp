@@ -3,7 +3,8 @@
 #include "Handlers/Dpdk/JsonObjectDpdk.h"
 #include "Handlers/Dpdk/Acl/LookupAcl.h"
 #include "Handlers/Dpdk/RuleMaker.h"
-#include "Handlers/Dpdk/Worker.h"
+#include "Handlers/Dpdk/DummyWorker.h"
+#include "Handlers/Dpdk/Acl/Worker.h"
 
 #include <DpdkDeviceList.h>
 #include <DpdkDevice.h>
@@ -93,10 +94,10 @@ void HandlerDpdk::Open() {
         throw std::runtime_error("DPDK device list is empty!");
     }
 
-    // Open DPDK devices
-    auto device = std::make_shared<DpdkDevice>(deviceList.at(0));
-    auto totalNumOfRxQueues = device->GetTotalNumOfRxQueues();
-    auto totalNumOfTxQueues = device->GetTotalNumOfTxQueues();
+        // Open DPDK devices
+        auto device = std::make_shared<DpdkDevice>(deviceList.at(0));
+        auto totalNumOfRxQueues = device->GetTotalNumOfRxQueues();
+        auto totalNumOfTxQueues = device->GetTotalNumOfTxQueues();
 
     if (!device->OpenMultiQueues(totalNumOfRxQueues, totalNumOfTxQueues))
     {
