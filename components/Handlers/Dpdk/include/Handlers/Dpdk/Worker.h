@@ -1,8 +1,10 @@
 #pragma once
 
 #include "Handlers/Dpdk/Acl/LookupAcl.h"
+
 #include <DpdkDevice.h>
 #include <DpdkDeviceList.h>
+#include <NetDecoder/Decoder.h>
 #include <atomic>
 #include <rte_build_config.h>
 #include <thread>
@@ -73,7 +75,7 @@ class DpdkDevice {
      */
     uint16_t SendPackets(const uint16_t queueId, MbufArray &bufArray);
 
-    auto GetMbufArray() const noexcept -> MbufArray { return m_BufArray; }
+    auto GetMbufArray() const noexcept -> const MbufArray & { return m_BufArray; }
 
     uint16_t GetTotalNumOfRxQueues() const noexcept {
         if (!m_Dev)
@@ -87,10 +89,10 @@ class DpdkDevice {
         return m_Dev->getTotalNumOfRxQueues();
     }
 
-    bool OpenMultiQueues(const uint16_t numOfRxQueuesToOpen, const uint16_t numOfTxQueuesToOpen) noexcept{
+    bool OpenMultiQueues(const uint16_t numOfRxQueuesToOpen, const uint16_t numOfTxQueuesToOpen) noexcept {
         if (!m_Dev)
             return false;
-        return m_Dev->openMultiQueues(numOfRxQueuesToOpen,numOfTxQueuesToOpen,m_Config);
+        return m_Dev->openMultiQueues(numOfRxQueuesToOpen, numOfTxQueuesToOpen, m_Config);
     }
 
     int GetDeviceId() const noexcept {
@@ -99,8 +101,7 @@ class DpdkDevice {
         return m_Dev->getDeviceId();
     }
 
-    std::string GetPMDName() const
-    {
+    std::string GetPMDName() const {
         if (!m_Dev)
             return {"PMD: nullptr"};
         return m_Dev->getPMDName();
@@ -122,6 +123,8 @@ class Worker : public pcpp::DpdkWorkerThread {
     RteAclContext m_AclContext{};
     RteLookupAcl m_AclLookUp{};
     DpdkDevice::MbufArray m_MatchPackets;
+    NetDecoder m_Decoder{};
+    RteLookupAcl::PacketPointers m_AclDataPtrs;
 
   public:
     Worker(std::shared_ptr<DpdkDevice> rxDevice, std::shared_ptr<DpdkDevice> txDevice, RteAclContext &&context);
