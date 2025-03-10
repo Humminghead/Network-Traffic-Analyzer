@@ -9,9 +9,9 @@ public:
     using DpdkDevicePtr = std::unique_ptr<pcpp::DpdkDevice, std::function<void(pcpp::DpdkDevice *)>>;
     using MbufArray = std::vector<rte_mbuf *>;
 
-    DpdkDevice(pcpp::DpdkDevice *dev) { m_Dev.reset(dev); }
+    DpdkDevice(pcpp::DpdkDevice *dev, const size_t nbRx = 64) : m_BufArray(nbRx) { m_Dev.reset(dev); }
 
-    DpdkDevice(DpdkDevicePtr dev) : m_Dev{std::move(dev)} {}
+    DpdkDevice(DpdkDevicePtr dev, const size_t nbRx = 64) : m_BufArray(nbRx), m_Dev{std::move(dev)} {}
 
     /*!
      * \brief RecivePackets
@@ -62,8 +62,12 @@ public:
         return m_Dev->getPMDName();
     }
 
-private:
-    MbufArray m_BufArray{64};
+    auto GetNumberRxPacketsMax() const noexcept -> size_t { return m_BufArray.size(); }
+
+    auto GetRawDevecePtr() -> const pcpp::DpdkDevice * { return m_Dev.get(); }
+
+  private:
+    MbufArray m_BufArray{};
     DpdkDevicePtr m_Dev{nullptr, [](auto *) {}};
     pcpp::DpdkDevice::DpdkDeviceConfiguration
         m_Config{128, 512, 100, pcpp::DpdkDevice::DpdkRssHashFunction::RSS_NONE, nullptr, 0};
