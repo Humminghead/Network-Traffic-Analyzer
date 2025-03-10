@@ -8,13 +8,13 @@
 namespace Nta::Json::Objects {
 
 //-----------------------------------------------------------------------------------
-struct DpdkEalCmdLineArg{
+struct DpdkEalCmdLineArg {
     std::string key;
     std::string value;
 };
 
 [[maybe_unused]] static void to_json(nlohmann::json &j, const DpdkEalCmdLineArg &p) {
-    j={{p.key, p.value}};
+    j = {{p.key, p.value}};
 }
 
 [[maybe_unused]] static void from_json(const nlohmann::json &j, DpdkEalCmdLineArg &p) {
@@ -23,25 +23,23 @@ struct DpdkEalCmdLineArg{
 }
 
 //-----------------------------------------------------------------------------------
-struct DpdkEalCmdLine{
+struct DpdkEalCmdLine {
     std::vector<DpdkEalCmdLineArg> args;
 };
 
-[[maybe_unused]] static void to_json(nlohmann::json &j, const DpdkEalCmdLine &p) {
-}
+[[maybe_unused]] static void to_json(nlohmann::json &j, const DpdkEalCmdLine &p) {}
 
 [[maybe_unused]] static void from_json(const nlohmann::json &j, DpdkEalCmdLine &p) {
     j.get_to(p.args);
 }
 
 //-----------------------------------------------------------------------------------
-struct InputPacketClassification{
-    std::string type {};
+struct InputPacketClassification {
+    std::string type{};
     std::vector<std::string> rules{};
 };
 
-[[maybe_unused]] static void to_json(nlohmann::json &j, const InputPacketClassification &p) {
-}
+[[maybe_unused]] static void to_json(nlohmann::json &j, const InputPacketClassification &p) {}
 
 [[maybe_unused]] static void from_json(const nlohmann::json &j, InputPacketClassification &p) {
     j.at("type").get_to(p.type);
@@ -56,6 +54,7 @@ struct DpdkObject : HandlerObject {
     uint32_t m_BufPoolSizePerDevice{0};
     uint32_t m_MainLcore{0};
     uint32_t m_NumOfMemoryChannels{0};
+    uint32_t m_HeadRoomSize{0};
     DpdkEalCmdLine m_EalCmdLine{};
     std::vector<InputPacketClassification> m_PacketCx{};
     bool m_PromiscuousMode{false};
@@ -67,6 +66,7 @@ struct DpdkObject : HandlerObject {
              {"eal_mbuf_size", p.m_BufPoolSizePerDevice},
              {"eal_main_lcore", p.m_MainLcore},
              {"eal_memory_channels", p.m_NumOfMemoryChannels},
+             {"eal_mbuf_headroom_size",p.m_HeadRoomSize},
              {"eal_cmd_line_arguments", p.m_EalCmdLine},
              {"input_packet_classification", p.m_PacketCx},
              {"promiscuous", p.m_PromiscuousMode}
@@ -76,13 +76,47 @@ struct DpdkObject : HandlerObject {
 
     [[maybe_unused]] static void FromJson(const nlohmann::json &j, DpdkObject &p) {
         ///\warning execeptions if field name is mising
-        j.at("eal_core_mask").get_to(p.m_CoreMask);
+
+        if (auto coreMask = j.at("eal_core_mask"); coreMask.is_string()) {
+            constexpr static std::string spacers{"xb"};
+
+            auto coreMaskStr = std::string{};
+            coreMaskStr.reserve(sizeof(uint64_t) * 8);
+            coreMask.get_to(coreMaskStr);
+
+            if (coreMaskStr.size() < 3)
+                throw std::runtime_error("Wrong format of eal_core_mask. Supported values are: 0x.., 0b... or dec!");
+
+            if (auto it = std::find_first_of(
+                    std::begin(coreMaskStr), std::end(coreMaskStr), std::begin(spacers), std::end(spacers));
+                it != std::end(coreMaskStr)) {
+
+                const auto lit = *it;
+                coreMaskStr.erase(0, std::distance(coreMaskStr.begin(), std::next(it)));
+
+                try {
+                    if (lit == 'x') {
+                        p.m_CoreMask = static_cast<decltype(p.m_CoreMask)>(std::stol(coreMaskStr, nullptr, 16));
+                    } else if (lit == 'b') {
+                        p.m_CoreMask = static_cast<decltype(p.m_CoreMask)>(std::stol(coreMaskStr, nullptr, 2));
+                    } else {
+                        throw std::runtime_error("Unsupported litteral in eal_core_mask: " + std::string{lit});
+                    }
+                } catch (const std::exception &e) {
+                    throw std::runtime_error(e.what());
+                }
+            }
+        } else {
+            j.at("eal_core_mask").get_to(p.m_CoreMask);
+        }
+
         j.at("eal_mbuf_size").get_to(p.m_BufPoolSizePerDevice);
         j.at("eal_memory_channels").get_to(p.m_NumOfMemoryChannels);
         Util::Json::GetTo(j, "eal_cmd_line_arguments", p.m_EalCmdLine);
         Util::Json::GetTo(j, "eal_main_lcore", p.m_MainLcore);
         Util::Json::GetTo(j, "input_packet_classification", p.m_PacketCx);
         Util::Json::GetTo(j, "promiscuous", p.m_PromiscuousMode);
+        Util::Json::GetTo(j, "eal_mbuf_headroom_size", p.m_HeadRoomSize);
     }
 };
 
