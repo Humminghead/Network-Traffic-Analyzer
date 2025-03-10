@@ -13,14 +13,14 @@ class Worker : public pcpp::DpdkWorkerThread {
     std::shared_ptr<DpdkDevice> m_TxDevice{nullptr};
     std::atomic_bool m_Stop{true};
     uint32_t m_CoreId{RTE_MAX_LCORE};
-    RteAclContext m_AclContext{};
+    std::shared_ptr<RteAclContext> m_AclContext{nullptr};
     RteLookupAcl m_AclLookUp{};
     DpdkDevice::MbufArray m_MatchPackets;
     NetDecoder m_Decoder{};
     RteLookupAcl::PacketPointers m_AclDataPtrs;
 
   public:
-    Worker(std::shared_ptr<DpdkDevice> rxDevice, std::shared_ptr<DpdkDevice> txDevice, RteAclContext &&context);
+    Worker(std::shared_ptr<DpdkDevice> rxDevice, std::shared_ptr<DpdkDevice> txDevice, std::shared_ptr<RteAclContext> context);
 
     virtual ~Worker() = default;
 

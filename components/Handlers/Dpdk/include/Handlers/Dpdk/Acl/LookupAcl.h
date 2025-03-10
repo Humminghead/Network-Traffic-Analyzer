@@ -42,11 +42,11 @@ class RteAclContext {
      * \param Maximum number of rules
      * \param Socket ID to allocate memory for
      */
-    RteAclContext(
-        const std::string_view name,
+    RteAclContext(              
         const uint32_t numFields,
         const uint32_t maxRuleNum,
-        const int socketId = SOCKET_ID_ANY)
+        const int socketId = SOCKET_ID_ANY,
+        std::string_view name = "rte_acl_context")
         : m_Cfg{.num_fields = numFields}, m_Prm{
                                               .name = name.data(),
                                               .socket_id = socketId,
@@ -154,7 +154,7 @@ class RteAclContext {
 
     ContextPtr m_Context{nullptr, m_ContextDeleter};
     rte_acl_config m_Cfg;
-    rte_acl_param m_Prm{.name = "ACL context", .socket_id = SOCKET_ID_ANY};
+    rte_acl_param m_Prm{.name = "rte_acl_context", .socket_id = SOCKET_ID_ANY};
 };
 
 class RteLookupAcl {

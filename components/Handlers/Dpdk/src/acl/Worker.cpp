@@ -5,8 +5,8 @@
 
 namespace Nta::Network {
 
-Worker::Worker(std::shared_ptr<DpdkDevice> rxDevice, std::shared_ptr<DpdkDevice> txDevice, RteAclContext &&context)
-    : m_RxDevice{rxDevice}, m_TxDevice{txDevice}, m_AclContext{std::move(context)} // , m_BufArray{rxPacketMaxCount}
+Worker::Worker(std::shared_ptr<DpdkDevice> rxDevice, std::shared_ptr<DpdkDevice> txDevice, std::shared_ptr<RteAclContext> context)
+    : m_RxDevice{rxDevice}, m_TxDevice{txDevice}, m_AclContext{context} // , m_BufArray{rxPacketMaxCount}
 {
     m_MatchPackets.reserve(64); // Eq to DpdkDevice::m_BufArray{64};
 }
@@ -28,8 +28,7 @@ bool Worker::run(uint32_t coreId) {
 
             std::for_each_n(std::begin(mBufArray), numOfPackets, [&](auto pktMbuf) {
                 auto data = rte_pktmbuf_mtod_offset(pktMbuf, const uint8_t *, 0);
-                auto len = static_cast<size_t>(rte_pktmbuf_pkt_len(pktMbuf));
-                // m_DecoderResults.push_back(m_Decoder.FullProcessing(LinkLayer::Eth, data, len));
+                auto len = static_cast<size_t>(rte_pktmbuf_pkt_len(pktMbuf));                
                 auto [ok, packet] = m_Decoder.FullProcessing(LinkLayer::Eth, data, len);
 
                 (void)ok;
@@ -40,16 +39,19 @@ bool Worker::run(uint32_t coreId) {
                 m_Decoder.ResetHandledBytes();
             });
 
-            if (auto [ok, pktIdxs] = m_AclLookUp.Classify(m_AclContext, m_AclDataPtrs); ok) {
-                std::for_each_n(std::begin(pktIdxs), numOfPackets, [&](auto &idx) {
-                    if (idx != 0)
-                        m_MatchPackets.push_back(mBufArray[idx]);
+            if (auto [ok, matchedRuleIdxs] = m_AclLookUp.Classify(*m_AclContext, m_AclDataPtrs); ok) {
+                std::for_each_n(std::begin(matchedRuleIdxs), numOfPackets, [&, pktIndex = size_t{}](auto &ruleIdx) mutable {
+                    if (ruleIdx != 0)
+                        m_MatchPackets.push_back(mBufArray[pktIndex]);
+                    pktIndex++;
                 });
 
                 // send received packet on the TX device
                 m_TxDevice->SendPackets(0, m_MatchPackets);
                 m_MatchPackets.clear();
                 m_AclDataPtrs.clear();
+            }else{
+                ///\todo log
             }
 
             auto erased = std::erase_if(mBufArray, [](rte_mbuf *buf) {
@@ -60,6 +62,8 @@ bool Worker::run(uint32_t coreId) {
                 return false;
             });
             mBufArray.insert(std::end(mBufArray), erased, nullptr);
+        }else{
+            int a = 0;
         }
     }
     return m_Stop.load();
