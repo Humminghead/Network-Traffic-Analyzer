@@ -1,21 +1,27 @@
-#include "Handlers/Dpdk/Acl/Worker.h"
+#include "Handlers/Dpdk/Acl/WorkerAcl.h"
 #include "Handlers/Dpdk/Acl/Util/Offset.h"
 #include <NetDecoder/PacketBase.h>
 #include <rte_ethdev.h>
 
 namespace Nta::Network {
 
-Worker::Worker(std::shared_ptr<DpdkDevice> rxDevice, std::shared_ptr<DpdkDevice> txDevice, std::shared_ptr<RteAclContext> context)
-    : m_RxDevice{rxDevice}, m_TxDevice{txDevice}, m_AclContext{context} // , m_BufArray{rxPacketMaxCount}
-{
+WorkerAcl::WorkerAcl(
+    std::shared_ptr<DpdkDevice> rxDevice,
+    std::shared_ptr<DpdkDevice> txDevice,
+    std::shared_ptr<RteAclContext> context,
+    const uint32_t core)
+    : m_RxDevice{rxDevice}, m_TxDevice{txDevice}, m_AclContext{context}, m_CoreId{core} {
     m_MatchPackets.reserve(64); // Eq to DpdkDevice::m_BufArray{64};
 }
 
-bool Worker::run(uint32_t coreId) {
+bool WorkerAcl::run(uint32_t coreId) {
     if (!m_RxDevice || !m_TxDevice)
         return false;
 
-    m_CoreId = coreId;
+    if (m_CoreId == RTE_MAX_LCORE) {
+        m_CoreId = coreId;
+    }
+
     m_Stop.exchange(false);
 
     while (!m_Stop.load()) {
@@ -28,7 +34,7 @@ bool Worker::run(uint32_t coreId) {
 
             std::for_each_n(std::begin(mBufArray), numOfPackets, [&](auto pktMbuf) {
                 auto data = rte_pktmbuf_mtod_offset(pktMbuf, const uint8_t *, 0);
-                auto len = static_cast<size_t>(rte_pktmbuf_pkt_len(pktMbuf));                
+                auto len = static_cast<size_t>(rte_pktmbuf_pkt_len(pktMbuf));
                 auto [ok, packet] = m_Decoder.FullProcessing(LinkLayer::Eth, data, len);
 
                 (void)ok;
@@ -40,17 +46,18 @@ bool Worker::run(uint32_t coreId) {
             });
 
             if (auto [ok, matchedRuleIdxs] = m_AclLookUp.Classify(*m_AclContext, m_AclDataPtrs); ok) {
-                std::for_each_n(std::begin(matchedRuleIdxs), numOfPackets, [&, pktIndex = size_t{}](auto &ruleIdx) mutable {
-                    if (ruleIdx != 0)
-                        m_MatchPackets.push_back(mBufArray[pktIndex]);
-                    pktIndex++;
-                });
+                std::for_each_n(
+                    std::begin(matchedRuleIdxs), numOfPackets, [&, pktIndex = size_t{}](auto &ruleIdx) mutable {
+                        if (ruleIdx != 0)
+                            m_MatchPackets.push_back(mBufArray[pktIndex]);
+                        pktIndex++;
+                    });
 
                 // send received packet on the TX device
                 m_TxDevice->SendPackets(0, m_MatchPackets);
                 m_MatchPackets.clear();
                 m_AclDataPtrs.clear();
-            }else{
+            } else {
                 ///\todo log
             }
 
@@ -62,19 +69,23 @@ bool Worker::run(uint32_t coreId) {
                 return false;
             });
             mBufArray.insert(std::end(mBufArray), erased, nullptr);
-        }else{
+        } else {
             int a = 0;
         }
     }
     return m_Stop.load();
 }
 
-void Worker::stop() {
+void WorkerAcl::stop() {
     m_Stop.exchange(true);
 }
 
-uint32_t Worker::getCoreId() const {
+uint32_t WorkerAcl::getCoreId() const {
     return m_CoreId;
+}
+
+void WorkerAcl::SetCoreId(const uint32_t id) {
+    m_CoreId = id;
 }
 
 } // namespace Nta::Network

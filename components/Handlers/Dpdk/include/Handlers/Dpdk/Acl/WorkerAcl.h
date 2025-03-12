@@ -7,7 +7,7 @@
 #include <atomic>
 
 namespace Nta::Network {
-class Worker : public pcpp::DpdkWorkerThread {
+class WorkerAcl : public pcpp::DpdkWorkerThread {
   private:
     std::shared_ptr<DpdkDevice> m_RxDevice{nullptr};
     std::shared_ptr<DpdkDevice> m_TxDevice{nullptr};
@@ -20,9 +20,9 @@ class Worker : public pcpp::DpdkWorkerThread {
     RteLookupAcl::PacketPointers m_AclDataPtrs;
 
   public:
-    Worker(std::shared_ptr<DpdkDevice> rxDevice, std::shared_ptr<DpdkDevice> txDevice, std::shared_ptr<RteAclContext> context);
+    WorkerAcl(std::shared_ptr<DpdkDevice> rxDevice, std::shared_ptr<DpdkDevice> txDevice, std::shared_ptr<RteAclContext> context, const uint32_t core = RTE_MAX_LCORE);
 
-    virtual ~Worker() = default;
+    virtual ~WorkerAcl() = default;
 
     /*!
      * \brief start running the worker thread
@@ -41,5 +41,11 @@ class Worker : public pcpp::DpdkWorkerThread {
      * \return
      */
     uint32_t getCoreId() const override;
+
+    /*!
+     * \brief SetCoreId
+     * \param id
+     */
+    void SetCoreId(const uint32_t id);
 };
 } // namespace Nta::Network
