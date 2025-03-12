@@ -102,6 +102,12 @@ class RteAclContext {
     auto SetSocketId(const int id) { m_Prm.socket_id = id; }
 
     /*!
+     * \brief GetSocketId
+     * \return
+     */
+    auto GetSocketId() const -> int { return m_Prm.socket_id; }
+
+    /*!
      * \brief Set size of each rule
      * \param num of fields
      */

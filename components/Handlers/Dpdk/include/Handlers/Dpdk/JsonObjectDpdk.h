@@ -36,7 +36,7 @@ struct DpdkEalCmdLine {
 //-----------------------------------------------------------------------------------
 struct InputPacketClassification {
     std::string type{};
-    std::vector<std::string> rules{};
+    std::vector<std::string> tupleFiveIp4Rules{};
 };
 
 [[maybe_unused]] static void to_json(nlohmann::json &j, const InputPacketClassification &p) {}
@@ -45,9 +45,29 @@ struct InputPacketClassification {
     j.at("type").get_to(p.type);
     std::transform(
         std::begin(p.type), std::end(p.type), std::begin(p.type), [](const char c) { return std::tolower(c); });
-    j.at("rules").get_to(p.rules);
+    j.at("tuple-five-rules").get_to(p.tupleFiveIp4Rules);
 }
 
+//-----------------------------------------------------------------------------------
+struct Worker {
+    std::string type{};
+    int ealCore{-1};
+    int deviceId{-1};
+    std::vector<InputPacketClassification> packetCx{};
+};
+[[maybe_unused]] static void to_json(nlohmann::json &j, const Worker &p) {
+    j =  {
+         {"input_packet_classification", p.packetCx}
+    };
+}
+
+[[maybe_unused]] static void from_json(const nlohmann::json &j, Worker &p) {
+    j.at("type").get_to(p.type);
+    std::transform(std::begin(p.type), std::end(p.type), std::begin(p.type), [](const char c) { return std::tolower(c); });
+    Util::Json::GetTo(j, "eal_core", p.ealCore);
+    j.at("device_id").get_to(p.deviceId);
+    Util::Json::GetTo(j, "input_packet_classification", p.packetCx);
+}
 //-----------------------------------------------------------------------------------
 struct DpdkObject : HandlerObject {
     uint32_t m_CoreMask{0};
@@ -55,9 +75,9 @@ struct DpdkObject : HandlerObject {
     uint32_t m_MainLcore{0};
     uint32_t m_NumOfMemoryChannels{0};
     uint32_t m_HeadRoomSize{0};
-    DpdkEalCmdLine m_EalCmdLine{};
-    std::vector<InputPacketClassification> m_PacketCx{};
+    DpdkEalCmdLine m_EalCmdLine{};    
     bool m_PromiscuousMode{false};
+    std::vector<Worker> workers{};
 
     [[maybe_unused]] static auto ToJson(const DpdkObject &p) -> nlohmann::json {
         // clang-format off
@@ -67,9 +87,9 @@ struct DpdkObject : HandlerObject {
              {"eal_main_lcore", p.m_MainLcore},
              {"eal_memory_channels", p.m_NumOfMemoryChannels},
              {"eal_mbuf_headroom_size",p.m_HeadRoomSize},
-             {"eal_cmd_line_arguments", p.m_EalCmdLine},
-             {"input_packet_classification", p.m_PacketCx},
-             {"promiscuous", p.m_PromiscuousMode}
+             {"eal_cmd_line_arguments", p.m_EalCmdLine},             
+             {"promiscuous", p.m_PromiscuousMode},
+             {"workers", p.workers}
         };
         // clang-format on
     }
@@ -113,10 +133,10 @@ struct DpdkObject : HandlerObject {
         j.at("eal_mbuf_size").get_to(p.m_BufPoolSizePerDevice);
         j.at("eal_memory_channels").get_to(p.m_NumOfMemoryChannels);
         Util::Json::GetTo(j, "eal_cmd_line_arguments", p.m_EalCmdLine);
-        Util::Json::GetTo(j, "eal_main_lcore", p.m_MainLcore);
-        Util::Json::GetTo(j, "input_packet_classification", p.m_PacketCx);
+        Util::Json::GetTo(j, "eal_main_lcore", p.m_MainLcore);        
         Util::Json::GetTo(j, "promiscuous", p.m_PromiscuousMode);
         Util::Json::GetTo(j, "eal_mbuf_headroom_size", p.m_HeadRoomSize);
+        j.at("workers").get_to(p.workers);
     }
 };
 
