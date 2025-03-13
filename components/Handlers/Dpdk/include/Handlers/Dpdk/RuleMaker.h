@@ -17,7 +17,7 @@ template <typename Rule> class RteRuleMaker;
 
 template <IsFiveTupleIp4 Rule> class RteRuleMaker<Rule> {
   public:
-    [[nodiscard("Rule was generated, but not used")]] auto Make(const std::string &rule) {
+    [[nodiscard("Rule was generated, but not used")]] auto Make(const std::string &rule, const uint32_t categoryMask = (uint32_t)-1, const int32_t  priority = RTE_ACL_MAX_PRIORITY, const uint32_t userData = 1) {
         using EmptyRule = RteAclLookupRule<FiveTupleIp4Defs.size()>;
         if (rule.empty())
             return EmptyRule{};
@@ -53,9 +53,9 @@ template <IsFiveTupleIp4 Rule> class RteRuleMaker<Rule> {
             return RteAclLookupRule<FiveTupleIp4Defs.size()>{
                 .data =
                     {
-                        .category_mask = (uint32_t)-1,//0x01, // Number of categories (num_categories)
-                        .priority = RTE_ACL_MAX_PRIORITY,
-                        .userdata = 1,
+                        .category_mask = categoryMask,//0x01, // Number of categories (num_categories)
+                        .priority = priority,
+                        .userdata = userData,
                     },
                 .fields{{
                     {.value{.u8 = static_cast<uint8_t>(values[14])}, .mask_range{.u32 = values[15]}},//PROTO
