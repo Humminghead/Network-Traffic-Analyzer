@@ -49,10 +49,43 @@ struct InputPacketClassification {
 }
 
 //-----------------------------------------------------------------------------------
+struct WorkerQueueRange {
+    std::vector<int> queueIdxs;
+};
+
+[[maybe_unused]] static void to_json(nlohmann::json &j, const WorkerQueueRange &p) {
+
+}
+
+[[maybe_unused]] static void from_json(const nlohmann::json &j, WorkerQueueRange &p) {
+    if (std::string type = j.at("type"); type == "range") {
+        int min = 0, max = 0;
+        Util::Json::GetTo(j, "min", min);
+        Util::Json::GetTo(j, "max", max);
+
+        min = std::min(min, max);
+        max = std::max(min, max);
+
+        while(min <= max){
+            p.queueIdxs.push_back(min++);
+        }
+    } else if (type == "id") {
+        for (auto& id : j.at("indices")) {
+            p.queueIdxs.push_back(id);
+        }
+    } else {
+        throw std::runtime_error("Unsupported type: " + type);
+    }
+}
+
+//-----------------------------------------------------------------------------------
 struct Worker {
     std::string type{};
     int ealCore{-1};
-    int deviceId{-1};
+    std::string rxDevicePciAddr{};
+    std::string txDevicePciAddr{};
+    WorkerQueueRange rx_queues_idxs{};
+    WorkerQueueRange tx_queues_idxs{};
     std::vector<InputPacketClassification> packetCx{};
 };
 [[maybe_unused]] static void to_json(nlohmann::json &j, const Worker &p) {
@@ -65,7 +98,10 @@ struct Worker {
     j.at("type").get_to(p.type);
     std::transform(std::begin(p.type), std::end(p.type), std::begin(p.type), [](const char c) { return std::tolower(c); });
     Util::Json::GetTo(j, "eal_core", p.ealCore);
-    j.at("device_id").get_to(p.deviceId);
+    Util::Json::GetTo(j, "rx_device", p.rxDevicePciAddr);
+    Util::Json::GetTo(j, "tx_device", p.txDevicePciAddr);
+    Util::Json::GetTo(j, "rx_queues_idxs", p.rx_queues_idxs);
+    Util::Json::GetTo(j, "tx_queues_idxs", p.tx_queues_idxs);
     Util::Json::GetTo(j, "input_packet_classification", p.packetCx);
 }
 //-----------------------------------------------------------------------------------
