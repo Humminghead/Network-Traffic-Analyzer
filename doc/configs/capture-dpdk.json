@@ -1,9 +1,9 @@
 {
-	"app_core":27,
-	"handler":{
+   "app_core":27,
+   "handler":{
       "eal_core_mask":"0b1111",
       "eal_mbuf_size":65535,
-      "eal_mbuf_headroom_size":0,      
+      "eal_mbuf_headroom_size":0,
       "eal_memory_channels":4,
       "eal_memory_ranks":"auto",
       "eal_main_lcore":3,
@@ -12,56 +12,63 @@
       "eal_cmd_line_arguments":[
          {
             "--vdev":"net_pcap0,rx_pcap=/media/user/other/Pcap/rnd-pcaps/gtpu/gtpu_part_0.pcap,tx_pcap=/mnt/ramdisk/gtpu_part_0-tx.pcap"
+         },
+         {
+            "--vdev":"net_pcap1,rx_pcap=/media/user/other/Pcap/rnd-pcaps/gtpu/gtpu_part_0.pcap,tx_pcap=/mnt/ramdisk/gtpu_part_1-tx.pcap"
          }
       ],
       "workers":[
          {
-         	"type":"acl",
-         	// "eal_core":0,
-         	"device_id":0,
+            "type":"acl",
+            "eal_core":0,
+            "rx_device":"net_pcap0",
+            "tx_device":"net_pcap1",
+            "rx_queues_idxs":{
+               "type":"range",
+               "min":0,
+               "max":10
+            },
+            "tx_queues_idxs":{
+               "type":"id",
+               "indices":[
+                  0
+               ]
+            },
+            "rx_queues_idxs":{
+               "type":"id",
+               "indices":[
+                  0
+               ]
+            },
             "input_packet_classification":[
                {
                   "type":"route",
                   "tuple-five-rules":[
-                     "10.12.133.105/32 0.0.0.0/0 2152 : 2152 2152 : 2152 17/0xFF 0"
-                  ]
-               },
-               {
-                  "type":"drop",
-                  "tuple-five-rules":[
-                     "0.0.0.0/0 0.0.0.0/0 0 : 21 0 : 0 0/0 0"
+                     "R10.12.133.105/32 0.0.0.0/0 2152 : 2152 2152 : 2152 17/0xFF 0"
                   ]
                }
             ]
          },
          {
-         	"type":"dummy",
-         	"device_id":0,
-         	"eal_core":1         	
+            "type":"dummy",
+            "device_id":0,
+            "eal_core":1
+         },
+         {
+            "type":"dummy",
+            "device_id":0,
+            "eal_core":2
          }
       ]
-   },	
-	"transport":{
-		"type":"file",
-		"workdir":"/mnt/ramdisk",		
-		"use_zlib":false,
-		"multiplexed":false,
-		"buffer_type": "buffered",
-		// "protocol": "compact",
-		"protocol": "debug",
-		// "max_message_size": 1024,
-        // "max_frame_size":999,
-        // "recursion_limit": 10,
-        "message_queue_size": 3000000,
-        "frames_count": 500
-        
-        // "type":"socket_ssl",
-        // "host":"127.0.0.1",
-		// "port":9199,
-        // "ciphers":"ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH",
-        // "ca_file_path":"/tmp/thrift/test/keys/CA.pem",
-        // "server_cert_path":"/tmp/thrift/test/keys/client.crt",
-        // "private_key_path":"/tmp/thrift/test/keys/client.key",
-        // "authentication":true
-	}
+   },
+   "transport":{
+      "type":"file",
+      "workdir":"/mnt/ramdisk",
+      "use_zlib":false,
+      "multiplexed":false,
+      "buffer_type":"buffered",
+      "protocol":"debug",
+      "message_queue_size":3000000,
+      "frames_count":500
+   }
 }

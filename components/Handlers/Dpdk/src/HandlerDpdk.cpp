@@ -13,13 +13,26 @@
 
 namespace Nta::Network {
 
+template <typename Tuple, size_t N>
+auto CreateRteRules(const std::vector<std::string> &rules, const std::array<rte_acl_field_def, N> &) {
+    RteRuleMaker<Tuple> maker;
+
+    std::vector<RteAclLookupRule<N>> rteRules{};
+    rteRules.reserve(rules.size());
+
+    std::for_each(std::begin(rules), std::end(rules), [&](const auto &rule) { rteRules.push_back(maker.Make(rule)); });
+
+    return rteRules;
+}
+
 struct HandlerDpdk::Impl {
     std::atomic_bool inited{false};
     Json::Objects::DpdkObject m_Config;
     RteLookupAcl m_Acl;
-    std::vector<RteAclLookupRule<FiveTupleIp4Defs.size()>> tupleFiveIp4RteRules{};
-    RteRuleMaker<FiveTupleIp4> tupleFiveRuleMakerIp4{};
+    // std::vector<RteAclLookupRule<FiveTupleIp4Defs.size()>> tupleFiveIp4RteRules{};
+    // RteRuleMaker<FiveTupleIp4> tupleFiveRuleMakerIp4{};
     // std::vector<std::unique_ptr<pcpp::DpdkWorkerThread>> workers;
+    // std::map<size_t, std::shared_ptr<RteAclContext>> tupleFiveSocketContexts;
     std::vector<pcpp::DpdkWorkerThread *> workers;
 };
 
@@ -80,35 +93,6 @@ void HandlerDpdk::Open() {
         throw std::runtime_error("DPDK device list is empty!");
     }
 
-    // Create ACL context for each socket
-    std::vector<std::shared_ptr<RteAclContext>> contexts;
-    std::vector<std::string> ctxNames;
-    auto socketCount = rte_socket_count();
-    ctxNames.reserve(socketCount);
-
-    for (auto n = 0; n < socketCount; n++) {
-        auto ctx = std::make_shared<RteAclContext>();
-        ctxNames.push_back("handler-dpdk-context_" + std::to_string(n));
-        ctx->SetName(ctxNames.back());
-        ctx->SetNumFieldsAndRuleSize(FiveTupleIp4Defs.size());
-        ctx->SetMaxRuleCount(8); ///\todo
-        ctx->SetSocketId(rte_socket_id_by_idx(n));
-        ctx->Create();
-
-        if (!ctx->SetClassify(RTE_ACL_CLASSIFY_AVX2)) ///\todo add in config
-        {
-            if (!ctx->SetClassify(RTE_ACL_CLASSIFY_SCALAR))
-                throw std::runtime_error("Failed to setup classify method for  ACL context\n");
-        }
-
-        // ctx->AddRules(m_Impl->tupleFiveIp4RteRules);
-        // ctx->SetNumCategories(1); ///\todo move in config
-        // ctx->SetCfgDefs(FiveTupleIp4Defs);
-        // ctx->Build();
-
-        contexts.push_back(std::move(ctx));
-    }
-
     // Open all DPDK devices
     std::vector<std::shared_ptr<DpdkDevice>> openedDevices;
     for (auto &device : deviceList) {
@@ -125,18 +109,16 @@ void HandlerDpdk::Open() {
         openedDevices.push_back(devicePtr);
     }
 
-    // Process config of the workers
+    // Process config of the workers    
     for (auto n = 0; const auto &worker : m_Impl->m_Config.workers) {
 
         // Create worker
         auto coreId = worker.ealCore;
 
         // If worker hasn't specified core number
-        if (coreId < 0)
-        {
+        if (coreId < 0) {
             if (!(n < maskedCoreNumbers.size())) {
-                throw std::runtime_error(
-                    "Supposed core id #" + std::to_string(n) + " isn't initialized by DPDK!");
+                throw std::runtime_error("Supposed core id #" + std::to_string(n) + " isn't initialized by DPDK!");
             }
 
             // Get first core number from the list of masked cores
@@ -150,37 +132,54 @@ void HandlerDpdk::Open() {
 
         if (worker.type == "acl") {
             // Process input_packet_classification array
+
             for (const auto &cx : worker.packetCx) {
                 if (cx.type == "route") {
-                    m_Impl->tupleFiveIp4RteRules.reserve(cx.tupleFiveIp4Rules.size());
-                    std::for_each(
-                        std::begin(cx.tupleFiveIp4Rules), std::end(cx.tupleFiveIp4Rules), [&](const auto &rule) {
-                            m_Impl->tupleFiveIp4RteRules.push_back(m_Impl->tupleFiveRuleMakerIp4.Make(rule));
-                        });
+
+                    // Create ACL context
+                    const auto socketId = rte_lcore_to_socket_id(coreId);
+
+                    auto tupleFiveContext = std::make_shared<RteAclContext>();
+                    tupleFiveContext->SetName(worker.type + "_tuple_five_ip4_worker_" + std::to_string(n));
+                    tupleFiveContext->SetNumFieldsAndRuleSize(FiveTupleIp4Defs.size());
+                    tupleFiveContext->SetMaxRuleCount(8); ///\todo
+                    tupleFiveContext->SetSocketId(socketId);
+                    tupleFiveContext->Create();
+                    tupleFiveContext->SetCfgDefs(FiveTupleIp4Defs);
+                    tupleFiveContext->SetNumCategories(1); ///\todo move in config
+
+                    if (!tupleFiveContext->SetClassify(RTE_ACL_CLASSIFY_AVX2)) ///\todo add in config
+                    {
+                        if (!tupleFiveContext->SetClassify(RTE_ACL_CLASSIFY_SCALAR))
+                            throw std::runtime_error("Failed to setup classify method for  ACL context\n");
+                    }
+
+                    auto tupleFiveIp4RteRules = CreateRteRules<FiveTupleIp4>(cx.tupleFiveIp4Rules, FiveTupleIp4Defs);
+
+                    tupleFiveContext->AddRules(tupleFiveIp4RteRules);
+                    tupleFiveContext->Build();
+
+                    // Create worker
+                    auto devSearch = [&](const std::string_view &pciAddress) {
+                        auto it = std::find_if(
+                            std::begin(openedDevices),
+                            std::end(openedDevices),
+                            [addr = pciAddress](const std::shared_ptr<DpdkDevice> &dev) {
+                                return addr == dev->GetRawDevecePtr()->getPciAddress();
+                            });
+                        return it == std::end(openedDevices) ? nullptr : *it;
+                    };
+                    m_Impl->workers.push_back(new WorkerAcl(devSearch(worker.rxDevicePciAddr), devSearch(worker.txDevicePciAddr), tupleFiveContext));
+
                 } else if (cx.type == "drop") {
                     ///\todo
                 } else {
                     throw std::runtime_error("At least one rule should be present in the classification array!");
                 }
             }
-
-            auto context = std::find_if(
-                std::begin(contexts),
-                std::end(contexts),
-                [coreSocket = rte_lcore_to_socket_id(coreId)](const auto &ctx) {
-                    return coreSocket == ctx->GetSocketId();
-                });
-
-            if(context == std::end(contexts)){
-                throw std::runtime_error("Unable to find context for core: " + std::to_string(coreId) + "!");
-            }
-
-            m_Impl->workers.push_back(new WorkerAcl(openedDevices[0], openedDevices[0], *context));
-
-        }else if(worker.type == "dummy"){
+        } else if (worker.type == "dummy") {
             m_Impl->workers.push_back(new Dummy());
-        }
-        else {
+        } else {
             throw std::runtime_error("Unsupported worker type: " + worker.type + "!");
         }
     }
@@ -196,6 +195,11 @@ void HandlerDpdk::Open() {
     // m_Impl->workers.push_back(new WorkerAcl(openedDevices[0], openedDevices[0], contexts[0]));
     // m_Impl->workers.push_back(new Dummy());
     // m_Impl->workers.push_back(new Dummy());
+
+    // Building all the contexts
+    // for (auto &tupleFiveContext : m_Impl->tupleFiveSocketContexts) {
+    //     tupleFiveContext.second->Build();
+    // }
 
     // Start capture in async mode
     if (!pcpp::DpdkDeviceList::getInstance().startDpdkWorkerThreads(coreMaskToUse, m_Impl->workers)) {
