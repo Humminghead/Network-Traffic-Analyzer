@@ -84,8 +84,8 @@ struct Worker {
     int ealCore{-1};
     std::string rxDevicePciAddr{};
     std::string txDevicePciAddr{};
-    WorkerQueueRange rx_queues_idxs{};
-    WorkerQueueRange tx_queues_idxs{};
+    WorkerQueueRange rxQueuesIdxs{};
+    WorkerQueueRange txQueuesIdxs{};
     std::vector<InputPacketClassification> packetCx{};
 };
 [[maybe_unused]] static void to_json(nlohmann::json &j, const Worker &p) {
@@ -100,8 +100,8 @@ struct Worker {
     Util::Json::GetTo(j, "eal_core", p.ealCore);
     Util::Json::GetTo(j, "rx_device", p.rxDevicePciAddr);
     Util::Json::GetTo(j, "tx_device", p.txDevicePciAddr);
-    Util::Json::GetTo(j, "rx_queues_idxs", p.rx_queues_idxs);
-    Util::Json::GetTo(j, "tx_queues_idxs", p.tx_queues_idxs);
+    Util::Json::GetTo(j, "rx_queues_idxs", p.rxQueuesIdxs);
+    Util::Json::GetTo(j, "tx_queues_idxs", p.txQueuesIdxs);
     Util::Json::GetTo(j, "input_packet_classification", p.packetCx);
 }
 //-----------------------------------------------------------------------------------

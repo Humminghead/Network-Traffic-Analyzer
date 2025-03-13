@@ -28,13 +28,13 @@
                "min":0,
                "max":10
             },
-            "tx_queues_idxs":{
+            "rx_queues_idxs":{
                "type":"id",
                "indices":[
                   0
                ]
             },
-            "rx_queues_idxs":{
+            "tx_queues_idxs":{
                "type":"id",
                "indices":[
                   0

@@ -18,9 +18,15 @@ class WorkerAcl : public pcpp::DpdkWorkerThread {
     DpdkDevice::MbufArray m_MatchPackets;
     NetDecoder m_Decoder{};
     RteLookupAcl::PacketPointers m_AclDataPtrs;
+    std::vector<int> m_QueueIndicesRx{};
+    std::vector<int> m_QueueIndicesTx{};
 
   public:
-    WorkerAcl(std::shared_ptr<DpdkDevice> rxDevice, std::shared_ptr<DpdkDevice> txDevice, std::shared_ptr<RteAclContext> context, const uint32_t core = RTE_MAX_LCORE);
+    WorkerAcl(
+        std::shared_ptr<DpdkDevice> rxDevice,
+        std::shared_ptr<DpdkDevice> txDevice,
+        std::shared_ptr<RteAclContext> context,
+        const uint32_t core = RTE_MAX_LCORE);
 
     virtual ~WorkerAcl() = default;
 
@@ -47,5 +53,17 @@ class WorkerAcl : public pcpp::DpdkWorkerThread {
      * \param id
      */
     void SetCoreId(const uint32_t id);
+
+    /*!
+     * \brief SetQueueIdxsRx
+     * \param idxs
+     */
+    void SetQueueIdxsRx(const std::vector<int> &idxs);
+
+    /*!
+     * \brief SetQueueIdxsTx
+     * \param idxs
+     */
+    void SetQueueIdxsTx(const std::vector<int> &idxs);
 };
 } // namespace Nta::Network

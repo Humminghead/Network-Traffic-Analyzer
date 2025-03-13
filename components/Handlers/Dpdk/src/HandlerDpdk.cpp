@@ -26,13 +26,14 @@ auto CreateRteRules(const std::vector<std::string> &rules, const std::array<rte_
 }
 
 struct HandlerDpdk::Impl {
+    ~Impl() {
+        for (const auto *w : workers) {
+            delete w;
+        }
+    }
+
     std::atomic_bool inited{false};
-    Json::Objects::DpdkObject m_Config;
-    RteLookupAcl m_Acl;
-    // std::vector<RteAclLookupRule<FiveTupleIp4Defs.size()>> tupleFiveIp4RteRules{};
-    // RteRuleMaker<FiveTupleIp4> tupleFiveRuleMakerIp4{};
-    // std::vector<std::unique_ptr<pcpp::DpdkWorkerThread>> workers;
-    // std::map<size_t, std::shared_ptr<RteAclContext>> tupleFiveSocketContexts;
+    Json::Objects::DpdkObject m_Config;    
     std::vector<pcpp::DpdkWorkerThread *> workers;
 };
 
@@ -169,8 +170,11 @@ void HandlerDpdk::Open() {
                             });
                         return it == std::end(openedDevices) ? nullptr : *it;
                     };
-                    m_Impl->workers.push_back(new WorkerAcl(devSearch(worker.rxDevicePciAddr), devSearch(worker.txDevicePciAddr), tupleFiveContext));
 
+                    auto workerAcl = new WorkerAcl(devSearch(worker.rxDevicePciAddr), devSearch(worker.txDevicePciAddr), tupleFiveContext);
+                    workerAcl->SetQueueIdxsRx(worker.rxQueuesIdxs.queueIdxs);
+                    workerAcl->SetQueueIdxsTx(worker.txQueuesIdxs.queueIdxs);
+                    m_Impl->workers.push_back(std::move(workerAcl));
                 } else if (cx.type == "drop") {
                     ///\todo
                 } else {
