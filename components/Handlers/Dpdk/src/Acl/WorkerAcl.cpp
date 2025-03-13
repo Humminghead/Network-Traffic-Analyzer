@@ -17,7 +17,7 @@ WorkerAcl::WorkerAcl(
 }
 
 bool WorkerAcl::run(uint32_t coreId) {
-    if (!m_RxDevice || !m_TxDevice)
+    if (!m_RxDevice)
         return false;
 
     if (m_CoreId == RTE_MAX_LCORE) {
@@ -25,13 +25,13 @@ bool WorkerAcl::run(uint32_t coreId) {
     }
 
     if (m_QueueIndicesRx.empty()) {
-        for (auto n = 0; n <= m_RxDevice->GetRawDevecePtr()->getTotalNumOfRxQueues(); n++) {
+        for (auto n = 0; n < m_RxDevice->GetRawDevecePtr()->getTotalNumOfRxQueues(); n++) {
             m_QueueIndicesRx.push_back(n);
         }
     }
 
-    if (m_QueueIndicesTx.empty()) {
-        for (auto n = 0; n <= m_TxDevice->GetRawDevecePtr()->getTotalNumOfTxQueues(); n++) {
+    if (m_TxDevice && m_QueueIndicesTx.empty()) {
+        for (auto n = 0; n < m_TxDevice->GetRawDevecePtr()->getTotalNumOfTxQueues(); n++) {
             m_QueueIndicesTx.push_back(n);
         }
     }
@@ -68,8 +68,10 @@ bool WorkerAcl::run(uint32_t coreId) {
                             pktIndex++;
                         });
 
-                    // send received packet on the TX device
-                    m_TxDevice->SendPackets(0, m_MatchPackets);
+                    // Send received packets if it needed
+                    if (m_TxDevice) {
+                        m_TxDevice->SendPackets(0, m_MatchPackets);
+                    }
                     m_MatchPackets.clear();
                     m_AclDataPtrs.clear();
                 } else {
@@ -85,7 +87,7 @@ bool WorkerAcl::run(uint32_t coreId) {
                 });
                 mBufArray.insert(std::end(mBufArray), erased, nullptr);
             } else {
-                int a = 0;
+                ///\todo log
             }
         }
     }
