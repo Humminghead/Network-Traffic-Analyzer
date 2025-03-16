@@ -25,7 +25,7 @@ bool WorkerAcl::run(uint32_t coreId) {
     }
 
     if (m_QueueIndicesRx.empty()) {
-        for (auto n = 0; n < m_RxDevice->GetRawDevecePtr()->getTotalNumOfRxQueues(); n++) {
+         for (auto n = 0; n < m_RxDevice->GetRawDevecePtr()->getTotalNumOfRxQueues(); n++) {
             m_QueueIndicesRx.push_back(n);
         }
     }
@@ -111,7 +111,7 @@ void WorkerAcl::SetQueueIdxsRx(const std::vector<int> &idxs) {
 }
 
 void WorkerAcl::SetQueueIdxsTx(const std::vector<int> &idxs) {
-    m_QueueIndicesRx = idxs;
+    m_QueueIndicesTx = idxs;
 }
 
 } // namespace Nta::Network

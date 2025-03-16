@@ -5,7 +5,7 @@
 
 namespace Nta::Network {
 class DpdkDevice {
-public:
+  public:
     using DpdkDevicePtr = std::unique_ptr<pcpp::DpdkDevice, std::function<void(pcpp::DpdkDevice *)>>;
     using MbufArray = std::vector<rte_mbuf *>;
 
@@ -72,4 +72,4 @@ public:
     pcpp::DpdkDevice::DpdkDeviceConfiguration
         m_Config{128, 512, 100, pcpp::DpdkDevice::DpdkRssHashFunction::RSS_NONE, nullptr, 0};
 };
-}
+} // namespace Nta::Network
