@@ -20,12 +20,12 @@ bool WorkerAcl::run(uint32_t coreId) {
     if (!m_RxDevice)
         return false;
 
-    if (m_CoreId == RTE_MAX_LCORE) {
-        m_CoreId = coreId;
+    if (m_CoreId >= RTE_MAX_LCORE) {
+        throw std::runtime_error("Illegal core id: " + std::to_string(coreId) + "!");
     }
 
     if (m_QueueIndicesRx.empty()) {
-         for (auto n = 0; n < m_RxDevice->GetRawDevecePtr()->getTotalNumOfRxQueues(); n++) {
+        for (auto n = 0; n < m_RxDevice->GetRawDevecePtr()->getTotalNumOfRxQueues(); n++) {
             m_QueueIndicesRx.push_back(n);
         }
     }
@@ -41,9 +41,9 @@ bool WorkerAcl::run(uint32_t coreId) {
     while (!m_Stop.load()) {
         for (const auto &queueIdRx : m_QueueIndicesRx) {
             // receive packets from RX device
-            if (uint16_t numOfPackets = m_RxDevice->RecivePackets(queueIdRx); numOfPackets > 0) {
+            if (uint16_t numOfPackets = m_RxDevice->RecivePackets(queueIdRx, m_CoreId); numOfPackets > 0) {
 
-                auto mBufArray = m_RxDevice->GetMbufArray();
+                auto mBufArray = m_RxDevice->GetMbufArray(m_CoreId);
 
                 PrefetchCpuCache(mBufArray, 3); ///\todo add 2 cfg
 

@@ -6,6 +6,7 @@
 #include "Handlers/Dpdk/JsonObjectDpdk.h"
 #include "Handlers/Dpdk/RteSocket.h"
 #include "Handlers/Dpdk/RuleMaker.h"
+#include "Handlers/Dpdk/Errno.h"
 
 #include <DpdkDevice.h>
 #include <DpdkDeviceList.h>
@@ -137,7 +138,7 @@ void HandlerDpdk::Open() {
     // Process config of the workers
     for (auto n = 0; const auto &worker : m_Impl->m_Config.workers) {
 
-        // Create worker
+        // Get workers core id
         auto coreId = worker.ealCore;
 
         // Create temporary rules vector
@@ -205,7 +206,7 @@ void HandlerDpdk::Open() {
 
                 // Create worker
                 auto workerAcl = new WorkerAcl(
-                    devSearch(worker.rxDevicePciAddr), devSearch(worker.txDevicePciAddr), tupleFiveIp4Context);
+                    devSearch(worker.rxDevicePciAddr), devSearch(worker.txDevicePciAddr), tupleFiveIp4Context, coreId);
                 workerAcl->SetQueueIdxsRx(worker.rxQueuesIdxs.queueIdxs);
                 workerAcl->SetQueueIdxsTx(worker.txQueuesIdxs.queueIdxs);
                 m_Impl->workers.push_back(std::move(workerAcl));
@@ -225,30 +226,81 @@ void HandlerDpdk::Open() {
     // Build all ACL contexts
     for (auto &[core, socket] : m_Impl->cpuSockets) {
         (void)core;
-        std::for_each(std::begin(socket.GetTupleFiveIp4Contexts()), std::end(socket.GetTupleFiveIp4Contexts()), [&](const auto &ctx) {
-            if (auto ctxIp4 = ctx.second; ctxIp4 != nullptr) {
-                ctxIp4->Build();
-            }
-        });
-        std::for_each(std::begin(socket.GetTupleFiveIp6Contexts()), std::end(socket.GetTupleFiveIp6Contexts()), [&](const auto &ctx) {
-            if (auto ctxIp6 = ctx.second; ctxIp6 != nullptr) {
-                ctxIp6->Build();
-            }
-        });
+        std::for_each(
+            std::begin(socket.GetTupleFiveIp4Contexts()),
+            std::end(socket.GetTupleFiveIp4Contexts()),
+            [&](const auto &ctx) {
+                if (auto ctxIp4 = ctx.second; ctxIp4 != nullptr) {
+                    ctxIp4->Build();
+                }
+            });
+        std::for_each(
+            std::begin(socket.GetTupleFiveIp6Contexts()),
+            std::end(socket.GetTupleFiveIp6Contexts()),
+            [&](const auto &ctx) {
+                if (auto ctxIp6 = ctx.second; ctxIp6 != nullptr) {
+                    ctxIp6->Build();
+                }
+            });
     }
 
     // Start capture in async mode
-    if (!pcpp::DpdkDeviceList::getInstance().startDpdkWorkerThreads(coreMaskToUse, m_Impl->workers)) {
+    if (!StartDpdkWorkerThreads(coreMaskToUse, m_Impl->workers)) {
         throw std::runtime_error("Couldn't start worker threads!");
     }
 }
 
-void HandlerDpdk::Close() {}
+void HandlerDpdk::Close() {
+    StopDpdkWorkerThreads();
+}
 
 void HandlerDpdk::SetCallback(std::function<CallBackFunctionType> &&f) {}
 
 auto HandlerDpdk::GetCallback() -> std::function<CallBackFunctionType> {
     return {};
+}
+
+bool HandlerDpdk::StartDpdkWorkerThreads(
+    const uint32_t coreMask,
+    std::vector<pcpp::DpdkWorkerThread *> &workerThreadsVec) {
+    if (coreMask & pcpp::DpdkDeviceList::getInstance().getDpdkMasterCore().Mask) {
+        throw std::runtime_error("Cannot run worker thread on DPDK master core");
+    }
+
+    auto dpdkThreadStarter = [](void *p) {
+        auto thread = reinterpret_cast<pcpp::DpdkWorkerThread *>(p);
+        return static_cast<int>(thread->run(rte_lcore_id()));
+    };
+
+    for (auto workerIt = workerThreadsVec.begin(); workerIt != workerThreadsVec.end(); workerIt++) {
+        int err = rte_eal_remote_launch(
+            static_cast<lcore_function_t *>(dpdkThreadStarter), *workerIt, (*workerIt)->getCoreId());
+        if (auto message = GetDpdkErrorMessage(err); err != 0) {
+            for (const auto &thread : workerThreadsVec) {
+                thread->stop();
+                rte_eal_wait_lcore(thread->getCoreId());
+                ///\todo Log LOG_DEBUG("Thread on core [" << thread->getCoreId() << "] stopped");
+            }
+            ///\todo Log LOG_ERROR("Cannot create worker thread #" << getCoreId << ". Error was: [" << strerror(err) << "]");
+            return false;
+        }
+    }
+    return true;
+}
+
+void HandlerDpdk::StopDpdkWorkerThreads() {
+    if (m_Impl->workers.empty()) {
+        throw std::runtime_error("No worker threads were set");
+    }
+
+    for (const auto &worker : m_Impl->workers) {
+        worker->stop();
+        rte_eal_wait_lcore(worker->getCoreId());
+        // PCPP_LOG_DEBUG("Thread on core [" << worker->getCoreId() << "] stopped");
+    }
+
+    m_Impl->workers.clear();
+    // PCPP_LOG_DEBUG("All worker threads stopped");
 }
 
 void HandlerDpdk::Loop() {
