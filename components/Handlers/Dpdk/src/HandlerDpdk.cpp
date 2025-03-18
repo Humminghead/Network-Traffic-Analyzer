@@ -34,15 +34,15 @@ struct HandlerDpdk::Impl {
         }
     }
 
-    std::atomic_bool inited{false};
-    Json::Objects::DpdkObject m_Config;
+    std::atomic_bool isInited{false};
+    Json::Objects::DpdkObject config;
     std::vector<pcpp::DpdkWorkerThread *> workers;
     std::map<int, RteCpuSocket> cpuSockets;
 };
 
 HandlerDpdk::HandlerDpdk(const Json::Objects::DpdkObject &config)
     : m_Impl{new HandlerDpdk::Impl(), [](auto p) { delete p; }} {
-    m_Impl->m_Config = config;
+    m_Impl->config = config;
 }
 
 HandlerDpdk::~HandlerDpdk() noexcept {
@@ -50,14 +50,14 @@ HandlerDpdk::~HandlerDpdk() noexcept {
 }
 
 void HandlerDpdk::Open() {
-    if (m_Impl->inited)
-        throw std::runtime_error("Handler already opned!");
+    if (m_Impl->isInited)
+        throw std::runtime_error("Handler already opened!");
 
     std::vector<const char *> argPtrs{};
     argPtrs.reserve(std::numeric_limits<char>::max());
 
     // Process additional EAL args
-    for (auto &[k, v] : m_Impl->m_Config.m_EalCmdLine.args) {
+    for (auto &[k, v] : m_Impl->config.m_EalCmdLine.args) {
         argPtrs.push_back(k.c_str());
         if (!v.empty())
             argPtrs.push_back(v.c_str());
@@ -65,15 +65,15 @@ void HandlerDpdk::Open() {
 
     // Init DPDK
     auto tempArgv = const_cast<char **>(argPtrs.data());
-    m_Impl->inited.store(pcpp::DpdkDeviceList::initDpdk(
-        m_Impl->m_Config.m_CoreMask,
-        m_Impl->m_Config.m_BufPoolSizePerDevice,
-        m_Impl->m_Config.m_HeadRoomSize,
-        m_Impl->m_Config.m_MainLcore,
+    m_Impl->isInited.store(pcpp::DpdkDeviceList::initDpdk(
+        m_Impl->config.m_CoreMask,
+        m_Impl->config.m_BufPoolSizePerDevice,
+        m_Impl->config.m_HeadRoomSize,
+        m_Impl->config.m_MainLcore,
         argPtrs.size(),
         tempArgv));
 
-    if (!m_Impl->inited.load())
+    if (!m_Impl->isInited.load())
         throw std::runtime_error("DPDK initialization failed!");
 
     // Create cpu sockets
@@ -88,7 +88,7 @@ void HandlerDpdk::Open() {
 
     // Removing DPDK master core from core mask because DPDK worker threads cannot run on master core
     const auto coreMaskToUse =
-        m_Impl->m_Config.m_CoreMask & ~(pcpp::DpdkDeviceList::getInstance().getDpdkMasterCore().Mask);
+        m_Impl->config.m_CoreMask & ~(pcpp::DpdkDeviceList::getInstance().getDpdkMasterCore().Mask);
 
     // Converting masked cores bits to the cores numbers
     std::vector<int> maskedCoreNumbers{};
@@ -136,7 +136,7 @@ void HandlerDpdk::Open() {
     };
 
     // Process config of the workers
-    for (auto n = 0; const auto &worker : m_Impl->m_Config.workers) {
+    for (auto n = 0; const auto &worker : m_Impl->config.workers) {
 
         // Get workers core id
         auto coreId = worker.ealCore;

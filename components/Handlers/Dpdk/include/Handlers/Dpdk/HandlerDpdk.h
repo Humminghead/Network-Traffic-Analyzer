@@ -61,7 +61,6 @@ public:
 
 private:
     bool StartDpdkWorkerThreads(const uint32_t coreMask, std::vector<pcpp::DpdkWorkerThread*>& workerThreadsVec);
-
     void StopDpdkWorkerThreads();
 
     struct Impl;

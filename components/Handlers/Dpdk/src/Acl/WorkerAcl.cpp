@@ -47,13 +47,16 @@ bool WorkerAcl::run(uint32_t coreId) {
 
                 PrefetchCpuCache(mBufArray, 3); ///\todo add 2 cfg
 
-                std::for_each_n(std::begin(mBufArray), numOfPackets, [&](auto pktMbuf) {
+                std::for_each_n(std::begin(mBufArray), numOfPackets, [&](rte_mbuf* pktMbuf) {
                     auto data = rte_pktmbuf_mtod_offset(pktMbuf, const uint8_t *, 0);
                     auto len = static_cast<size_t>(rte_pktmbuf_pkt_len(pktMbuf));
                     auto [ok, packet] = m_Decoder.FullProcessing(LinkLayer::Eth, data, len);
 
                     (void)ok;
                     (void)packet;
+
+                    // pktMbuf->hash.rss;
+                    // pktMbuf->hash.usr;
 
                     m_AclDataPtrs.push_back(
                         GetRtePktMbufMtodOffset<IpV4HeaderPtoto>(pktMbuf, m_Decoder.GetHandledBytesL2()));
