@@ -66,8 +66,9 @@ bool WorkerAcl::run(uint32_t coreId) {
                 if (auto [ok, matchedRuleIdxs] = m_AclLookUp.Classify(*m_AclContext, m_AclDataPtrs); ok) {
                     std::for_each_n(
                         std::begin(matchedRuleIdxs), numOfPackets, [&, pktIndex = size_t{}](auto &ruleIdx) mutable {
-                            if (ruleIdx != 0)
+                            if (ruleIdx != 0){
                                 m_MatchPackets.push_back(mBufArray[pktIndex]);
+                            }
                             pktIndex++;
                         });
 
