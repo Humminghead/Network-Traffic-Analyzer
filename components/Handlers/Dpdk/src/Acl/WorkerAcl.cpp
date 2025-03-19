@@ -45,7 +45,7 @@ bool WorkerAcl::run(uint32_t coreId) {
 
                 auto mBufArray = m_RxDevice->GetMbufArray(m_CoreId);
 
-                PrefetchCpuCache(mBufArray, 3); ///\todo add 2 cfg
+                PrefetchCpuCache(mBufArray, std::min(numOfPackets, uint16_t{3})); ///\todo add 2 cfg
 
                 std::for_each_n(std::begin(mBufArray), numOfPackets, [&](rte_mbuf* pktMbuf) {
                     auto data = rte_pktmbuf_mtod_offset(pktMbuf, const uint8_t *, 0);
@@ -72,7 +72,7 @@ bool WorkerAcl::run(uint32_t coreId) {
                         });
 
                     // Send received packets if it needed
-                    if (m_TxDevice) {
+                    if (m_TxDevice && m_MatchPackets.size() > 0) {
                         m_TxDevice->SendPackets(0, m_MatchPackets);
                     }
                     m_MatchPackets.clear();
