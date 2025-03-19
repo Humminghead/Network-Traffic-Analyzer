@@ -23,9 +23,9 @@ template <IsFiveTupleIp4 Rule> class RteRuleMaker<Rule> {
             return EmptyRule{};
 
         if ('R' != rule[0])
-            return EmptyRule{};      
+            return EmptyRule{};
 
-        std::regex regex{"[0-9x]{1,4}", std::regex::extended};
+        std::regex regex{"[0-9x]{1,5}", std::regex::extended};
         const size_t matchValuesCount = 17;
         std::smatch matches;
 
