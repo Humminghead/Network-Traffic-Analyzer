@@ -290,7 +290,8 @@ bool HandlerDpdk::StartDpdkWorkerThreads(
 
 void HandlerDpdk::StopDpdkWorkerThreads() {
     if (m_Impl->workers.empty()) {
-        throw std::runtime_error("No worker threads were set");
+        return;
+        // throw std::runtime_error("No worker threads were set");
     }
 
     for (const auto &worker : m_Impl->workers) {
