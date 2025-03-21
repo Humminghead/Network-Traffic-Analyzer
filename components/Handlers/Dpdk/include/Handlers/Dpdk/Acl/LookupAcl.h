@@ -172,7 +172,7 @@ class RteAclContext {
 class RteLookupAcl {
   public:
     using Result = std::pair<bool, std::vector<uint32_t>>;
-    using PacketPointers = std::vector<const uint8_t *>;
+    using PacketPointers = std::array<const uint8_t *,64>;
 
     /*!
      * \brief Classify
@@ -181,9 +181,7 @@ class RteLookupAcl {
      * \param categories
      * \return
      */
-    Result Classify(const RteAclContext &ctx, PacketPointers &packets, const uint32_t categories = 1);
+    Result Classify(const RteAclContext &ctx, PacketPointers &packets, const size_t packetsSize, const uint32_t categories = 1);
 };
-
-auto PrefetchCpuCache(const std::vector<rte_mbuf *> &rxPkts, const size_t prefetchCount) -> void;
 
 } // namespace Nta::Network
