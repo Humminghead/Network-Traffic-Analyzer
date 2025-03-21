@@ -1,13 +1,10 @@
 #include "Handlers/Dpdk/DpdkDevice.h"
+#include "Util/Misc.h"
 #include <rte_branch_prediction.h>
 #include <rte_ethdev.h>
 
 namespace Nta::Network {
-uint16_t DpdkDevice::RecivePackets(const uint16_t queueId, const int coreId) {    
-    if (coreId > m_BufArray.size()) {
-        throw std::runtime_error("core id: " + std::to_string(coreId) + "is out of device buffer range!");
-    }
-
+uint16_t DpdkDevice::RecivePackets(const uint16_t queueId, MbufArray &m_BufArray) {
     if (unlikely(!m_Dev->isOpened())) {
         throw std::runtime_error("Device is not opened!");
     }
@@ -18,10 +15,10 @@ uint16_t DpdkDevice::RecivePackets(const uint16_t queueId, const int coreId) {
         return 0;
     }
 
-    return rte_eth_rx_burst(m_Dev->getDeviceId(), queueId, m_BufArray[coreId].data(), m_BufArray[coreId].size());
+    return rte_eth_rx_burst(m_Dev->getDeviceId(), queueId, m_BufArray.data(), Util::Std::ArraySize<MbufArray>::size);
 }
 
-uint16_t DpdkDevice::SendPackets(const uint16_t queueId, MbufArray &bufArray) {
+uint16_t DpdkDevice::SendPackets(const uint16_t queueId, MbufArray &bufArray, const uint16_t nbPkts) {
     if (unlikely(!m_Dev->isOpened())) {
         throw std::runtime_error("Device is not opened!");
     }
@@ -31,7 +28,13 @@ uint16_t DpdkDevice::SendPackets(const uint16_t queueId, MbufArray &bufArray) {
         return 0;
     }
 
-    rte_mbuf **mBufArr = bufArray.data();
-    return rte_eth_tx_burst(m_Dev->getDeviceId(), queueId, mBufArr, bufArray.size());
+    return rte_eth_tx_burst(m_Dev->getDeviceId(), queueId, bufArray.data(), nbPkts);
 }
+
+auto PrefetchCpuCache(const DpdkDevice::MbufArray &rxPkts, const size_t prefetchCount) -> void {
+    for (auto i = 0; i < prefetchCount && i < Util::Std::ArraySize<DpdkDevice::MbufArray>::size; i++) {
+        rte_prefetch0(rte_pktmbuf_mtod(rxPkts[i], void *));
+    }
+}
+
 } // namespace Nta::Network
