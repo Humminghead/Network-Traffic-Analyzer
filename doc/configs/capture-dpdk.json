@@ -11,13 +11,25 @@
       "promiscuous":true,
       "eal_cmd_line_arguments":[
          {
-            "--vdev":"net_pcap0,rx_pcap=/media/user/other/Pcap/rnd-pcaps/gtpu/gtpu_part_0.pcap,tx_pcap=/mnt/ramdisk/gtpu_part_0-tx.pcap"
+            "--vdev":"net_pcap0,rx_iface=wlx340a33e0dd2e,tx_pcap=/mnt/ramdisk/gtpu_part_0-tx.pcap"
          },
          {
             "--vdev":"net_pcap1,rx_pcap=/media/user/other/Pcap/rnd-pcaps/gtpu/gtpu_part_0.pcap,tx_pcap=/mnt/ramdisk/gtpu_part_1-tx.pcap"
          },
          {
+            "--vdev":"net_pcap2,rx_pcap=/media/user/other/Pcap/local/local-socks.pcap,tx_pcap=/mnt/ramdisk/local-socks-tx.pcap"
+         },
+         {
          	"--no-telemetry":""
+         },
+         {
+         	"--proc-type":"primary"
+         },
+         {  
+         	"--file-prefix":"pmd1" 
+         },
+         {
+         	"--vdev":"net_memif0,role=server,id=0"
          }
       ],
       "workers":[
@@ -47,40 +59,11 @@
                {
                   "type":"route",
                   "tuple-five-rules":[
-                     "R10.12.133.105/32 0.0.0.0/0 2152 : 2152 2152 : 2152 17/0xFF 0"
-                  ]
-               },
-               {
-                  "type":"drop",
-                  "tuple-five-rules":[
-                     "R213.87.79.87/32 0.0.0.0/0 2152 : 2152 2152 : 2152 0/0 0"
+                     // "R10.12.133.105/32 0.0.0.0/0 2152 : 2152 2152 : 2152 17/0xFF 0"
+                     "R0.0.0.0/0 0.0.0.0/0 1080 : 1080 0 : 65535 6/0xFF 0"
                   ]
                }
             ]
-         },
-         {
-            "type":"acl",
-            "eal_core":1,
-            "rx_device":"net_pcap1",
-            "tx_device":"net_pcap1",            
-            "rx_queues_idxs":{
-               "type":"range",
-               "min":0,
-               "max":10
-            }, 
-            "input_packet_classification":[
-               {
-                  "type":"route",
-                  "tuple-five-rules":[
-                     "R213.87.78.72/32 0.0.0.0/0 2152 : 2152 2152 : 2152 17/0xFF 0"
-                  ]
-               }               
-            ]
-         },
-         {
-            "type":"dummy",
-            "device_id":0,
-            "eal_core":2
          }
       ]
    },
