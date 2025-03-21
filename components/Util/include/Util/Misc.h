@@ -33,6 +33,13 @@ std::array<T, sizeof...(Is)> MakeArrayHelper(std::index_sequence<Is...>, Args &&
 template <typename T, size_t N, typename... Args> std::array<T, N> MakeArray(Args &&...args) {
     return MakeArrayHelper<T>(std::make_index_sequence<N>{}, std::forward<Args>(args)...);
 }
+
+template <typename> struct ArraySize;
+
+template <typename T, size_t N> struct ArraySize<std::array<T, N>> {
+    constexpr static auto size = N;
+};
+
 } // namespace Std
 
 } // namespace Nta::Util
