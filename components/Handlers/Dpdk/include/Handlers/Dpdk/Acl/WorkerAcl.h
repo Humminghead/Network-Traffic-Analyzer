@@ -15,7 +15,7 @@ class WorkerAcl : public pcpp::DpdkWorkerThread {
     uint32_t m_CoreId{RTE_MAX_LCORE};
     std::shared_ptr<RteAclContext> m_AclContext{nullptr};
     RteLookupAcl m_AclLookUp{};
-    DpdkDevice::MbufArray m_MatchPackets;
+    DpdkDevice::MbufArray m_MatchPackets{};
     NetDecoder m_Decoder{};
     RteLookupAcl::PacketPointers m_AclDataPtrs;
     std::vector<int> m_QueueIndicesRx{};
