@@ -3,24 +3,18 @@
 #include <DpdkDevice.h>
 #include <Util/Misc.h>
 #include <functional>
-#include <rte_build_config.h>
-#include <rte_config.h>
-#include <rte_ethdev.h>
-#include <rte_malloc.h>
+
+struct rte_mbuf;
 
 namespace Nta::Network {
 class DpdkDevice {
   public:
     using DpdkDevicePtr = std::unique_ptr<pcpp::DpdkDevice, std::function<void(pcpp::DpdkDevice *)>>;
-    using MbufArray = std::array<rte_mbuf *, RTE_MAX_LCORE>;
+    using MbufArray = std::array<rte_mbuf *, 128>; //RTE_MAX_LCORE
 
-    DpdkDevice(pcpp::DpdkDevice *dev, const size_t nbRx = Util::Std::ArraySize<MbufArray>::size)
-        : m_BufArray(RTE_MAX_LCORE) {
-        m_Dev.reset(dev);
-    }
+    DpdkDevice(pcpp::DpdkDevice *dev, const size_t nbRx = Util::Std::ArraySize<MbufArray>::size);
 
-    DpdkDevice(DpdkDevicePtr dev, const size_t nbRx = Util::Std::ArraySize<MbufArray>::size)
-        : m_BufArray(RTE_MAX_LCORE), m_Dev{std::move(dev)} {}
+    DpdkDevice(DpdkDevicePtr dev, const size_t nbRx = Util::Std::ArraySize<MbufArray>::size);
 
     /*!
      * \brief RecivePackets
@@ -39,52 +33,25 @@ class DpdkDevice {
      */
     uint16_t SendPackets(const uint16_t queueId, MbufArray &bufArray, const uint16_t nbPkts);
 
-    auto GetMbufArray(const int coreId) -> MbufArray & {
-        if (constexpr auto mbSize = Util::Std::ArraySize<MbufArray>::size; coreId > mbSize)
-            throw std::runtime_error(
-                "core id: " + std::to_string(coreId) + "is out of device buffer range:" + std::to_string(mbSize) + "!");
-        return m_BufArray[coreId];
-    }
+    auto GetMbufArray(const int coreId) -> MbufArray &;
 
-    uint16_t GetTotalNumOfRxQueues() const noexcept {
-        if (!m_Dev)
-            return 0;
-        return m_Dev->getTotalNumOfRxQueues();
-    }
+    uint16_t GetTotalNumOfRxQueues() const noexcept;
 
-    uint16_t GetTotalNumOfTxQueues() const noexcept {
-        if (!m_Dev)
-            return 0;
-        return m_Dev->getTotalNumOfRxQueues();
-    }
+    uint16_t GetTotalNumOfTxQueues() const noexcept;
 
-    bool OpenMultiQueues(const uint16_t numOfRxQueuesToOpen, const uint16_t numOfTxQueuesToOpen) noexcept {
-        if (!m_Dev)
-            return false;
-        return m_Dev->openMultiQueues(numOfRxQueuesToOpen, numOfTxQueuesToOpen, m_Config);
-    }
+    bool OpenMultiQueues(const uint16_t numOfRxQueuesToOpen, const uint16_t numOfTxQueuesToOpen) noexcept;
 
-    int GetDeviceId() const noexcept {
-        if (!m_Dev)
-            return -1;
-        return m_Dev->getDeviceId();
-    }
+    int GetDeviceId() const noexcept;
 
-    std::string GetPMDName() const {
-        if (!m_Dev)
-            return {"PMD: nullptr"};
-        return m_Dev->getPMDName();
-    }
+    std::string GetPMDName() const;
 
-    auto GetNumberRxPacketsMax() const noexcept -> size_t { return m_BufArray.size(); }
+    auto GetNumberRxPacketsMax() const noexcept -> size_t;
 
-    auto GetRawDevecePtr() -> const pcpp::DpdkDevice * { return m_Dev.get(); }
+    DpdkDevicePtr::element_type *GetRawDevecePtr();
 
   private:
-    std::vector<MbufArray> m_BufArray{};
-    DpdkDevicePtr m_Dev{nullptr, [](auto *) {}};
-    pcpp::DpdkDevice::DpdkDeviceConfiguration
-        m_Config{128, 512, 100, pcpp::DpdkDevice::DpdkRssHashFunction::RSS_NONE, nullptr, 0};
+    struct Impl;
+    std::unique_ptr<Impl, void (*)(Impl *)> m_Impl;
 };
 
 auto PrefetchCpuCache(const DpdkDevice::MbufArray &rxPkts, const size_t prefetchCount) -> void;
