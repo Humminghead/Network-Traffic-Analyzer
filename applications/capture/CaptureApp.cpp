@@ -56,13 +56,15 @@ int CaptureApp::Run() {
     if (m_AppCore >= 0)
         Util::Thread::Stick2Core(m_AppCore);
 
-    try {
+    try {        
         m_Capture->GetHandler()->Open();
         m_Capture->GetHandler()->Loop();
-        m_Capture->GetHandler()->Close();
-    } catch (const std::runtime_error &e) {
+    } catch (const std::exception &e) {
+        ///\todo LOG        
+        std::cerr << e.what() << std::endl;
         return Application::EXIT_SOFTWARE;
     }
+    m_Capture->GetHandler()->Close();
 
     return Application::EXIT_OK;
 }
