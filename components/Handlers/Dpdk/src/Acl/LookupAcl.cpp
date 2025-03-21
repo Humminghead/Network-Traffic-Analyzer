@@ -26,16 +26,11 @@ auto Nta::Network::RteAclContext::Build() -> void {
 Nta::Network::RteLookupAcl::Result Nta::Network::RteLookupAcl::Classify(
     const RteAclContext &ctx,
     PacketPointers &packets,
+    const size_t packetsSize,
     const uint32_t categories) {
     std::vector<uint32_t> searchResult;
-    searchResult.resize(packets.size());
+    searchResult.resize(packetsSize);
     return {
-        0 == rte_acl_classify(ctx.RawPointer(), packets.data(), searchResult.data(), packets.size(), categories),
+        0 == rte_acl_classify(ctx.RawPointer(), packets.data(), searchResult.data(), packetsSize, categories),
         searchResult};
-}
-
-auto Nta::Network::PrefetchCpuCache(const std::vector<rte_mbuf *> &rxPkts, const size_t prefetchCount) -> void {
-    for (auto i = 0; i < prefetchCount && i < rxPkts.size(); i++) {
-        rte_prefetch0(rte_pktmbuf_mtod(rxPkts[i], void *));
-    }
 }
