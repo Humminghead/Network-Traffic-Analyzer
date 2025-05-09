@@ -1,5 +1,6 @@
 #include "Handlers/Dpdk/DpdkDevice.h"
 #include "Util/Misc.h"
+#include <iostream>
 #include <rte_branch_prediction.h>
 #include <rte_build_config.h>
 #include <rte_config.h>
@@ -16,6 +17,10 @@ struct DpdkDevice::Impl {
 };
 
 uint16_t DpdkDevice::RecivePackets(const uint16_t queueId, MbufArray &m_BufArray) {
+    if (unlikely(!m_Impl->m_Dev)) {
+        throw std::runtime_error("Device doesn't exist!");
+    }
+
     if (unlikely(!m_Impl->m_Dev->isOpened())) {
         throw std::runtime_error("Device is not opened!");
     }
@@ -31,6 +36,10 @@ uint16_t DpdkDevice::RecivePackets(const uint16_t queueId, MbufArray &m_BufArray
 }
 
 uint16_t DpdkDevice::SendPackets(const uint16_t queueId, MbufArray &bufArray, const uint16_t nbPkts) {
+    if (unlikely(!m_Impl->m_Dev)) {
+        throw std::runtime_error("Device doesn't exist!");
+    }
+
     if (unlikely(!m_Impl->m_Dev->isOpened())) {
         throw std::runtime_error("Device is not opened!");
     }
