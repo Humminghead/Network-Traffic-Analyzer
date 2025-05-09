@@ -73,6 +73,7 @@ struct WorkerQueueRange {
         for (auto& id : j.at("indices")) {
             p.queueIdxs.push_back(id);
         }
+        std::sort(std::begin(p.queueIdxs), std::end(p.queueIdxs));
     } else {
         throw std::runtime_error("Unsupported type: " + type);
     }
