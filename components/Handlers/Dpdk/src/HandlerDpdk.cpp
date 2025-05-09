@@ -3,10 +3,10 @@
 #include "Handlers/Dpdk/Acl/LookupAcl.h"
 #include "Handlers/Dpdk/Acl/WorkerAcl.h"
 #include "Handlers/Dpdk/DummyWorker.h"
+#include "Handlers/Dpdk/Errno.h"
 #include "Handlers/Dpdk/JsonObjectDpdk.h"
 #include "Handlers/Dpdk/RteSocket.h"
 #include "Handlers/Dpdk/RuleMaker.h"
-#include "Handlers/Dpdk/Errno.h"
 
 #include <DpdkDevice.h>
 #include <DpdkDeviceList.h>
@@ -53,8 +53,12 @@ void HandlerDpdk::Open() {
     if (m_Impl->isInited)
         throw std::runtime_error("Handler already opened!");
 
+    // Args for the DPDK EAL
     std::vector<const char *> argPtrs{};
     argPtrs.reserve(std::numeric_limits<char>::max());
+
+    // Opened devices
+    std::map<std::string, std::shared_ptr<Network::DpdkDevice>> openedDevices;
 
     // Process additional EAL args
     for (auto &[k, v] : m_Impl->config.m_EalCmdLine.args) {
@@ -108,31 +112,44 @@ void HandlerDpdk::Open() {
         throw std::runtime_error("DPDK device list is empty!");
     }
 
-    // Open all DPDK devices
-    std::vector<std::shared_ptr<DpdkDevice>> openedDevices;
-    for (auto &device : deviceList) {
-        auto devicePtr = std::make_shared<DpdkDevice>(device);
-        auto totalNumOfRxQueues = devicePtr->GetTotalNumOfRxQueues();
-        auto totalNumOfTxQueues = devicePtr->GetTotalNumOfTxQueues();
-
-        if (!devicePtr->OpenMultiQueues(totalNumOfRxQueues, totalNumOfTxQueues)) {
-            throw std::runtime_error(
-                "Couldn't open device #" + std::to_string(devicePtr->GetDeviceId()) + ", PMD '" +
-                devicePtr->GetPMDName() + "'");
-        }
-
-        openedDevices.push_back(devicePtr);
-    }
-
     // Dev search function
     auto devSearch = [&](const std::string_view &pciAddress) {
         auto it = std::find_if(
-            std::begin(openedDevices),
-            std::end(openedDevices),
-            [addr = pciAddress](const std::shared_ptr<DpdkDevice> &dev) {
-                return addr == dev->GetRawDevecePtr()->getPciAddress();
+            std::begin(deviceList), std::end(deviceList), [addr = pciAddress](pcpp::DpdkDevice *const dev) {
+                if (!dev)
+                    return false;
+                return addr == dev->getPciAddress();
             });
-        return it == std::end(openedDevices) ? nullptr : *it;
+        return it == std::end(deviceList) ? nullptr : *it;
+    };
+
+    // Creates and open Nta::Network::DpdkDevice
+    auto openDpdkDev = [&devSearch, &openedDevices](
+                           const std::string &pci,
+                           const Json::Objects::WorkerQueueRange &numOfRxQueues,
+                           const Json::Objects::WorkerQueueRange &numOfTxQueues) {
+        if (auto opnDevIt = openedDevices.find(pci); opnDevIt != std::end(openedDevices))
+            return opnDevIt->second;
+
+        auto dev = devSearch(pci);
+
+        if (!dev)
+            throw std::runtime_error("Device #" + pci + "\"" + " not found!");
+
+        if (!dev->openMultiQueues(numOfRxQueues.queueIdxs.size()/*back()*/, numOfTxQueues.queueIdxs.size()/*back()*/)) {
+            throw std::runtime_error(
+                "Couldn't open device #" + std::to_string(dev->getDeviceId()) + ", PMD '" + dev->getPMDName() + "'");
+        }
+
+        auto opnDevPtr = std::make_shared<Network::DpdkDevice>(dev);
+
+        auto [it, ok] = openedDevices.try_emplace(pci, opnDevPtr);
+        (void)it;
+
+        if(!ok)
+            throw std::runtime_error("Error while insertin opened device #" + pci + "\"" + "!");
+
+        return opnDevPtr;
     };
 
     // Process config of the workers
@@ -205,12 +222,13 @@ void HandlerDpdk::Open() {
                 tupleFiveIp4Context->AddRules(tupleFiveRteRulesIp4);
 
                 // Create worker
-                auto workerAcl = new WorkerAcl(
-                    devSearch(worker.rxDevicePciAddr), devSearch(worker.txDevicePciAddr), tupleFiveIp4Context, coreId);
+                auto rxDevPtr = openDpdkDev(worker.rxDevicePciAddr, worker.rxQueuesIdxs, worker.txQueuesIdxs);
+                auto txDevPtr = openDpdkDev(worker.txDevicePciAddr, worker.rxQueuesIdxs, worker.txQueuesIdxs);
+
+                auto workerAcl = new WorkerAcl(rxDevPtr, txDevPtr, tupleFiveIp4Context, coreId);
                 workerAcl->SetQueueIdxsRx(worker.rxQueuesIdxs.queueIdxs);
                 workerAcl->SetQueueIdxsTx(worker.txQueuesIdxs.queueIdxs);
                 m_Impl->workers.push_back(std::move(workerAcl));
-
             } else {
                 // Never throw
                 throw std::runtime_error("Unknown socket id: " + std::to_string(rte_lcore_to_socket_id(coreId)) + "!");
