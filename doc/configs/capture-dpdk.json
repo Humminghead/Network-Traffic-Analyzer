@@ -11,14 +11,17 @@
       "promiscuous":true,
       "eal_cmd_line_arguments":[
          {
-            "--vdev":"net_pcap0,rx_iface=wlx340a33e0dd2e,tx_pcap=/mnt/ramdisk/gtpu_part_0-tx.pcap"
-         },
+            "--vdev":"net_memif"
+         },     
          {
-            "--vdev":"net_pcap1,rx_pcap=/media/user/other/Pcap/rnd-pcaps/gtpu/gtpu_part_0.pcap,tx_pcap=/mnt/ramdisk/gtpu_part_1-tx.pcap"
+            "--vdev":"net_pcap0,rx_iface=wlx340a33e0dd2e,tx_pcap=/mnt/ramdisk/net_pcap0-tx.pcap"
          },
-         {
-            "--vdev":"net_pcap2,rx_pcap=/media/user/other/Pcap/local/local-socks.pcap,tx_pcap=/mnt/ramdisk/local-socks-tx.pcap"
-         },
+         // {
+         //    "--vdev":"net_pcap1,rx_pcap=/media/user/other/Pcap/rnd-pcaps/gtpu/gtpu_part_0.pcap,tx_pcap=/mnt/ramdisk/gtpu_part_1-tx.pcap"
+         // },
+         // {
+         //    "--vdev":"net_pcap2,rx_pcap=/media/user/other/Pcap/local/local-socks.pcap,tx_pcap=/mnt/ramdisk/local-socks-tx.pcap"
+         // },
          {
          	"--no-telemetry":""
          },
@@ -26,35 +29,43 @@
          	"--proc-type":"primary"
          },
          {  
-         	"--file-prefix":"pmd1" 
-         },
-         {
-         	"--vdev":"net_memif0,role=server,id=0"
+         	"--file-prefix":"pmd2" 
          }
+         // ,
+         // {
+         //    "--trace":"memif"
+         // },
+         // {
+         //    "--log-level":"lib.eal:debug"            
+         // },
+         // {
+         //    "--log-level":"lib.pmd.*:debug"         
+         // }
+
       ],
       "workers":[
          {
             "type":"acl",
             "eal_core":0,
-            "rx_device":"net_pcap0",
-            "tx_device":"net_pcap0",
-            "rx_queues_idxs":{
-               "type":"range",
-               "min":0,
-               "max":10
-            },
+            "rx_device":"net_memif",
+            "tx_device":"net_memif",
             // "rx_queues_idxs":{
-            //    "type":"id",
-            //    "indices":[
-            //       0
-            //    ]
+            //    "type":"range",
+            //    "min":0,
+            //    "max":0
             // },
-            // "tx_queues_idxs":{
-            //    "type":"id",
-            //    "indices":[
-            //       0
-            //    ]
-            // },
+            "rx_queues_idxs":{
+               "type":"id",
+               "indices":[
+                  0
+               ]
+            },
+            "tx_queues_idxs":{
+               "type":"id",
+               "indices":[
+                  0
+               ]
+            },
             "input_packet_classification":[
                {
                   "type":"route",
