@@ -9,6 +9,20 @@
 namespace Nta::Network {
 class WorkerAcl : public pcpp::DpdkWorkerThread {
   private:
+    struct RuntimeVariable {
+        uint16_t numRxPackets{0};
+        uint16_t numTxPackets{0};
+        size_t n{0};
+        uint16_t matchPacketsCounter{0};
+
+        void Reset() {
+            numRxPackets = 0;
+            numTxPackets = 0;
+            n = 0;
+            matchPacketsCounter = 0;
+        }
+    };
+
     std::shared_ptr<DpdkDevice> m_RxDevice{nullptr};
     std::shared_ptr<DpdkDevice> m_TxDevice{nullptr};
     std::atomic_bool m_Stop{true};
@@ -20,6 +34,7 @@ class WorkerAcl : public pcpp::DpdkWorkerThread {
     RteLookupAcl::PacketPointers m_AclDataPtrs;
     std::vector<int> m_QueueIndicesRx{};
     std::vector<int> m_QueueIndicesTx{};
+    RuntimeVariable m_Rv{};
 
   public:
     WorkerAcl(

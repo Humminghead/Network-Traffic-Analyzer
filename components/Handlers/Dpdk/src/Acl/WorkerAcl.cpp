@@ -37,15 +37,15 @@ bool WorkerAcl::run(uint32_t coreId) {
 
     m_Stop.exchange(false);
 
-    uint16_t numRxPackets{0}, numTxPackets{0};
-    size_t n = 0;
     while (!m_Stop.load()) {
         for (const auto &queueIdRx : m_QueueIndicesRx) {
+            // Reset all runtime variables
+            m_Rv.Reset();
+
             // receive packets from RX device
             auto mBufArray = m_RxDevice->GetMbufArray(m_CoreId);
-            if (numRxPackets = m_RxDevice->RecivePackets(queueIdRx, mBufArray); numRxPackets > 0) {                
-                n = 0;
-                std::for_each_n(std::begin(mBufArray), numRxPackets, [&](rte_mbuf *pktMbuf) {
+            if (m_Rv.numRxPackets = m_RxDevice->RecivePackets(queueIdRx, mBufArray); m_Rv.numRxPackets > 0) {
+                std::for_each_n(std::begin(mBufArray), m_Rv.numRxPackets, [&](rte_mbuf *pktMbuf) {
                     auto data = rte_pktmbuf_mtod_offset(pktMbuf, const uint8_t *, 0);
                     auto len = static_cast<size_t>(rte_pktmbuf_pkt_len(pktMbuf));
                     auto [ok, packet] = m_Decoder.FullProcessing(LinkLayer::Eth, data, len);
@@ -56,31 +56,30 @@ bool WorkerAcl::run(uint32_t coreId) {
                     // pktMbuf->hash.rss;
                     // pktMbuf->hash.usr;
 
-                    m_AclDataPtrs[n] = nullptr;
-                    m_AclDataPtrs[n++] =
+                    m_AclDataPtrs[m_Rv.n] = nullptr;
+                    m_AclDataPtrs[m_Rv.n++] =
                         GetRtePktMbufMtodOffset<IpV4HeaderPtoto>(pktMbuf, m_Decoder.GetHandledBytesL2());
                     m_Decoder.ResetHandledBytes();
                 });
 
-                if (auto [ok, matchedRuleIdxs] = m_AclLookUp.Classify(*m_AclContext, m_AclDataPtrs, n); ok) {
-                    uint16_t matchPacketsCounter{0};
+                if (auto [ok, matchedRuleIdxs] = m_AclLookUp.Classify(*m_AclContext, m_AclDataPtrs, m_Rv.n); ok) {
                     std::for_each_n(
-                        std::begin(matchedRuleIdxs), numRxPackets, [&, pktIndex = size_t{}](auto &ruleIdx) mutable {
+                        std::begin(matchedRuleIdxs), m_Rv.numRxPackets, [&, pktIndex = size_t{}](auto &ruleIdx) mutable {
                             if (ruleIdx != 0) {
-                                m_MatchPackets[matchPacketsCounter] = nullptr;
-                                m_MatchPackets[matchPacketsCounter++] = mBufArray[pktIndex];
+                                m_MatchPackets[m_Rv.matchPacketsCounter] = nullptr;
+                                m_MatchPackets[m_Rv.matchPacketsCounter++] = mBufArray[pktIndex];
                             } else {
                                 rte_pktmbuf_free(mBufArray[pktIndex]);
                             }
                             mBufArray[pktIndex++] = nullptr;
                         });                    
                     // Send received packets if it needed
-                    if (m_TxDevice && matchPacketsCounter > 0) {                        
-                        numTxPackets = m_TxDevice->SendPackets(0, m_MatchPackets, matchPacketsCounter);
+                    if (m_TxDevice && m_Rv.matchPacketsCounter > 0) {
+                        m_Rv.numTxPackets = m_TxDevice->SendPackets(0, m_MatchPackets, m_Rv.matchPacketsCounter);
 
                         /* Free any unsent packets. */
-                        if (unlikely(numTxPackets < matchPacketsCounter)) {
-                            for (uint16_t buf = numTxPackets; buf < matchPacketsCounter; buf++)
+                        if (unlikely(m_Rv.numTxPackets < m_Rv.matchPacketsCounter)) {
+                            for (uint16_t buf = m_Rv.numTxPackets; buf < m_Rv.matchPacketsCounter; buf++)
                                 rte_pktmbuf_free(m_MatchPackets[buf]);
                         }
                     }
