@@ -47,9 +47,11 @@ class NetDecoder : protected NetDecoderBase {
     size_t GetHandledBytesL5() const noexcept;
     size_t GetHandledBytesL6() const noexcept;
     size_t GetHandledBytesL7() const noexcept;
-    void ResetHandledBytes() const noexcept;
+    void ResetHandledBytes() noexcept;
 
   private:
+    void ResetProtocolList(Packet &packet) noexcept;
+
     struct Impl;
     struct ImplPointer : std::unique_ptr<Impl> {
         ~ImplPointer();

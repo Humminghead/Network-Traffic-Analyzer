@@ -16,12 +16,12 @@
          {
             "--vdev":"net_pcap0,rx_iface=wlx340a33e0dd2e,tx_pcap=/mnt/ramdisk/net_pcap0-tx.pcap"
          },
-         // {
-         //    "--vdev":"net_pcap1,rx_pcap=/media/user/other/Pcap/rnd-pcaps/gtpu/gtpu_part_0.pcap,tx_pcap=/mnt/ramdisk/gtpu_part_1-tx.pcap"
-         // },
-         // {
-         //    "--vdev":"net_pcap2,rx_pcap=/media/user/other/Pcap/local/local-socks.pcap,tx_pcap=/mnt/ramdisk/local-socks-tx.pcap"
-         // },
+         {
+            "--vdev":"net_pcap1,rx_pcap=/media/user/other/Pcap/rnd-pcaps/gtpu/gtpu_part_0.pcap,tx_pcap=/mnt/ramdisk/net_pcap1-tx.pcap"
+         },
+         {
+            "--vdev":"net_pcap2,rx_pcap=/tmp/mpls-basic2.pcap,tx_pcap=/mnt/ramdisk/net_pcap1-tx.pcap"
+         },
          {
          	"--no-telemetry":""
          },
@@ -47,8 +47,8 @@
          {
             "type":"acl",
             "eal_core":0,
-            "rx_device":"net_memif",
-            "tx_device":"net_memif",
+            "rx_device":"net_pcap2",
+            "tx_device":"net_pcap0",
             // "rx_queues_idxs":{
             //    "type":"range",
             //    "min":0,

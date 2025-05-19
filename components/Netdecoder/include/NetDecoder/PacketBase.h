@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <limits>
 #include <netinet/ether.h>
 #include <netinet/icmp6.h>
 #include <netinet/ip.h>
@@ -41,13 +42,16 @@
 // Linux
 struct mpls_label;
 
-static constexpr const size_t MAX_MPLS_CNT = 4; //!< Максимальное количество mpls меток в пакете.
-static constexpr const size_t MAX_VLAN_CNT = 8; //!< Максимальное количество vlan меток в пакете.
+static constexpr const size_t MAX_MPLS_CNT = 4; //!< Max mpls label count in packet
+static constexpr const size_t MAX_VLAN_CNT = 8; //!< Max vlan label count in packet
 
 namespace Nta::Network {
 // struct GtpHeader;
 struct PppoeHeader;
 struct SctpHdr;
+
+enum class LinkLayer : unsigned short;
+using LayerProtoTypes = std::array<LinkLayer, std::numeric_limits<uint8_t>::max()>;
 
 struct Payload {
     const uint8_t* data{nullptr};
@@ -78,8 +82,9 @@ struct Packet {
     const struct icmp6_hdr *icmp6Header{nullptr};
 
     Payload payload{};
+    LayerProtoTypes *protoList{nullptr};
 
     void Reset();
-    void ResetLowerLevels();
+    void ResetLowerLevels();    
 };
 } // namespace Nta::Network
