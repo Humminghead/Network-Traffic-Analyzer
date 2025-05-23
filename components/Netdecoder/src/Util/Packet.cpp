@@ -1,19 +1,10 @@
 #include "NetDecoder/Util/Packet.h"
 #include "NetDecoder/Gtp/Gtp1Defs.h"
 #include "NetDecoder/Gtp/GtpHeader.h"
-#include "NetDecoder/LinkLayer.h"
 #include "NetDecoder/PacketBase.h"
 #include <netinet/ip6.h>
-#include <bit>
 
 namespace Nta::Network::Util {
-
-constexpr auto typeVlanSwd = std::byteswap(static_cast<uint16_t>(ETHERTYPE_VLAN));
-constexpr auto typeIpSwapped = std::byteswap(static_cast<uint16_t>(ETHERTYPE_IP));
-constexpr auto typeIp6Swapped = std::byteswap(static_cast<uint16_t>(ETHERTYPE_IPV6));
-constexpr auto typeMplsSwapped = std::byteswap(static_cast<uint16_t>(0x8847));
-constexpr auto typePppoeDiscoverySwapped = std::byteswap(static_cast<uint16_t>(0x8864));
-constexpr auto typePppoeSessionSwapped = std::byteswap(static_cast<uint16_t>(0x8863));
 
 uint16_t GetIpProtocol(const Packet &p) {
     return p.ip4Header != nullptr ? p.ip4Header->protocol : p.ip6Header != nullptr ? p.ip6Header->ip6_nxt : IPPROTO_MAX;
@@ -53,45 +44,20 @@ bool IsIp6Icmp(const Packet &p) {
     return p.ip6Header ? p.ip6Header->ip6_nxt == IPPROTO_ICMPV6 : false;
 }
 
-LinkLayer GetL2Type(const Packet &p) {
-    return p.protoList?p.protoList->at(0):LinkLayer::Unknown;
+uint32_t GetPacketType(const Packet &p){
+    return (static_cast<uint32_t>(GetL2Type(p)) | static_cast<uint32_t>(GetL3Type(p)) | static_cast<uint32_t>(GetL4Type(p)));
 }
 
-uint16_t GetL3Type(const Packet &p){
-    if (p.ethHeader && p.ethHeader->ether_type == typeVlanSwd) {
-        for(auto tag : p.vlansTags){
-            if(!tag){
-                // return --tag->vlan_tci
-            }
-        }
-    }else  {
-
-    }
+LinkLayerProto GetL2Type(const Packet &p) {
+    return GetOsiLayer<OsiLevel::Data>(*p.protoList).Get();
 }
 
-uint16_t GetL4Type(const Packet &p){}
+LinkLayerProto GetL3Type(const Packet &p){
+    return GetOsiLayer<OsiLevel::Network>(*p.protoList).Get();
+}
 
-LinkLayer GetLinkLayerFromNetProtoType(const uint16_t linkLayer) {
-    switch (static_cast<uint16_t>(linkLayer)) {
-    case 0x4788: // MPLS
-        return LinkLayer::Mpls;
-    case 0x0081: // VLAN
-        return LinkLayer::Vlan;
-    case 0x6488: // PPPoE PPP Session Stage
-        return LinkLayer::PPPoEs;
-    case 0x6388: // PPPoE Discovery Stage
-        return LinkLayer::PPpoEd;
-        break;
-    // https://techhub.hpe.com/eginfolib/networking/docs/switches/5120si/cg/5998-8489_l2-lan_cg/content/436042676.htm
-    case 0x0008: // IpV4
-        return LinkLayer::Ip4;
-    case 0xDD86: // Ipv6
-        return LinkLayer::Ip6;
-    case 0x0000:
-        return LinkLayer::Eth;
-    default:
-        return LinkLayer::Unknown;
-    }
+LinkLayerProto GetL4Type(const Packet &p){
+    return GetOsiLayer<OsiLevel::Transport>(*p.protoList).Get();
 }
 
 } // namespace Nta::Network::Util

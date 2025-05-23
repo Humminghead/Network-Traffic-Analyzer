@@ -1,5 +1,6 @@
 #include "Handlers/Dpdk/Acl/WorkerAcl.h"
 #include "Handlers/Dpdk/Acl/Util/Offset.h"
+#include "NetDecoder/EtherType.h"
 #include <NetDecoder/PacketBase.h>
 #include <NetDecoder/Util/Packet.h>
 #include <rte_ethdev.h>
@@ -49,23 +50,19 @@ bool WorkerAcl::run(uint32_t coreId) {
                 std::for_each_n(std::begin(mBufArray), m_Rv.numRxPackets, [&](rte_mbuf *pktMbuf) {
                     auto data = rte_pktmbuf_mtod_offset(pktMbuf, const uint8_t *, 0);
                     auto len = static_cast<size_t>(rte_pktmbuf_pkt_len(pktMbuf));
-                    auto [ok, packet] = m_Decoder.FullProcessing(LinkLayer::Eth, data, len);
+                    auto [ok, packet] = m_Decoder.FullProcessing(ETHER_HDR, data, len);
 
                     (void)ok;
                     (void)packet;
 
+                    // Fill mbuf data
+                    pktMbuf->packet_type = Util::GetPacketType(packet);
                     pktMbuf->l2_len = m_Decoder.GetHandledBytesL2();
-                    pktMbuf->l2_type =
-                        Util::GetL2Type(packet) == ETHERTYPE_VLAN ? RTE_PTYPE_L2_ETHER_VLAN : RTE_PTYPE_UNKNOWN;
-
-                    pktMbuf->l3_len = m_Decoder.GetHandledBytesL3();
-                    pktMbuf->l3_type = Util::GetL3Type(packet);
-
+                    pktMbuf->l3_len = m_Decoder.GetHandledBytesL3();                    
                     pktMbuf->l4_len = m_Decoder.GetHandledBytesL4();
-                    pktMbuf->l4_type = Util::GetL4Type(packet);
 
                     // pktMbuf->hash.rss;
-                    // pktMbuf->hash.usr;
+                    // pktMbuf->hash.usr = Util::GetPacketHash(HashType::5Tuple);
 
                     // Create pointers for ACL filter
                     m_AclDataPtrs[m_Rv.n] = nullptr;

@@ -6,6 +6,7 @@
 #include "TransportSubsystem.h"
 #include "Util/Misc.h"
 #include <NetDecoder/Decoder.h>
+#include <NetDecoder/EtherType.h>
 #include <Poco/Util/Application.h>
 #include <cctype>
 // #include <boost/pfr.hpp>
@@ -15,7 +16,7 @@ struct DecodeSubsystem::Impl {
     // Members
     std::string m_SubSystemName{"decode"};
     std::unique_ptr<Nta::Network::NetDecoder> m_Decoder{nullptr};
-    LinkLayer m_LinkLayer{LinkLayer::Eth};///\todo add setting in config
+    uint16_t m_LinkLayer{ETHER_HDR}; ///\todo add setting in config
     const ConfigureSubsystem *m_ConfigureSubsystem{nullptr};
     CaptureSubsystem *m_LinkedCaptureSubsystem{nullptr};
     TransportSubsystemBase *m_LinkedTransportSubsystem{nullptr};
@@ -69,8 +70,8 @@ void DecodeSubsystem::SetLinkedSubSystem(TransportSubsystemBase *s) {
     m_Pimpl->m_LinkedTransportSubsystem = s;
 }
 
-void DecodeSubsystem::SetLinkLayer(const LinkLayer &layer) {
-    m_Pimpl->m_LinkLayer = static_cast<LinkLayer>(layer);
+void DecodeSubsystem::SetLinkLayer(const uint16_t &layer) {
+    m_Pimpl->m_LinkLayer = layer;
 }
 
 } // namespace Nta::Network

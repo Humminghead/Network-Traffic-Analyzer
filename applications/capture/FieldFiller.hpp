@@ -232,8 +232,8 @@ template <> struct FieldFiller<Nta::Network::Payload, FlowModel> {
        }
 };
 
-template <> struct FieldFiller<LayerProtoTypes, FlowModel> {
-    static void Fill(const LayerProtoTypes *, FlowModel &) {
+template <> struct FieldFiller<OsiLevelArr, FlowModel> {
+    static void Fill(const OsiLevelArr *, FlowModel &) {
         return;
     }
 };
