@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-
+include (ExternalProject)
 ###############################################################################
 #                              Project
 ###############################################################################
@@ -21,21 +21,23 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 ###############################################################################
 #                               3rdParty
 ###############################################################################
-add_subdirectory(${CMAKE_SOURCE_DIR}/3rdparty)
+add_subdirectory(${CMAKE_SOURCE_DIR}/3rdparty/dpdk)
+add_subdirectory(${CMAKE_SOURCE_DIR}/3rdparty/other)
+add_dependencies(PcapPlusPlus Dpdk)
 
 ###############################################################################
 #                               Common
 ###############################################################################
-#add_subdirectory(${CMAKE_SOURCE_DIR}/components/Netdecoder)
-#add_subdirectory(${CMAKE_SOURCE_DIR}/components/Handlers)
-#add_subdirectory(${CMAKE_SOURCE_DIR}/components/Util)
-#add_subdirectory(${CMAKE_SOURCE_DIR}/models)
+# add_subdirectory(${CMAKE_SOURCE_DIR}/components/Netdecoder)
+# add_subdirectory(${CMAKE_SOURCE_DIR}/components/Handlers)
+# add_subdirectory(${CMAKE_SOURCE_DIR}/components/Util)
+# add_subdirectory(${CMAKE_SOURCE_DIR}/models)
 
 ###############################################################################
 #                             Applications
 ###############################################################################
-# add_subdirectory(analysers/demo)
-#add_subdirectory(applications/capture)
+add_subdirectory(applications/demo)
+# add_subdirectory(applications/capture)
 
 ###############################################################################
 #                              Unit test

@@ -1,0 +1,23 @@
+#!/bin/bash
+
+# Variables
+BUILD_PATH=@CMAKE_BINARY_DIR@/3rdparty/src/Dpdk-build
+INST_PATH=@CMAKE_BINARY_DIR@/3rdparty/inst
+
+# Run
+BUILD_RESULT=$(cd $BUILD_PATH && ninja | grep error)
+
+# Prints:
+# File descriptor 1 is the standard output (stdout).
+# File descriptor 2 is the standard error (stderr).
+if [[ ${BUILD_RESULT+x} ]]; then
+	printf '%s' "$BUILD_RESULT">&1	
+fi
+
+# Remove old files
+#rm -rf INST_PATH
+
+# Install new build
+#cd $BUILD_PATH
+#export DESTDIR=@CMAKE_BINARY_DIR@/3rdparty/inst
+#meson install

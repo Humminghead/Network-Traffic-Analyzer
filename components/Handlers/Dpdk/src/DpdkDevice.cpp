@@ -1,6 +1,5 @@
 #include "Handlers/Dpdk/DpdkDevice.h"
 #include "Util/Misc.h"
-#include <iostream>
 #include <rte_branch_prediction.h>
 #include <rte_build_config.h>
 #include <rte_config.h>
