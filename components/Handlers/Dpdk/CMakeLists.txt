@@ -8,6 +8,7 @@ project(NtaHandlerDpdk LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# DPDK
 pkg_check_modules(DPDK "libdpdk")
 
 set(DPDK_STATIC_LIBRARIES_GENERATED "")
@@ -18,6 +19,16 @@ foreach(DPDK_LIB_SO_FULL_PATH ${DPDK_LINK_LIBRARIES})
   message(DEBUG "OUT: ${TMP_LIB}\n")
 endforeach()
 
+# PcapPlusPlus
+pkg_check_modules(PCPP "PcapPlusPlus")
+
+if(NOT PCPP_FOUND)
+  message(FATAL_ERROR "PcapPlusPlus not found!")
+endif()
+
+ExternalProject_Get_Property(PcapPlusPlus INSTALL_DIR)
+set(PCPP_INSTALL_DIR ${INSTALL_DIR})
+
 file(GLOB_RECURSE CPP_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
 add_library(${PROJECT_NAME} OBJECT ${CPP_FILES})
 
@@ -27,13 +38,18 @@ target_link_libraries(
           NtaUtil
           NtaNetDecoder
           nlohmann_json
-          Pcap++
+          # Pcap++
+          ${PCPP_INSTALL_DIR}/lib/libCommon++.a
+          ${PCPP_INSTALL_DIR}/lib/libPacket++.a
+          ${PCPP_INSTALL_DIR}/lib/libPcap++.a
           ${PCAP_LIBRARIES}
-          ${DPDK_STATIC_LIBRARIES_GENERATED})
-
-# message(----->${DPDK_STATIC_LIBRARIES_GENERATED})
+          ${DPDK_STATIC_LIBRARIES_GENERATED})        
 
 target_include_directories(
   ${PROJECT_NAME}
   PRIVATE ${PCAP_INCLUDE_DIRS} ${DPDK_INCLUDE_DIRS}
+          ${PCPP_INSTALL_DIR}/include/pcapplusplus
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+# It's needed for compile DPDK with our project
+target_compile_options(${PROJECT_NAME} PRIVATE "-mssse3")

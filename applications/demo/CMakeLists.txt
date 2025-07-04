@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.11)
 
+include(FindPkgConfig)
+find_package(PkgConfig)
+
 project(nta_demo LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -24,6 +27,19 @@ file(GLOB_RECURSE CPP_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
 # if(DPDK_FOUND)
 #   message("DPDK found with pkg-config")
 # endif()
+# list(APPEND CMAKE_PREFIX_PATH ${CMAKE_BINARY_DIR}/3rdparty/inst/lib/cmake/pcapplusplus)
+
+# find_package(PcapPlusPlus)
+# if(PCAP_PLUS_PLUS_FOUND)
+#   message("!!!!found with pkg-config!!!!")
+# endif()
+
+# pkg_check_modules(PCAP_PP "libPcap++")
+
+# message(zzzzzzzzzzzzzzzzzz--->>${PCAP_PP_LINK_LIBRARIES})
+
+#PcapPlusPlus
+pkg_check_modules(PCPP "PcapPlusPlus")
 
 add_executable(${PROJECT_NAME} ${CPP_FILES})
 target_link_libraries(
@@ -39,4 +55,7 @@ target_link_libraries(
          # z
          # Pcap++
          # PcapPlusPlus
+         # Pcap++
+         # ${PCAP_PP_INSTALL_PREFIX}/lib/libPcap++.a
      )
+# message(--------->>>>${CMAKE_MODULE_PATH})

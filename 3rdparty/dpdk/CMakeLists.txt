@@ -3,7 +3,6 @@
 ###############################################################################
 include (FetchContent)
 include (ExternalProject)
-# include (UsePkgConfig)
 
 ###############################################################################
 #                               Project extensions
@@ -50,13 +49,9 @@ ExternalProject_Add(
     CONFIGURE_COMMAND ${DPDK_BUILD_SYSTEM} setup --default-library=static --default-both-libraries=static ${CMAKE_BINARY_DIR}/3rdparty/src/Dpdk ${CMAKE_BINARY_DIR}/3rdparty/src/Dpdk-build --buildtype=${DPDK_BUILD_TYPE} -Dexamples=${DPDK_EXAMPLES} ${DPDK_BUILD_OPTIONS} -Ddisable_drivers=${DPDK_DISABLED_DRV}
     UPDATE_COMMAND ${DPDK_BUILD_SYSTEM} setup --reconfigure --default-library=static --default-both-libraries=static ${CMAKE_BINARY_DIR}/3rdparty/src/Dpdk ${CMAKE_BINARY_DIR}/3rdparty/src/Dpdk-build --buildtype=${DPDK_BUILD_TYPE} -Dexamples=${DPDK_EXAMPLES} ${DPDK_BUILD_OPTIONS} -Ddisable_drivers=${DPDK_DISABLED_DRV}
     BUILD_COMMAND ${CMAKE_BINARY_DIR}/scripts/BuildDpdk.sh
-    INSTALL_COMMAND ${CMAKE_BINARY_DIR}/scripts/InstallDpdk.sh
-
-    # CONFIGURE_COMMAND sleep 1 && echo "CFG"
-    # UPDATE_COMMAND sleep 1 && echo "UP"
-    # BUILD_COMMAND sleep 1 && echo "BLD"
-    # INSTALL_COMMAND sleep 1 && echo "INST"
+    INSTALL_COMMAND ${CMAKE_BINARY_DIR}/scripts/InstallDpdk.sh    
 )
 
 set(ENV{PKG_CONFIG_SYSROOT_DIR} ${CMAKE_BINARY_DIR}/3rdparty/inst)
 set(ENV{PKG_CONFIG_PATH} ${CMAKE_BINARY_DIR}/3rdparty/inst/usr/local/lib/x86_64-linux-gnu/pkgconfig)
+set(ENV{PKG_CONFIG_PATH} ${CMAKE_BINARY_DIR}/3rdparty/inst/lib/pkgconfig)
