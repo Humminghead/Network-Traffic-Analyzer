@@ -5,7 +5,6 @@
 #include <NetDecoder/PppOe/PppoeHeader.h>
 #include <algorithm>
 #include <array>
-#include <rte_mbuf_ptype.h>
 
 #include "NetDecoder/EtherType.h"
 #include "NetDecoder/Gtp/GtpHeader.h"

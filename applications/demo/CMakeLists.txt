@@ -41,6 +41,10 @@ file(GLOB_RECURSE CPP_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
 #PcapPlusPlus
 pkg_check_modules(PCPP "PcapPlusPlus")
 
+ExternalProject_Get_Property(PcapPlusPlus INSTALL_DIR)
+set(PCPP_INSTALL_DIR ${INSTALL_DIR})
+message(--------->>>>${PCPP_INSTALL_DIR})
+
 add_executable(${PROJECT_NAME} ${CPP_FILES})
 target_link_libraries(
  ${PROJECT_NAME}
@@ -54,8 +58,14 @@ target_link_libraries(
          # models
          # z
          # Pcap++
-         # PcapPlusPlus
-         # Pcap++
+#          PcapPlusPlus
+#          Pcap++
+        ${PCPP_INSTALL_DIR}/lib/libPacket++.a
+        ${PCPP_INSTALL_DIR}/lib/libCommon++.a
+        ${PCPP_INSTALL_DIR}/lib/libPcap++.a
          # ${PCAP_PP_INSTALL_PREFIX}/lib/libPcap++.a
      )
-# message(--------->>>>${CMAKE_MODULE_PATH})
+
+ target_include_directories(
+   ${PROJECT_NAME}
+   PRIVATE ${PCPP_INSTALL_DIR}/include)

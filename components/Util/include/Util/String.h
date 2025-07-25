@@ -15,7 +15,7 @@ namespace Nta::Util::String {
  * \return int if conversion successful. Otherwise return std::nullopt
  */
 static
-#if __cplusplus >= 202100L
+#if __cplusplus >= 202306L
 constexpr
 #endif
 auto ToInt(std::string_view s) -> std::optional<int>

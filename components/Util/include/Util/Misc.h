@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdexcept>
+#include <array>
 
 namespace Poco::Util {
 class Application;

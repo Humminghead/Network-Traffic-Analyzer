@@ -47,8 +47,8 @@ target_link_libraries(
 
 target_include_directories(
   ${PROJECT_NAME}
-  PRIVATE ${PCAP_INCLUDE_DIRS} ${DPDK_INCLUDE_DIRS}
-          ${PCPP_INSTALL_DIR}/include/pcapplusplus
+  PRIVATE ${PCAP_INCLUDE_DIRS} ${NTA_DPDK_INCLUDE_PATH}
+          ${NTA_DPDK_INCLUDE_PATH}/pcapplusplus
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # It's needed for compile DPDK with our project
