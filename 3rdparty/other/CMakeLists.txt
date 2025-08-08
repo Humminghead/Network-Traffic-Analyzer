@@ -14,8 +14,9 @@ message(STATUS NTA_3RD_PARTY_INSTALL_DIR:${NTA_3RD_PARTY_INSTALL_DIR})
 message(STATUS NTA_DPDK_INCLUDE_PATH:${NTA_DPDK_INCLUDE_PATH})
 
 set(ENV{PKG_CONFIG_SYSROOT_DIR} ${NTA_3RD_PARTY_INSTALL_PREFIX})
-set(ENV{PKG_CONFIG_PATH} ${NTA_3RD_PARTY_INSTALL_DIR}/lib/x86_64-linux-gnu/pkgconfig)
-set(ENV{PKG_CONFIG_PATH} ${NTA_3RD_PARTY_INSTALL_DIR}/lib/pkgconfig)
+set(ENV{PKG_CONFIG_PATH} ${NTA_3RD_PARTY_INSTALL_DIR}/lib/x86_64-linux-gnu/pkgconfig:${NTA_3RD_PARTY_INSTALL_DIR}/lib/pkgconfig)
+
+message(STATUS Modified PKG_CONFIG_PATH variable:$ENV{PKG_CONFIG_PATH})
 
 # ############################# PcapPlusPlus ###################################
 list(APPEND NTA_PCPP_CXX_FLAGS "")

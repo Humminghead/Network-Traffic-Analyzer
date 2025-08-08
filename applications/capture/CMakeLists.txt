@@ -26,6 +26,7 @@ target_link_libraries(
           ${Thrift_Z_LIB}
           models
           nlohmann_json
+          numa
           # boost_pfr
           # boost_numeric_conversion
           # boost_cobalt

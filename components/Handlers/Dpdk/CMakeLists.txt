@@ -11,6 +11,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # DPDK
 pkg_check_modules(DPDK "libdpdk")
 
+if(NOT DPDK_FOUND)
+  message(FATAL_ERROR "DPDK wansn't found!")
+else()
+  message(STATUS "DPDK was found: ${DPDK_LIBRARY_DIRS}")
+endif()
+
 set(DPDK_STATIC_LIBRARIES_GENERATED "")
 foreach(DPDK_LIB_SO_FULL_PATH ${DPDK_LINK_LIBRARIES})
   string(REGEX REPLACE "[.]so" ".a" TMP_LIB ${DPDK_LIB_SO_FULL_PATH})
@@ -39,9 +45,9 @@ target_link_libraries(
           NtaNetDecoder
           nlohmann_json
           # Pcap++
-          ${PCPP_INSTALL_DIR}/lib/libCommon++.a
-          ${PCPP_INSTALL_DIR}/lib/libPacket++.a
           ${PCPP_INSTALL_DIR}/lib/libPcap++.a
+          ${PCPP_INSTALL_DIR}/lib/libPacket++.a
+          ${PCPP_INSTALL_DIR}/lib/libCommon++.a
           ${PCAP_LIBRARIES}
           ${DPDK_STATIC_LIBRARIES_GENERATED})        
 
