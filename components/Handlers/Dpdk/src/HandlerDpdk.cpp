@@ -13,6 +13,9 @@
 #include <atomic>
 #include <memory>
 
+//cpp 23
+#include <print>
+
 namespace Nta::Network {
 
 template <typename Tuple, size_t N>
@@ -60,22 +63,40 @@ void HandlerDpdk::Open() {
     // Opened devices
     std::map<std::string, std::shared_ptr<Network::DpdkDevice>> openedDevices;
 
+    std::vector<const char*> testArgs{
+        "/home/user/Repositories/github/network-analyzer/build/GCC_14_2_Qt_5_15_2-Debug/bin/nta_capture",
+        "-l",
+        "0-3",
+        "--vdev",
+        R"('net_pcap0,rx_pcap=/media/user/other/Pcap/rnd-pcaps/gtpu/gtpu_part_0.pcap,tx_pcap=/mnt/ramdisk/net_pcap1-tx.pcap')",
+    };
+
     // Process additional EAL args
     for (auto &[k, v] : m_Impl->config.m_EalCmdLine.args) {
         argPtrs.push_back(k.c_str());
         if (!v.empty())
             argPtrs.push_back(v.c_str());
+        std::println("Use DPDK argument: {}:{}",k,v);
     }
 
     // Init DPDK
     auto tempArgv = const_cast<char **>(argPtrs.data());
-    m_Impl->isInited.store(pcpp::DpdkDeviceList::initDpdk(
-        m_Impl->config.m_CoreMask,
-        m_Impl->config.m_BufPoolSizePerDevice,
-        m_Impl->config.m_HeadRoomSize,
-        m_Impl->config.m_MainLcore,
-        argPtrs.size(),
-        tempArgv));
+
+    std::println("Current DPDK config: {}",Json::Objects::DpdkObject::ToJson(m_Impl->config).dump(-1,'\n'));
+
+
+    // "-l" "0-3" "--vdev" "net_pcap0,rx_pcap=/media/user/other/Pcap/rnd-pcaps/gtpu/gtpu_part_0.pcap,tx_pcap=/mnt/ramdisk/net_pcap1-tx.pcap" "--port-topology=chained"
+
+    auto res = rte_eal_init(testArgs.size(), const_cast<char **>(testArgs.data()));
+
+    auto ealInitResult = pcpp::DpdkDeviceList::initDpdk(
+                             m_Impl->config.m_CoreMask,
+                             m_Impl->config.m_BufPoolSizePerDevice,
+                             m_Impl->config.m_HeadRoomSize,
+                             m_Impl->config.m_MainLcore,
+                             argPtrs.size(),
+                            tempArgv);
+    m_Impl->isInited.store(ealInitResult);
 
     if (!m_Impl->isInited.load())
         throw std::runtime_error("DPDK initialization failed!");
