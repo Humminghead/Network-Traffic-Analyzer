@@ -1,0 +1,19 @@
+[requires]
+dpdk/26.03
+tpfr/1.0.5
+poco/1.13.3
+nlohmann_json/3.11.3
+pcapplusplus/25.05
+
+[generators]
+CMakeDeps
+CMakeToolchain
+PkgConfigDeps
+
+[options]
+poco/*:enable_netssl        # Enable NetSSL (requires OpenSSL)
+poco/*:enable_net           # Enable networking
+poco/*:enable_util          # Enable utilities
+poco/*:enable_json          # Enable JSON support
+poco/*:shared              # Build as shared libraries (True/False)
+poco/*:fPIC                # Required for static libs in shared projects
