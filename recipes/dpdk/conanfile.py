@@ -78,7 +78,19 @@ class DPDKConan(ConanFile):
              dst=os.path.join(self.package_folder, "licenses"))
 
     def package_info(self):
-        self.cpp_info.libs = ["dpdk"]
+        self.cpp_info.libs = [
+            "rte_node","rte_graph","rte_pipeline","rte_table","rte_pdump",
+            "rte_port","rte_fib","rte_pdcp","rte_ipsec","rte_vhost","rte_stack",
+            "rte_security","rte_sched","rte_reorder","rte_rib","rte_mldev",
+            "rte_regexdev","rte_rawdev","rte_power","rte_pcapng","rte_member",
+            "rte_lpm","rte_latencystats","rte_jobstats","rte_ip_frag","rte_gso",
+            "rte_gro","rte_gpudev","rte_dispatcher","rte_eventdev","rte_efd",
+            "rte_dmadev","rte_distributor","rte_cryptodev","rte_compressdev",
+            "rte_cfgfile","rte_bpf","rte_bitratestats","rte_bbdev","rte_acl",
+            "rte_timer","rte_hash","rte_metrics","rte_cmdline","rte_pci",
+            "rte_ethdev","rte_meter","rte_net","rte_mbuf","rte_mempool","rte_rcu",
+            "rte_ring","rte_eal","rte_telemetry","rte_argparse","rte_kvargs",
+            "rte_log"]
         self.cpp_info.includedirs = ["include"]
         self.cpp_info.libdirs = ["lib"]
         self.buildenv_info.define_path("PKG_CONFIG_PATH",
