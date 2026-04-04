@@ -1,6 +1,6 @@
 #pragma once
 
-#include <DpdkDevice.h>
+#include <pcapplusplus/DpdkDevice.h>
 #include <Util/Misc.h>
 #include <functional>
 
