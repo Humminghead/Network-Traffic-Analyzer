@@ -2,7 +2,7 @@
 
 #include "Handlers/Dpdk/Acl/LookupAcl.h"
 #include "Handlers/Dpdk/DpdkDevice.h"
-#include <DpdkDeviceList.h>
+#include <pcapplusplus/DpdkDeviceList.h>
 #include <NetDecoder/Decoder.h>
 #include <atomic>
 

@@ -8,8 +8,8 @@
 #include "Handlers/Dpdk/RteSocket.h"
 #include "Handlers/Dpdk/RuleMaker.h"
 
-#include <DpdkDevice.h>
-#include <DpdkDeviceList.h>
+#include <pcapplusplus/DpdkDevice.h>
+#include <pcapplusplus/DpdkDeviceList.h>
 #include <atomic>
 #include <memory>
 
