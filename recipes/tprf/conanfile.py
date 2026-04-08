@@ -4,7 +4,7 @@ from conan.tools.layout import basic_layout
 
 class ThriftPfrSerializerConan(ConanFile):
     name = "thrift_pfr_serializer"
-    version = "1.0.5"
+    version = "1.0.6"
     package_type = "header-library"
     no_copy_source = True
 
