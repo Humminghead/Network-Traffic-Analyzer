@@ -2,6 +2,7 @@
 #include "Handlers/Common/HandlerIface.h"
 #include "Util/Filesystem.h"
 #include "Util/Misc.h"
+#include <iostream>
 
 namespace Nta::Network {
 
