@@ -7,34 +7,28 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 file(GLOB_RECURSE CPP_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
 
-#find_package(tpfrserializer REQUIRED)
-find_package(Thrift 0.13.0 REQUIRED)
-# find_package(Thrift-z 0.13.0 REQUIRED)
-# find_package(Boost 1.86.0 REQUIRED)
+find_package(tpfr REQUIRED)
+find_package(Poco REQUIRED COMPONENTS Util-debug Foundation-debug)
+find_package(nlohmann_json REQUIRED)
+find_package(dpdk REQUIRED)
 
 add_executable(${PROJECT_NAME} ${CPP_FILES})
 target_link_libraries(
   ${PROJECT_NAME}
-  PRIVATE Poco::Util
+  PRIVATE poco::poco
+          dpdk::dpdk
+          librte_pcapng.so
+          nlohmann_json::nlohmann_json
+          tpfr::tpfr
+          ${Thrift_LIB}
+          ${Thrift_Z_LIB}
+          $<IF:$<CONFIG:Debug>,libPocoUtild.a,libPocoUtil.a>
+          $<IF:$<CONFIG:Debug>,libPocoFoundationd.a,libPocoFoundation.a>
           NtaUtil
           NtaHandlersCommon
           NtaHandlerPcap
           NtaHandlerDpdk
           NtaNetDecoder
-          tpfrserializer
-          ${Thrift_LIB}
-          ${Thrift_Z_LIB}
           models
-          nlohmann_json
           numa
-          # boost_pfr
-          # boost_numeric_conversion
-          # boost_cobalt
-          # boost_asio
-          # boost_system
-          # boost_circular_buffer
-          # boost_intrusive
-          # boost_smart_ptr
-          # boost_lockfree
-          z
-      )
+          z)

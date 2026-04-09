@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.10.2)
 project(NtaHandlerPcap LANGUAGES CXX)
 
+# Nlohmann_json
+find_package(nlohmann_json REQUIRED)
+
 # Pcap
 include(FindPCAP)
 
@@ -12,7 +15,7 @@ file(GLOB_RECURSE CPP_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
 
 add_library(${PROJECT_NAME} OBJECT ${CPP_FILES})
 
-target_link_libraries(${PROJECT_NAME} PRIVATE ${PCAP_LIBRARIES} NtaHandlersCommon NtaUtil nlohmann_json)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${PCAP_LIBRARIES} NtaHandlersCommon NtaUtil nlohmann_json::nlohmann_json)
 
 target_include_directories(
   ${PROJECT_NAME}
