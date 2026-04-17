@@ -29,6 +29,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 add_subdirectory(${CMAKE_SOURCE_DIR}/components/Netdecoder)
 add_subdirectory(${CMAKE_SOURCE_DIR}/components/Handlers)
 add_subdirectory(${CMAKE_SOURCE_DIR}/components/Util)
+add_subdirectory(${CMAKE_SOURCE_DIR}/components/Device)
 add_subdirectory(${CMAKE_SOURCE_DIR}/models)
 
 ###############################################################################
