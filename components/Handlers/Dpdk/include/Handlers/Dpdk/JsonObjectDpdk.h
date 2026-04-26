@@ -118,6 +118,11 @@ struct DpdkObject : HandlerObject {
     bool m_NoShconf{false};
     bool m_NoHuge{false};
     bool m_NoTelemetry{false};
+    bool m_CreateUioDev{false};
+    bool m_VmwareTscMap{false};
+    bool m_NoHpet{false};
+    bool m_LegacyMem{false};
+    bool m_MatchAllocations{false};
     std::vector<Worker> workers{};
 
     [[maybe_unused]] static auto ToJson(const DpdkObject &p) -> nlohmann::json {
@@ -128,6 +133,11 @@ struct DpdkObject : HandlerObject {
              {"no-shconf", p.m_NoShconf},
              {"no-huge", p.m_NoHuge},
              {"no-telemetry", p.m_NoTelemetry},
+             {"create-uio-dev", p.m_CreateUioDev},
+             {"vmware-tsc-map", p.m_VmwareTscMap},
+             {"no-hpet", p.m_NoHpet},
+             {"legacy-mem", p.m_LegacyMem},
+             {"match-allocations", p.m_MatchAllocations},
              {"eal_mbuf_size", p.m_BufPoolSizePerDevice},
              {"eal_main_lcore", p.m_MainLcore},
              {"eal_memory_channels", p.m_NumOfMemoryChannels},
@@ -145,6 +155,11 @@ struct DpdkObject : HandlerObject {
         j.at("no-shconf").get_to(p.m_NoShconf);
         j.at("no-huge").get_to(p.m_NoHuge);
         j.at("no-huge").get_to(p.m_NoTelemetry);
+        j.at("create-uio-dev").get_to(p.m_CreateUioDev);
+        j.at("vmware-tsc-map").get_to(p.m_VmwareTscMap);
+        j.at("no-hpet").get_to(p.m_NoHpet);
+        j.at("legacy-mem").get_to(p.m_LegacyMem);
+        j.at("match-allocations").get_to(p.m_MatchAllocations);
         j.at("eal_mbuf_size").get_to(p.m_BufPoolSizePerDevice);
         j.at("eal_memory_channels").get_to(p.m_NumOfMemoryChannels);
         Util::Json::GetTo(j, "eal_cmd_line_arguments", p.m_EalCmdLine);
