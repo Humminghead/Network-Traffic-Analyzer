@@ -108,7 +108,6 @@ struct Worker {
 //-----------------------------------------------------------------------------------
 struct DpdkObject : HandlerObject {    
     uint32_t m_BufPoolSizePerDevice{0};
-    uint32_t m_MainLcore{0};
     uint32_t m_HeadRoomSize{0};
     DpdkEalCmdLine m_EalCmdLine{};    
     bool m_PromiscuousMode{false};
@@ -137,8 +136,7 @@ struct DpdkObject : HandlerObject {
              {"no-hpet", p.m_NoHpet},
              {"legacy-mem", p.m_LegacyMem},
              {"match-allocations", p.m_MatchAllocations},
-             {"eal_mbuf_size", p.m_BufPoolSizePerDevice},
-             {"eal_main_lcore", p.m_MainLcore},             
+             {"eal_mbuf_size", p.m_BufPoolSizePerDevice},             
              {"eal_mbuf_headroom_size",p.m_HeadRoomSize},
              {"eal_cmd_line_arguments", p.m_EalCmdLine},             
              {"promiscuous", p.m_PromiscuousMode},
@@ -159,8 +157,7 @@ struct DpdkObject : HandlerObject {
         j.at("legacy-mem").get_to(p.m_LegacyMem);
         j.at("match-allocations").get_to(p.m_MatchAllocations);
         j.at("eal_mbuf_size").get_to(p.m_BufPoolSizePerDevice);        
-        Util::Json::GetTo(j, "eal_cmd_line_arguments", p.m_EalCmdLine);
-        Util::Json::GetTo(j, "eal_main_lcore", p.m_MainLcore);        
+        Util::Json::GetTo(j, "eal_cmd_line_arguments", p.m_EalCmdLine);        
         Util::Json::GetTo(j, "promiscuous", p.m_PromiscuousMode);
         Util::Json::GetTo(j, "eal_mbuf_headroom_size", p.m_HeadRoomSize);
         j.at("workers").get_to(p.workers);
