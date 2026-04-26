@@ -113,11 +113,13 @@ struct DpdkObject : HandlerObject {
     uint32_t m_HeadRoomSize{0};
     DpdkEalCmdLine m_EalCmdLine{};    
     bool m_PromiscuousMode{false};
+    bool m_NoPci{false};
     std::vector<Worker> workers{};
 
     [[maybe_unused]] static auto ToJson(const DpdkObject &p) -> nlohmann::json {
         // clang-format off
-        return {             
+        return {
+             {"no-pci", p.m_NoPci},
              {"eal_mbuf_size", p.m_BufPoolSizePerDevice},
              {"eal_main_lcore", p.m_MainLcore},
              {"eal_memory_channels", p.m_NumOfMemoryChannels},
@@ -129,7 +131,8 @@ struct DpdkObject : HandlerObject {
         // clang-format on
     }
 
-    [[maybe_unused]] static void FromJson(const nlohmann::json &j, DpdkObject &p) {        
+    [[maybe_unused]] static void FromJson(const nlohmann::json &j, DpdkObject &p) {
+        j.at("no-pci").get_to(p.m_NoPci);
         j.at("eal_mbuf_size").get_to(p.m_BufPoolSizePerDevice);
         j.at("eal_memory_channels").get_to(p.m_NumOfMemoryChannels);
         Util::Json::GetTo(j, "eal_cmd_line_arguments", p.m_EalCmdLine);
