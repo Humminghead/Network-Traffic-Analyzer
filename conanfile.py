@@ -9,7 +9,7 @@ class NetworkAnalyzer(ConanFile):
     generators = "CMakeDeps"
 
     def requirements(self):
-        self.requires("dpdk/21.11.9")
+        self.requires("dpdk/26.03")
         self.requires("pcapplusplus/25.05@")
         self.requires("thrift_pfr_serializer/1.0.6")
         self.requires("nlohmann_json/3.11.3")
