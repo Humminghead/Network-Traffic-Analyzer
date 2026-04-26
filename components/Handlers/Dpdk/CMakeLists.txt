@@ -32,6 +32,7 @@ target_link_libraries(
           pcapplusplus::pcapplusplus
           -lbsd
           -lelf
+          -lnuma
           -Wl,--whole-archive
           dpdk::dpdk
           -Wl,--no-whole-archive)
