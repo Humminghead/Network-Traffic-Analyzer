@@ -116,6 +116,7 @@ struct DpdkObject : HandlerObject {
     bool m_NoPci{false};
     bool m_InMemory{false};
     bool m_NoShconf{false};
+    bool m_NoHuge{false};
     std::vector<Worker> workers{};
 
     [[maybe_unused]] static auto ToJson(const DpdkObject &p) -> nlohmann::json {
@@ -124,6 +125,7 @@ struct DpdkObject : HandlerObject {
              {"no-pci", p.m_NoPci},
              {"in-memory", p.m_InMemory},
              {"no-shconf", p.m_NoShconf},
+             {"no-huge", p.m_NoHuge},
              {"eal_mbuf_size", p.m_BufPoolSizePerDevice},
              {"eal_main_lcore", p.m_MainLcore},
              {"eal_memory_channels", p.m_NumOfMemoryChannels},
@@ -139,6 +141,7 @@ struct DpdkObject : HandlerObject {
         j.at("no-pci").get_to(p.m_NoPci);
         j.at("in-memory").get_to(p.m_InMemory);
         j.at("no-shconf").get_to(p.m_NoShconf);
+        j.at("no-huge").get_to(p.m_NoHuge);
         j.at("eal_mbuf_size").get_to(p.m_BufPoolSizePerDevice);
         j.at("eal_memory_channels").get_to(p.m_NumOfMemoryChannels);
         Util::Json::GetTo(j, "eal_cmd_line_arguments", p.m_EalCmdLine);
