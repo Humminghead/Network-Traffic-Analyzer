@@ -106,7 +106,7 @@ struct Worker {
     Util::Json::GetTo(j, "input_packet_classification", p.packetCx);
 }
 //-----------------------------------------------------------------------------------
-struct DpdkObject : HandlerObject {    
+struct DpdkObject : HandlerObject {
     uint32_t m_BufPoolSizePerDevice{0};
     uint32_t m_HeadRoomSize{0};
     DpdkEalCmdLine m_EalCmdLine{};    
@@ -150,7 +150,7 @@ struct DpdkObject : HandlerObject {
         j.at("in-memory").get_to(p.m_InMemory);
         j.at("no-shconf").get_to(p.m_NoShconf);
         j.at("no-huge").get_to(p.m_NoHuge);
-        j.at("no-huge").get_to(p.m_NoTelemetry);
+        j.at("no-telemetry").get_to(p.m_NoTelemetry);
         j.at("create-uio-dev").get_to(p.m_CreateUioDev);
         j.at("vmware-tsc-map").get_to(p.m_VmwareTscMap);
         j.at("no-hpet").get_to(p.m_NoHpet);
@@ -161,6 +161,32 @@ struct DpdkObject : HandlerObject {
         Util::Json::GetTo(j, "promiscuous", p.m_PromiscuousMode);
         Util::Json::GetTo(j, "eal_mbuf_headroom_size", p.m_HeadRoomSize);
         j.at("workers").get_to(p.workers);
+    }
+
+    constexpr auto GetEalAdditionalOptions() const -> std::vector<std::string_view> {
+        std::vector<std::string_view> args{};
+        if (m_NoPci)
+            args.push_back(R"(--no-pci)");
+        if (m_InMemory)
+            args.push_back(R"(--in-memory)");
+        if (m_NoShconf)
+            args.push_back(R"(-no-shconf)");
+        if (m_NoHuge)
+            args.push_back(R"(--no-huge)");
+        if (m_NoTelemetry)
+            args.push_back(R"(--no-telemetry)");
+        if (m_CreateUioDev)
+            args.push_back(R"(--create-uio-dev)");
+        if (m_VmwareTscMap)
+            args.push_back(R"(--vmware-tsc-map)");
+        if (m_NoHpet)
+            args.push_back(R"(--no-hpet)");
+        if (m_LegacyMem)
+            args.push_back(R"(--legacy-mem)");
+        if (m_MatchAllocations)
+            args.push_back(R"(--match-allocations)");
+
+        return args;
     }
 };
 
