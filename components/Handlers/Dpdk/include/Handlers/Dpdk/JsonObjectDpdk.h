@@ -146,19 +146,19 @@ struct DpdkObject : HandlerObject {
     }
 
     [[maybe_unused]] static void FromJson(const nlohmann::json &j, DpdkObject &p) {
-        j.at("no-pci").get_to(p.m_NoPci);
-        j.at("in-memory").get_to(p.m_InMemory);
-        j.at("no-shconf").get_to(p.m_NoShconf);
-        j.at("no-huge").get_to(p.m_NoHuge);
-        j.at("no-telemetry").get_to(p.m_NoTelemetry);
-        j.at("create-uio-dev").get_to(p.m_CreateUioDev);
-        j.at("vmware-tsc-map").get_to(p.m_VmwareTscMap);
-        j.at("no-hpet").get_to(p.m_NoHpet);
-        j.at("legacy-mem").get_to(p.m_LegacyMem);
-        j.at("match-allocations").get_to(p.m_MatchAllocations);
-        j.at("eal_mbuf_size").get_to(p.m_BufPoolSizePerDevice);        
-        Util::Json::GetTo(j, "eal_cmd_line_arguments", p.m_EalCmdLine);        
+        Util::Json::GetTo(j,"no-pci", p.m_NoPci);
+        Util::Json::GetTo(j,"in-memory", p.m_InMemory);
+        Util::Json::GetTo(j,"no-shconf", p.m_NoShconf);
+        Util::Json::GetTo(j,"no-huge", p.m_NoHuge);
+        Util::Json::GetTo(j,"no-telemetry", p.m_NoTelemetry);
+        Util::Json::GetTo(j,"create-uio-dev", p.m_CreateUioDev);
+        Util::Json::GetTo(j,"vmware-tsc-map", p.m_VmwareTscMap);
+        Util::Json::GetTo(j,"no-hpet", p.m_NoHpet);
+        Util::Json::GetTo(j,"legacy-mem", p.m_LegacyMem);
+        Util::Json::GetTo(j,"match-allocations", p.m_MatchAllocations);
+        Util::Json::GetTo(j, "eal_cmd_line_arguments", p.m_EalCmdLine);
         Util::Json::GetTo(j, "promiscuous", p.m_PromiscuousMode);
+        j.at("eal_mbuf_size").get_to(p.m_BufPoolSizePerDevice);
         Util::Json::GetTo(j, "eal_mbuf_headroom_size", p.m_HeadRoomSize);
         j.at("workers").get_to(p.workers);
     }
