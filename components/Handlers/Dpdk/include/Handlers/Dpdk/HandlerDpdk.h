@@ -3,9 +3,8 @@
 #include <Handlers/Common/HandlerIface.h>
 #include <memory>
 
-namespace pcpp
-{
-class DpdkWorkerThread;
+namespace Nta::Network {
+class DpdkWorker;
 }
 
 namespace Nta::Json::Objects {
@@ -13,6 +12,8 @@ struct DpdkObject;
 }
 
 namespace Nta::Network {
+
+using DpdkWorkerPtr = std::unique_ptr<DpdkWorker>;
 
 class HandlerDpdk : public HandlerAbstract {
 public:
@@ -60,7 +61,7 @@ public:
     auto GetIfaceType() const -> const HandlerIfaces override { return HandlerIfaces::Pcap; }
 
 private:
-    bool StartDpdkWorkerThreads(const uint32_t coreMask, std::vector<pcpp::DpdkWorkerThread*>& workerThreadsVec);
+    bool StartDpdkWorkerThreads(std::vector<DpdkWorkerPtr>& workerThreadsVec);
     void StopDpdkWorkerThreads();
 
     struct Impl;
