@@ -10,14 +10,11 @@ file(GLOB_RECURSE CPP_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
 find_package(tpfr REQUIRED)
 find_package(Poco REQUIRED COMPONENTS Util-debug Foundation-debug)
 find_package(nlohmann_json REQUIRED)
-find_package(dpdk REQUIRED)
 
 add_executable(${PROJECT_NAME} ${CPP_FILES})
 target_link_libraries(
   ${PROJECT_NAME}
   PRIVATE poco::poco
-          dpdk::dpdk
-          librte_pcapng.so
           nlohmann_json::nlohmann_json
           tpfr::tpfr
           ${Thrift_LIB}
@@ -29,6 +26,4 @@ target_link_libraries(
           NtaHandlerPcap
           NtaHandlerDpdk
           NtaNetDecoder
-          models
-          numa
-          z)
+          models)

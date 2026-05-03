@@ -1,13 +1,15 @@
 #pragma once
 
+#include "Handlers/Dpdk/Acl/AbstractWorker.h"
 #include "Handlers/Dpdk/Acl/LookupAcl.h"
 #include "Handlers/Dpdk/DpdkDevice.h"
-#include <pcapplusplus/DpdkDeviceList.h>
 #include <NetDecoder/Decoder.h>
 #include <atomic>
+// #include <pcapplusplus/DpdkDeviceList.h>
 
 namespace Nta::Network {
-class WorkerAcl : public pcpp::DpdkWorkerThread {
+
+class WorkerAcl : public AbstractWorker {
   private:
     struct RuntimeVariable {
         uint16_t numRxPackets{0};
@@ -29,7 +31,8 @@ class WorkerAcl : public pcpp::DpdkWorkerThread {
     uint32_t m_CoreId{RTE_MAX_LCORE};
     std::shared_ptr<RteAclContext> m_AclContext{nullptr};
     RteLookupAcl m_AclLookUp{};
-    DpdkDevice::MbufArray m_MatchPackets{};
+    std::vector<MbufArray> m_PacketBuffers{};
+    std::vector<MbufArray> m_MatchPackets{};
     NetDecoder m_Decoder{};
     RteLookupAcl::PacketPointers m_AclDataPtrs;
     std::vector<int> m_QueueIndicesRx{};
@@ -41,7 +44,8 @@ class WorkerAcl : public pcpp::DpdkWorkerThread {
         std::shared_ptr<DpdkDevice> rxDevice,
         std::shared_ptr<DpdkDevice> txDevice,
         std::shared_ptr<RteAclContext> context,
-        const uint32_t core = RTE_MAX_LCORE);
+        const uint32_t core = RTE_MAX_LCORE,
+        const uint16_t nbPkts = 64);
 
     virtual ~WorkerAcl() = default;
 
@@ -50,18 +54,18 @@ class WorkerAcl : public pcpp::DpdkWorkerThread {
      * \param coreId
      * \return
      */
-    bool run(uint32_t coreId) override;
+    int Run(void *) override;
 
     /*!
-     * \brief ask the worker thread to stop
+     * \brief ask the worker thread to Stop
      */
-    void stop() override;
+    void Stop() override;
 
     /*!
-     * \brief getCoreId
+     * \brief GetCoreId
      * \return
      */
-    uint32_t getCoreId() const override;
+    uint32_t GetCoreId() const override;
 
     /*!
      * \brief SetCoreId

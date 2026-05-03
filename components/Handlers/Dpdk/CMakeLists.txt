@@ -14,14 +14,28 @@ find_package(PcapPlusPlus REQUIRED)
 # Nlohmann
 find_package(nlohmann_json REQUIRED)
 
+# DPDK
+set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+find_package(dpdk REQUIRED)
+
 # Handler cpp files
 file(GLOB_RECURSE CPP_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
 add_library(${PROJECT_NAME} OBJECT ${CPP_FILES})
 
 target_link_libraries(
   ${PROJECT_NAME}
-  PRIVATE NtaHandlersCommon NtaUtil NtaNetDecoder nlohmann_json::nlohmann_json
-          pcapplusplus::pcapplusplus)
+  PRIVATE NtaHandlersCommon
+          NtaUtil
+          NtaNetDecoder
+          NtaDevice
+          nlohmann_json::nlohmann_json
+          pcapplusplus::pcapplusplus
+          -lbsd
+          -lelf
+          -lnuma
+          -Wl,--whole-archive
+          dpdk::dpdk
+          -Wl,--no-whole-archive)
 
 target_include_directories(
   ${PROJECT_NAME}

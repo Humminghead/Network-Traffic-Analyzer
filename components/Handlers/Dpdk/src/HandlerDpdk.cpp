@@ -2,21 +2,42 @@
 
 #include "Handlers/Dpdk/Acl/LookupAcl.h"
 #include "Handlers/Dpdk/Acl/WorkerAcl.h"
+#include "Handlers/Dpdk/DpdkDevice.h"
+#include "Handlers/Dpdk/DpdkDeviceFactory.h"
+#include "Handlers/Dpdk/DpdkEal.h"
 #include "Handlers/Dpdk/DummyWorker.h"
-#include "Handlers/Dpdk/Errno.h"
 #include "Handlers/Dpdk/JsonObjectDpdk.h"
+#include "Handlers/Dpdk/RteMemPool.h"
 #include "Handlers/Dpdk/RteSocket.h"
 #include "Handlers/Dpdk/RuleMaker.h"
 
-#include <pcapplusplus/DpdkDevice.h>
-#include <pcapplusplus/DpdkDeviceList.h>
-#include <atomic>
-#include <memory>
+// dpdk
+#include <rte_ethdev.h>
+#include <rte_metrics.h>
 
-//cpp 23
+// std
+#include <atomic>
+#include <list>
+#include <memory>
 #include <print>
 
 namespace Nta::Network {
+
+auto printSockWarn = [](auto dev, auto id) {
+    std::println(
+        "{}: device {} has {} socket!",
+        "APP",
+        dev->GetDeviceName(),
+        id == SOCKET_ID_ANY ? "SOCKET_ID_ANY" : std::to_string(id));
+    std::fflush(stdout);
+};
+
+auto printMemPoolWarn = []<typename... S>(auto mp, S... s) {
+    if (mp == nullptr) {
+        std::println("{}: set {} instead of {}", "APP", s...);
+        std::fflush(stdout);
+    }
+};
 
 template <typename Tuple, size_t N>
 auto CreateRteRules(const std::vector<std::string> &rules, const std::array<rte_acl_field_def, N> &) {
@@ -31,16 +52,12 @@ auto CreateRteRules(const std::vector<std::string> &rules, const std::array<rte_
 }
 
 struct HandlerDpdk::Impl {
-    ~Impl() {
-        for (const auto *w : workers) {
-            delete w;
-        }
-    }
-
+    ~Impl() = default;
     std::atomic_bool isInited{false};
     Json::Objects::DpdkObject config;
-    std::vector<pcpp::DpdkWorkerThread *> workers;
+    std::vector<DpdkWorkerPtr> workers;
     std::map<int, RteCpuSocket> cpuSockets;
+    std::map<int, RteMemPool> memPools;
 };
 
 HandlerDpdk::HandlerDpdk(const Json::Objects::DpdkObject &config)
@@ -63,139 +80,80 @@ void HandlerDpdk::Open() {
     // Opened devices
     std::map<std::string, std::shared_ptr<Network::DpdkDevice>> openedDevices;
 
-    std::vector<const char*> testArgs{
-        "/home/user/Repositories/github/network-analyzer/build/GCC_14_2_Qt_5_15_2-Debug/bin/nta_capture",
-        "-l",
-        "0-3",
-        "--vdev",
-        R"('net_pcap0,rx_pcap=/media/user/other/Pcap/rnd-pcaps/gtpu/gtpu_part_0.pcap,tx_pcap=/mnt/ramdisk/net_pcap1-tx.pcap')",
-    };
+    // Add proramm gname (necessary condition for the DPDK's ubutualization)
+    argPtrs.push_back(m_Impl->config.m_Type.c_str());
+
+    for (auto p : m_Impl->config.GetEalAdditionalOptions())
+        argPtrs.push_back(p.data());
 
     // Process additional EAL args
     for (auto &[k, v] : m_Impl->config.m_EalCmdLine.args) {
         argPtrs.push_back(k.c_str());
         if (!v.empty())
             argPtrs.push_back(v.c_str());
-        std::println("Use DPDK argument: {}:{}",k,v);
     }
 
     // Init DPDK
-    auto tempArgv = const_cast<char **>(argPtrs.data());
-
-    std::println("Current DPDK config: {}",Json::Objects::DpdkObject::ToJson(m_Impl->config).dump(-1,'\n'));
-
-
-    // "-l" "0-3" "--vdev" "net_pcap0,rx_pcap=/media/user/other/Pcap/rnd-pcaps/gtpu/gtpu_part_0.pcap,tx_pcap=/mnt/ramdisk/net_pcap1-tx.pcap" "--port-topology=chained"
-
-    auto res = rte_eal_init(testArgs.size(), const_cast<char **>(testArgs.data()));
-
-    auto ealInitResult = pcpp::DpdkDeviceList::initDpdk(
-                             m_Impl->config.m_CoreMask,
-                             m_Impl->config.m_BufPoolSizePerDevice,
-                             m_Impl->config.m_HeadRoomSize,
-                             m_Impl->config.m_MainLcore,
-                             argPtrs.size(),
-                            tempArgv);
-    m_Impl->isInited.store(ealInitResult);
-
-    if (!m_Impl->isInited.load())
-        throw std::runtime_error("DPDK initialization failed!");
+    auto ealPointer = Device::DpdkEal::GetInstance(argPtrs);
 
     // Create cpu sockets
-    for (auto idx = 0; idx < rte_socket_count(); idx++) {
-        m_Impl->cpuSockets.emplace(rte_socket_id_by_idx(idx), RteCpuSocket{});
+    for (auto numaId = 0; numaId < rte_socket_count(); numaId++) {
+        // Common vars
+        auto socketId = rte_socket_id_by_idx(numaId);
+
+        // Create mempools
+        auto name = "mempool_" + std::to_string(numaId);
+        auto opt = m_Impl->config.m_MemPoolsOpts.Get(socketId);
+        m_Impl->memPools.emplace(
+            socketId,
+            RteMemPool{
+                name.c_str(), //
+                opt.m_TotalMbufNum,
+                opt.m_MbufCacheSize,
+                opt.m_PrivSize,
+                opt.m_MbufSize,
+                numaId} //
+        );
+
+        // Create cpu sockets
+        m_Impl->cpuSockets.emplace(socketId, RteCpuSocket{});
+        // #ifdef RTE_LIB_METRICS
+        //         /* Init metrics library */
+        //         rte_metrics_init(idx);
+        // #endif
     }
 
     if (m_Impl->cpuSockets.empty()) {
         throw std::runtime_error("DPDK has no available sockets!");
-        // return;
     }
 
-    // Removing DPDK master core from core mask because DPDK worker threads cannot run on master core
-    const auto coreMaskToUse =
-        m_Impl->config.m_CoreMask & ~(pcpp::DpdkDeviceList::getInstance().getDpdkMasterCore().Mask);
-
-    // Converting masked cores bits to the cores numbers
-    std::vector<int> maskedCoreNumbers{};
-    maskedCoreNumbers.reserve(RTE_MAX_LCORE);
-
-    auto tempCoreMask = coreMaskToUse;
-    for (auto coreNum = 0; tempCoreMask > 0; coreNum++) {
-        if (tempCoreMask & 1) {
-            maskedCoreNumbers.push_back(coreNum);
-        }
-        tempCoreMask = tempCoreMask >> 1;
-    }
-
-    // Find DPDK devices
-    auto &deviceList = pcpp::DpdkDeviceList::getInstance().getDpdkDeviceList();
-    if (deviceList.empty()) {
+    // Get DPDK device count
+    auto devCount = rte_eth_dev_count_avail();
+    if (devCount == 0) {
         throw std::runtime_error("DPDK device list is empty!");
     }
 
-    // Dev search function
-    auto devSearch = [&](const std::string_view &pciAddress) {
-        auto it = std::find_if(
-            std::begin(deviceList), std::end(deviceList), [addr = pciAddress](pcpp::DpdkDevice *const dev) {
-                if (!dev)
-                    return false;
-                return addr == dev->getPciAddress();
-            });
-        return it == std::end(deviceList) ? nullptr : *it;
-    };
+    // List of DPDK devices
+    std::list<std::shared_ptr<DpdkDevice>> devices;
 
-    // Creates and open Nta::Network::DpdkDevice
-    auto openDpdkDev = [&devSearch, &openedDevices](
-                           const std::string &pci,
-                           const Json::Objects::WorkerQueueRange &numOfRxQueues,
-                           const Json::Objects::WorkerQueueRange &numOfTxQueues) {
-        if (auto opnDevIt = openedDevices.find(pci); opnDevIt != std::end(openedDevices))
-            return opnDevIt->second;
+    Device::DpdkDeviceFactory factory;
+    for (uint16_t port = 0; port < devCount; port++) {
+        devices.emplace_back(factory.CreateEthDevDpdk(port, m_Impl->config.m_PromiscuousMode));
+    }
 
-        auto dev = devSearch(pci);
-
-        if (!dev)
-            throw std::runtime_error("Device #" + pci + "\"" + " not found!");
-
-        if (!dev->openMultiQueues(numOfRxQueues.queueIdxs.size()/*back()*/, numOfTxQueues.queueIdxs.size()/*back()*/)) {
-            throw std::runtime_error(
-                "Couldn't open device #" + std::to_string(dev->getDeviceId()) + ", PMD '" + dev->getPMDName() + "'");
-        }
-
-        auto opnDevPtr = std::make_shared<Network::DpdkDevice>(dev);
-
-        auto [it, ok] = openedDevices.try_emplace(pci, opnDevPtr);
-        (void)it;
-
-        if(!ok)
-            throw std::runtime_error("Error while insertin opened device #" + pci + "\"" + "!");
-
-        return opnDevPtr;
-    };
-
-    // Process config of the workers
-    for (auto n = 0; const auto &worker : m_Impl->config.workers) {
+    // Setup the workers
+    for (const auto &worker : m_Impl->config.m_Workers) {
 
         // Get workers core id
         auto coreId = worker.ealCore;
-
-        // Create temporary rules vector
-        std::vector<RteAclLookupRule<FiveTupleIp4Defs.size()>> tupleFiveRteRulesIp4{};
-
-        // If worker hasn't specified core number
-        if (coreId < 0) {
-            if (!(n < maskedCoreNumbers.size())) {
-                throw std::runtime_error("Supposed core id #" + std::to_string(n) + " isn't initialized by DPDK!");
-            }
-
-            // Get first core number from the list of masked cores
-            coreId = maskedCoreNumbers[n++];
-        }
 
         if (!rte_lcore_is_enabled(coreId)) {
             throw std::runtime_error(
                 "Trying to use core #" + std::to_string(coreId) + " which isn't initialized by DPDK!");
         }
+
+        // Create temporary rules vector
+        std::vector<RteAclLookupRule<FiveTupleIp4Defs.size()>> tupleFiveRteRulesIp4{};
 
         if (worker.type == "acl") {
             tupleFiveRteRulesIp4.clear();
@@ -215,24 +173,27 @@ void HandlerDpdk::Open() {
                 }
             }
 
-            if (auto socketIt = m_Impl->cpuSockets.find(rte_lcore_to_socket_id(coreId));
-                socketIt != std::end(m_Impl->cpuSockets)) {
+            // Try to find lcore's socket id
+            auto wCoreSockId = rte_lcore_to_socket_id(coreId);
+            if (auto socketIt = m_Impl->cpuSockets.find(wCoreSockId); socketIt != std::end(m_Impl->cpuSockets)) {
 
+                // Try to find 5t context for socket
                 auto tupleFiveIp4Context = socketIt->second.GetTupleFiveIp4Context(coreId);
 
+                // If it doesn't exist
                 if (!tupleFiveIp4Context) {
                     // Create ACL context
                     tupleFiveIp4Context = std::make_shared<RteAclContext>(
                         FiveTupleIp4Defs.size(),
                         8,
-                        rte_lcore_to_socket_id(coreId),
+                        wCoreSockId,
                         worker.type + "_tuple_five_ip4_worker_" + std::to_string(coreId));
                     tupleFiveIp4Context->SetCfgDefs(FiveTupleIp4Defs);
                     tupleFiveIp4Context->SetNumCategories(1);                     ///\todo move in config
                     if (!tupleFiveIp4Context->SetClassify(RTE_ACL_CLASSIFY_AVX2)) ///\todo add in config
                     {
                         if (!tupleFiveIp4Context->SetClassify(RTE_ACL_CLASSIFY_SCALAR)) {
-                            throw std::runtime_error("Failed to setup classify method for  ACL context\n");
+                            throw std::runtime_error("Failed to setup classify method for ACL context\n");
                             return;
                         }
                     }
@@ -242,11 +203,91 @@ void HandlerDpdk::Open() {
                 // Add rules in context
                 tupleFiveIp4Context->AddRules(tupleFiveRteRulesIp4);
 
-                // Create worker
-                auto rxDevPtr = openDpdkDev(worker.rxDevicePciAddr, worker.rxQueuesIdxs, worker.txQueuesIdxs);
-                auto txDevPtr = openDpdkDev(worker.txDevicePciAddr, worker.rxQueuesIdxs, worker.txQueuesIdxs);
+                // Function does the search for a DPDK device
+                auto findDpdkDev = [&devices](const std::string &pci) {
+                    auto it = std::find_if(std::begin(devices), std::end(devices), [&pci](auto &&dev) {
+                        if (!dev)
+                            return false;
+                        return std::strcmp(pci.c_str(), dev->GetDeviceName().data()) == 0;
+                    });
 
-                auto workerAcl = new WorkerAcl(rxDevPtr, txDevPtr, tupleFiveIp4Context, coreId);
+                    return *it;
+                };
+
+                auto rxDevPtr = findDpdkDev(worker.rxDevicePciAddr);
+                if (!rxDevPtr)
+                    throw std::runtime_error("Device " + worker.rxDevicePciAddr + " doesn't exist!");
+
+                auto txDevPtr = findDpdkDev(worker.txDevicePciAddr);
+                if (!txDevPtr)
+                    throw std::runtime_error("Device " + worker.txDevicePciAddr + " doesn't exist!");
+
+                // Try to find device's socket id
+                auto mpRxSockId = rxDevPtr->GetSocketId();
+                auto mpTxSockId = txDevPtr->GetSocketId();
+
+                printSockWarn(rxDevPtr, mpRxSockId);
+                printSockWarn(txDevPtr, mpTxSockId);
+
+                // Create mempool pointers
+                rte_mempool *mpRx{nullptr};
+                rte_mempool *mpTx{nullptr};
+                {
+                    // Try to find device's memory pool
+                    auto mpRxIt = m_Impl->memPools.find(mpRxSockId);
+                    auto mpTxIt = m_Impl->memPools.find(mpTxSockId);
+
+                    // If the devices don't belong to any core and therefore do not belong to any mempool
+                    if (auto end = std::end(m_Impl->memPools); mpRxIt == end && mpTxIt == end) {
+
+                        // Try to find mempool by the worker core ID
+                        auto mpCommon = m_Impl->memPools.find(wCoreSockId);
+
+                        if (mpCommon == end)
+                            throw std::runtime_error(
+                                "APP: There is no available memory pool for socket: " + std::to_string(wCoreSockId) +
+                                "!");
+
+                        mpRx = mpCommon->second.GetRteMemPoolPtr();
+                        mpTx = mpCommon->second.GetRteMemPoolPtr();
+
+                        ///\todo LOG
+                    } else {
+                        mpRx = mpRxIt->second.GetRteMemPoolPtr();
+                        mpTx = mpTxIt->second.GetRteMemPoolPtr();
+
+                        ///\todo LOG
+                    }
+                }
+
+                if (!mpRx && !mpTx)
+                    throw std::runtime_error("APP: There are no available memory pools!");
+
+                // Setup device queues
+                printMemPoolWarn(mpRx, "mpRx", "mpTx");
+                rxDevPtr->SetRteMemPool(mpRx != nullptr ? mpRx : mpTx);
+
+                printMemPoolWarn(mpTx, "mpTx", "mpRx");
+                txDevPtr->SetRteMemPool(mpTx != nullptr ? mpTx : mpRx);
+
+                rxDevPtr->SetRteMemPool(mpRx);
+                rxDevPtr->Configure();
+
+                txDevPtr->SetRteMemPool(mpTx);
+                txDevPtr->Configure();
+
+                for (auto q : worker.rxQueuesIdxs) {
+                    rxDevPtr->SetupRxQueue(q);
+                }
+
+                for (auto q : worker.txQueuesIdxs) {
+                    txDevPtr->SetupTxQueue(q);
+                }
+
+                ///\todo LOG CFG_OK
+
+                // Create worker
+                auto workerAcl = std::make_unique<WorkerAcl>(rxDevPtr, txDevPtr, tupleFiveIp4Context, coreId);
                 workerAcl->SetQueueIdxsRx(worker.rxQueuesIdxs.queueIdxs);
                 workerAcl->SetQueueIdxsTx(worker.txQueuesIdxs.queueIdxs);
                 m_Impl->workers.push_back(std::move(workerAcl));
@@ -254,9 +295,8 @@ void HandlerDpdk::Open() {
                 // Never throw
                 throw std::runtime_error("Unknown socket id: " + std::to_string(rte_lcore_to_socket_id(coreId)) + "!");
             }
-
         } else if (worker.type == "dummy") {
-            m_Impl->workers.push_back(new Dummy());
+            m_Impl->workers.push_back(std::make_unique<Dummy>(coreId));
         } else {
             throw std::runtime_error("Unsupported worker type: " + worker.type + "!");
         }
@@ -284,13 +324,16 @@ void HandlerDpdk::Open() {
     }
 
     // Start capture in async mode
-    if (!StartDpdkWorkerThreads(coreMaskToUse, m_Impl->workers)) {
+    if (!StartDpdkWorkerThreads(m_Impl->workers)) {
         throw std::runtime_error("Couldn't start worker threads!");
     }
 }
 
 void HandlerDpdk::Close() {
     StopDpdkWorkerThreads();
+    // #ifdef RTE_LIB_METRICS
+    //     rte_metrics_deinit();
+    // #endif
 }
 
 void HandlerDpdk::SetCallback(std::function<CallBackFunctionType> &&f) {}
@@ -298,49 +341,34 @@ void HandlerDpdk::SetCallback(std::function<CallBackFunctionType> &&f) {}
 auto HandlerDpdk::GetCallback() -> std::function<CallBackFunctionType> {
     return {};
 }
-
-bool HandlerDpdk::StartDpdkWorkerThreads(
-    const uint32_t coreMask,
-    std::vector<pcpp::DpdkWorkerThread *> &workerThreadsVec) {
-    if (coreMask & pcpp::DpdkDeviceList::getInstance().getDpdkMasterCore().Mask) {
-        throw std::runtime_error("Cannot run worker thread on DPDK master core");
-    }
-
-    auto dpdkThreadStarter = [](void *p) {
-        auto thread = reinterpret_cast<pcpp::DpdkWorkerThread *>(p);
-        return static_cast<int>(thread->run(rte_lcore_id()));
+bool HandlerDpdk::StartDpdkWorkerThreads(std::vector<DpdkWorkerPtr> &workerThreadsVec) {
+    auto f = [](void *arg) {
+        auto self = reinterpret_cast<AbstractWorker*>(arg);
+        return self->Run(nullptr);
     };
 
-    for (auto workerIt = workerThreadsVec.begin(); workerIt != workerThreadsVec.end(); workerIt++) {
-        int err = rte_eal_remote_launch(
-            static_cast<lcore_function_t *>(dpdkThreadStarter), *workerIt, (*workerIt)->getCoreId());
-        if (auto message = GetDpdkErrorMessage(err); err != 0) {
-            for (const auto &thread : workerThreadsVec) {
-                thread->stop();
-                rte_eal_wait_lcore(thread->getCoreId());
-                ///\todo Log LOG_DEBUG("Thread on core [" << thread->getCoreId() << "] stopped");
-            }
-            ///\todo Log LOG_ERROR("Cannot create worker thread #" << getCoreId << ". Error was: [" << strerror(err) << "]");
-            return false;
-        }
+    bool isOk{false};
+
+    for (auto &worker : workerThreadsVec) {
+        isOk = rte_eal_remote_launch(f, worker.get(), worker->GetCoreId()) == 0;
     }
-    return true;
+    return isOk;
 }
 
 void HandlerDpdk::StopDpdkWorkerThreads() {
-    if (m_Impl->workers.empty()) {
-        return;
-        // throw std::runtime_error("No worker threads were set");
-    }
+     if (m_Impl->workers.empty()) {
+         return;
+     }
 
-    for (const auto &worker : m_Impl->workers) {
-        worker->stop();
-        rte_eal_wait_lcore(worker->getCoreId());
-        // PCPP_LOG_DEBUG("Thread on core [" << worker->getCoreId() << "] stopped");
-    }
+     for (const auto &worker : m_Impl->workers) {
+         worker->Stop();
+         rte_eal_wait_lcore(worker->GetCoreId());
+         // PCPP_LOG_DEBUG("Thread on core [" << worker->getCoreId() << "] stopped");
+     }
 
-    m_Impl->workers.clear();
-    // PCPP_LOG_DEBUG("All worker threads stopped");
+     m_Impl->workers.clear();
+     // PCPP_LOG_DEBUG("All worker threads stopped");*/
+
 }
 
 void HandlerDpdk::Loop() {

@@ -1,115 +1,150 @@
 #include "Handlers/Dpdk/DpdkDevice.h"
-#include "Util/Misc.h"
-#include <rte_branch_prediction.h>
-#include <rte_build_config.h>
-#include <rte_config.h>
 #include <rte_ethdev.h>
-#include <rte_malloc.h>
+#include <rte_memory.h>
 
 namespace Nta::Network {
 
 struct DpdkDevice::Impl {
-    std::vector<MbufArray> m_BufArray{RTE_MAX_LCORE};
-    DpdkDevicePtr m_Dev{nullptr, [](auto *) {}};
-    pcpp::DpdkDevice::DpdkDeviceConfiguration
-        m_Config{128, 512, 100, pcpp::DpdkDevice::DpdkRssHashFunction::RSS_NONE, nullptr, 0};
+    bool m_IsStarted{false};
+    bool m_PromiscModeEn{false};
+    uint16_t m_PortId{0};
+    int m_SocketId{SOCKET_ID_ANY};
+    uint16_t m_NbRxDesc{128}; // DPDK's default (RX_DESC_PER_QUEUE)
+    uint16_t m_NbTxDesc{512}; // DPDK's default (TX_DESC_PER_QUEUE)
+    struct rte_eth_conf m_EthConf {};
+    struct rte_eth_dev_info m_DevInfo {};
+    struct rte_mempool *m_MbPool{nullptr};
 };
 
+DpdkDevice::DpdkDevice(const uint16_t id, bool promisc)
+    : m_Impl{new DpdkDevice::Impl(), [](auto *impl) { delete impl; }} {
+
+    if (!rte_eth_dev_is_valid_port(id))
+        throw std::runtime_error("Device(" + std::to_string(id) + ") has invalid port!");
+
+    m_Impl->m_PromiscModeEn = promisc;
+    m_Impl->m_PortId = id;
+    m_Impl->m_SocketId = rte_eth_dev_socket_id(id);
+
+    if (rte_eth_dev_info_get(m_Impl->m_PortId, &m_Impl->m_DevInfo) != 0)
+        throw std::runtime_error("Error during getting device (" + std::to_string(id) + ") info!");
+}
+
+auto DpdkDevice::Configure() -> void {
+    const auto portId = m_Impl->m_PortId;
+
+    if (auto ret = rte_eth_dev_configure(
+            portId, m_Impl->m_DevInfo.max_rx_queues, m_Impl->m_DevInfo.max_tx_queues, &m_Impl->m_EthConf);
+        ret < 0)
+        throw std::runtime_error(
+            "Cannot configure device: ret=" + std::to_string(ret) + ", port:=" + std::to_string(portId) + "\n");
+}
+
+auto DpdkDevice::SetupRxQueue(const uint16_t queueId) -> void {
+    const auto portId = m_Impl->m_PortId;
+    const auto rxqConf = m_Impl->m_DevInfo.default_rxconf;
+
+    if (auto ret =
+            rte_eth_rx_queue_setup(portId, queueId, m_Impl->m_NbRxDesc, m_Impl->m_SocketId, &rxqConf, m_Impl->m_MbPool);
+        ret < 0) {
+        throw std::runtime_error("Device(" + std::to_string(portId) + ") RX queue setup failed!");
+    }
+}
+
+auto DpdkDevice::SetupTxQueue(const uint16_t queueId) -> void {
+    const auto portId = m_Impl->m_PortId;
+    const auto txqConf = m_Impl->m_DevInfo.default_txconf;
+
+    if (auto ret = rte_eth_tx_queue_setup(portId, queueId, m_Impl->m_NbTxDesc, m_Impl->m_SocketId, &txqConf); ret < 0)
+        throw std::runtime_error("Device(" + std::to_string(portId) + ") TX queue setup failed!");
+}
+
+auto DpdkDevice::Open() -> void {
+    if (m_Impl->m_IsStarted)
+        return;
+
+    const auto portId = m_Impl->m_PortId;
+
+    if (auto ret = rte_eth_dev_start(portId); ret < 0)
+        throw std::runtime_error("Device(" + std::to_string(portId) + ") start failed!");
+
+    if (m_Impl->m_PromiscModeEn) {
+        if (auto ret = rte_eth_promiscuous_enable(portId); ret != 0)
+            throw std::runtime_error("Error during enabling promiscuous mode for port " + std::to_string(portId));
+    }
+
+    m_Impl->m_IsStarted = true;
+}
+
+auto DpdkDevice::Close() -> void {
+    if (!m_Impl->m_IsStarted)
+        return;
+
+    if (auto ret = rte_eth_dev_stop(m_Impl->m_PortId); ret != 0)
+        throw std::runtime_error("Device(" + std::to_string(m_Impl->m_PortId) + ") stop failed!");
+
+    m_Impl->m_IsStarted = false;
+}
+
+auto DpdkDevice::IsOpen() const -> bool {
+    return m_Impl->m_IsStarted;
+}
+
 uint16_t DpdkDevice::RecivePackets(const uint16_t queueId, MbufArray &m_BufArray) {
-    if (unlikely(!m_Impl->m_Dev)) {
-        throw std::runtime_error("Device doesn't exist!");
+    if (unlikely(!IsOpen())) {
+        throw std::runtime_error("Device(" + std::to_string(m_Impl->m_PortId) + ") is not opened!");
     }
 
-    if (unlikely(!m_Impl->m_Dev->isOpened())) {
-        throw std::runtime_error("Device is not opened!");
-    }
-
-    if (unlikely(queueId >= m_Impl->m_Dev->getTotalNumOfRxQueues())) {
+    if (unlikely(queueId >= m_Impl->m_DevInfo.max_rx_queues)) {
         ///\todo log  throw std::runtime_error("RX queue ID #" + std::to_string(queueId) + " not available for this
         /// device");
         return 0;
     }
 
-    return rte_eth_rx_burst(
-        m_Impl->m_Dev->getDeviceId(), queueId, m_BufArray.data(), Util::Std::ArraySize<MbufArray>::size);
+    return rte_eth_rx_burst(m_Impl->m_PortId, queueId, m_BufArray.data(), m_BufArray.size());
 }
 
 uint16_t DpdkDevice::SendPackets(const uint16_t queueId, MbufArray &bufArray, const uint16_t nbPkts) {
-    if (unlikely(!m_Impl->m_Dev)) {
-        throw std::runtime_error("Device doesn't exist!");
+    if (unlikely(!IsOpen())) {
+        throw std::runtime_error("Device(" + std::to_string(m_Impl->m_PortId) + ") is not opened!");
     }
 
-    if (unlikely(!m_Impl->m_Dev->isOpened())) {
-        throw std::runtime_error("Device is not opened!");
-    }
-
-    if (unlikely(queueId >= m_Impl->m_Dev->getNumOfOpenedTxQueues())) {
+    if (unlikely(queueId >= m_Impl->m_DevInfo.max_tx_queues)) {
         ///\todo log  throw std::runtime_error("TX queue isn't opened in device!");
         return 0;
     }
 
-    return rte_eth_tx_burst(m_Impl->m_Dev->getDeviceId(), queueId, bufArray.data(), nbPkts);
+    return rte_eth_tx_burst(m_Impl->m_PortId, queueId, bufArray.data(), nbPkts);
 }
 
-auto PrefetchCpuCache(const DpdkDevice::MbufArray &rxPkts, const size_t prefetchCount) -> void {
-    for (auto i = 0; i < prefetchCount && i < Util::Std::ArraySize<DpdkDevice::MbufArray>::size; i++) {
+auto PrefetchCpuCache(const MbufArray &rxPkts, const size_t prefetchCount) -> void {
+    for (auto i = 0; i < prefetchCount && i < rxPkts.size(); i++) {
         rte_prefetch0(rte_pktmbuf_mtod(rxPkts[i], void *));
     }
 }
 
-DpdkDevice::DpdkDevicePtr::element_type *DpdkDevice::GetRawDevecePtr() {
-    return m_Impl->m_Dev.get();
-}
-
-auto DpdkDevice::GetNumberRxPacketsMax() const noexcept -> size_t {
-    return m_Impl->m_BufArray.size();
-}
-
-std::string DpdkDevice::GetPMDName() const {
-    if (!m_Impl->m_Dev)
-        return {"PMD: nullptr"};
-    return m_Impl->m_Dev->getPMDName();
+std::string_view DpdkDevice::GetDeviceName() const noexcept {
+    return {rte_dev_name(m_Impl->m_DevInfo.device)};
 }
 
 int DpdkDevice::GetDeviceId() const noexcept {
-    if (!m_Impl->m_Dev)
-        return -1;
-    return m_Impl->m_Dev->getDeviceId();
+    return m_Impl->m_PortId;
 }
 
-bool DpdkDevice::OpenMultiQueues(const uint16_t numOfRxQueuesToOpen, const uint16_t numOfTxQueuesToOpen) noexcept {
-    if (!m_Impl->m_Dev)
-        return false;
-    return m_Impl->m_Dev->openMultiQueues(numOfRxQueuesToOpen, numOfTxQueuesToOpen, m_Impl->m_Config);
+int DpdkDevice::GetSocketId() const noexcept {
+    return m_Impl->m_SocketId;
 }
 
-uint16_t DpdkDevice::GetTotalNumOfTxQueues() const noexcept {
-    if (!m_Impl->m_Dev)
-        return 0;
-    return m_Impl->m_Dev->getTotalNumOfRxQueues();
+int DpdkDevice::GetTotalNumOfRxQueues() const noexcept {
+    return m_Impl->m_DevInfo.max_rx_queues;
 }
 
-uint16_t DpdkDevice::GetTotalNumOfRxQueues() const noexcept {
-    if (!m_Impl->m_Dev)
-        return 0;
-    return m_Impl->m_Dev->getTotalNumOfRxQueues();
+int DpdkDevice::GetTotalNumOfTxQueues() const noexcept {
+    return m_Impl->m_DevInfo.max_tx_queues;
 }
 
-DpdkDevice::MbufArray &DpdkDevice::GetMbufArray(const int coreId) {
-    if (constexpr auto mbSize = Util::Std::ArraySize<MbufArray>::size; coreId > mbSize)
-        throw std::runtime_error(
-            "core id: " + std::to_string(coreId) + "is out of device buffer range:" + std::to_string(mbSize) + "!");
-    return m_Impl->m_BufArray[coreId];
-}
-
-DpdkDevice::DpdkDevice(pcpp::DpdkDevice *dev, const size_t nbRx)
-    : m_Impl{new Impl(), [](DpdkDevice::Impl *p) { delete p; }} {
-    m_Impl->m_Dev.reset(dev);
-}
-
-DpdkDevice::DpdkDevice(DpdkDevicePtr dev, const size_t nbRx)
-    : m_Impl{new DpdkDevice::Impl(), [](DpdkDevice::Impl *p) { delete p; }} {
-    m_Impl->m_Dev = std::move(dev);
+void DpdkDevice::SetRteMemPool(rte_mempool *mp) noexcept {
+    m_Impl->m_MbPool = mp;
 }
 
 } // namespace Nta::Network

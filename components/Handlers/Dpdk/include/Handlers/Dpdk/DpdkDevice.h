@@ -1,20 +1,50 @@
 #pragma once
 
-#include <pcapplusplus/DpdkDeviceList.h>
+#include <Device.h>
 #include <Util/Misc.h>
-#include <functional>
+#include <cstdint>
+#include <memory>
 
-struct rte_mbuf;
+struct rte_mempool;
 
 namespace Nta::Network {
-class DpdkDevice {
+
+class DpdkDevice : public Device::AbstractDevice {
   public:
-    using DpdkDevicePtr = std::unique_ptr<pcpp::DpdkDevice, std::function<void(pcpp::DpdkDevice *)>>;
-    using MbufArray = std::array<rte_mbuf *, 128>; //RTE_MAX_LCORE
+    explicit DpdkDevice(const uint16_t id, bool promisc = false);
 
-    DpdkDevice(pcpp::DpdkDevice *dev, const size_t nbRx = Util::Std::ArraySize<MbufArray>::size);
+    /*!
+     * \brief DpdkDevice::Configure
+     */
+    auto Configure() -> void;
 
-    DpdkDevice(DpdkDevicePtr dev, const size_t nbRx = Util::Std::ArraySize<MbufArray>::size);
+    /*!
+     * \brief SetupRxQueue
+     * \param queueId
+     */
+    auto SetupRxQueue(const uint16_t queueId) -> void override;
+
+    /*!
+     * \brief SetupTxQueue
+     * \param queueId
+     */
+    auto SetupTxQueue(const uint16_t queueId) -> void override;
+
+    /*!
+     * \brief Open the device
+     */
+    auto Open() -> void override;
+
+    /*!
+     * \brief Closes the device
+     */
+    auto Close() -> void override;
+
+    /*!
+     * \brief Check whether the device is open or not
+     * \return true if open. Otherwise, false.
+     */
+    auto IsOpen() const -> bool override;
 
     /*!
      * \brief RecivePackets
@@ -22,7 +52,7 @@ class DpdkDevice {
      * \param queueId
      * \return
      */
-    uint16_t RecivePackets(const uint16_t queueId, MbufArray &m_BufArray);
+    uint16_t RecivePackets(const uint16_t queueId, MbufArray &m_BufArray) override;
 
     /*!
      * \brief SendPackets
@@ -31,29 +61,50 @@ class DpdkDevice {
      * \param bufArray
      * \return
      */
-    uint16_t SendPackets(const uint16_t queueId, MbufArray &bufArray, const uint16_t nbPkts);
+    uint16_t SendPackets(const uint16_t queueId, MbufArray &bufArray, const uint16_t nbPkts) override;
 
-    auto GetMbufArray(const int coreId) -> MbufArray &;
+    /*!
+     * \brief GetMbufArray
+     * \param coreId
+     * \return
+     */
+    std::string_view GetDeviceName() const noexcept;
 
-    uint16_t GetTotalNumOfRxQueues() const noexcept;
-
-    uint16_t GetTotalNumOfTxQueues() const noexcept;
-
-    bool OpenMultiQueues(const uint16_t numOfRxQueuesToOpen, const uint16_t numOfTxQueuesToOpen) noexcept;
-
+    /*!
+     * \brief GetDeviceId
+     * \return
+     */
     int GetDeviceId() const noexcept;
 
-    std::string GetPMDName() const;
+    /*!
+     * \brief GetSocketId
+     * \return
+     */
+    int GetSocketId() const noexcept;
 
-    auto GetNumberRxPacketsMax() const noexcept -> size_t;
+    /*!
+     * \brief GetTotalNumOfRxQueues
+     * \return
+     */
+    int GetTotalNumOfRxQueues() const noexcept;
 
-    DpdkDevicePtr::element_type *GetRawDevecePtr();
+    /*!
+     * \brief GetTotalNumOfTxQueues
+     * \return
+     */
+    int GetTotalNumOfTxQueues() const noexcept;
+
+    /*!
+     * \brief SetRteMemPoll
+     * \param mp
+     */
+    void SetRteMemPool(rte_mempool *mp) noexcept;
 
   private:
     struct Impl;
     std::unique_ptr<Impl, void (*)(Impl *)> m_Impl;
 };
 
-auto PrefetchCpuCache(const DpdkDevice::MbufArray &rxPkts, const size_t prefetchCount) -> void;
+auto PrefetchCpuCache(const MbufArray &rxPkts, const size_t prefetchCount) -> void;
 
 } // namespace Nta::Network

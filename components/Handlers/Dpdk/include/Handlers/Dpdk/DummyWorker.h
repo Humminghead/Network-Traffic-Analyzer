@@ -1,19 +1,19 @@
 #pragma once
 
-#include <pcapplusplus/DpdkDeviceList.h>
+#include "Handlers/Dpdk/Acl/AbstractWorker.h"
 #include <atomic>
 #include <rte_build_config.h>
 #include <thread>
 
 namespace Nta::Network {
 
-class Dummy : public pcpp::DpdkWorkerThread {
+class Dummy : public AbstractWorker {
   private:
     std::atomic_bool m_Stop{true};
     uint32_t m_CoreId{RTE_MAX_LCORE};
 
   public:
-    Dummy() = default;
+    Dummy(uint32_t coreId) : m_CoreId{coreId} {}
     virtual ~Dummy() = default;
 
     /*!
@@ -21,8 +21,7 @@ class Dummy : public pcpp::DpdkWorkerThread {
      * \param coreId
      * \return
      */
-    bool run(uint32_t coreId) override {
-        m_CoreId = coreId;
+    int Run(void*) override {
         m_Stop.exchange(false);
 
         while (!m_Stop.load()) {
@@ -35,13 +34,13 @@ class Dummy : public pcpp::DpdkWorkerThread {
     /*!
      * \brief ask the worker thread to stop
      */
-    void stop() override { m_Stop.exchange(true); }
+    void Stop() override { m_Stop.exchange(true); }
 
     /*!
      * \brief getCoreId
      * \return
      */
-    uint32_t getCoreId() const override { return m_CoreId; }
+    uint32_t GetCoreId() const override { return m_CoreId; }
 };
 
 

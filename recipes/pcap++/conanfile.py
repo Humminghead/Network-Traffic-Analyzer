@@ -31,29 +31,17 @@ class PcapPlusPlusConan(ConanFile):
             del self.options.fPIC
 
     def requirements(self):
-        self.requires("libpcap/1.10.4")
-        if self.options.with_dpdk:
-            self.requires("dpdk/21.11.9")
+        self.requires("libpcap/1.10.4")        
 
     def layout(self):
         cmake_layout(self, src_folder="src")
 
     def source(self):
         get(self, f"https://github.com/seladb/PcapPlusPlus/archive/refs/tags/v{self.version}.tar.gz",
-            strip_root=True, destination=self.source_folder)
-
-        # Patch DPDK::DPDK → dpdk::dpdk (fix target name)
-        replace_in_file(self, os.path.join(self.source_folder, "Pcap++", "CMakeLists.txt"),
-                        "DPDK::DPDK", "dpdk::dpdk")
+            strip_root=True, destination=self.source_folder)        
 
     def generate(self):
-        tc = CMakeToolchain(self)
-        # Add -mssse3 to C++ flags (required for DPDK intrinsics)
-        tc.cache_variables["CMAKE_CXX_FLAGS"] = "${CMAKE_CXX_FLAGS} -mssse3"
-        if self.options.with_dpdk:
-            tc.cache_variables["PCAPPP_USE_DPDK"] = "ON"
-            dpdk_root = self.dependencies["dpdk"].package_folder
-            tc.cache_variables["DPDK_ROOT_DIR"] = dpdk_root
+        tc = CMakeToolchain(self)       
         tc.generate()
 
     def build(self):

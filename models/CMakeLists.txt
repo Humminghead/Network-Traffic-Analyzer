@@ -10,7 +10,4 @@ target_include_directories(${PROJECT_NAME}
     INTERFACE
     ${PROJECT_SOURCE_DIR}/include
     tpfr::tprf
-    )
-
-# target_link_libraries(${PROJECT_NAME} INTERFACE tpfr::tprf)
-    
+    )    
