@@ -172,7 +172,7 @@ class RteAclContext {
 class RteLookupAcl {
   public:
     using Result = std::pair<bool, std::vector<uint32_t>>;
-    using PacketPointers = std::array<const uint8_t *,64>;
+    using PacketPointers = std::vector<const uint8_t *>;
 
     /*!
      * \brief Classify

@@ -16,7 +16,8 @@ WorkerAcl::WorkerAcl(
     const uint16_t nbPkts)
     : m_RxDevice{rxDevice}, m_TxDevice{txDevice}, m_AclContext{context}, m_CoreId{core},
       m_PacketBuffers{RTE_MAX_LCORE, MbufArray{nbPkts, nullptr}},
-      m_MatchPackets{RTE_MAX_LCORE, MbufArray{nbPkts, nullptr}}, m_stopAtEmptyRx{stopAtEmptyRx} {
+      m_MatchPackets{RTE_MAX_LCORE, MbufArray{nbPkts, nullptr}}, m_AclDataPtrs{nbPkts, nullptr},
+      m_stopAtEmptyRx{stopAtEmptyRx} {
     m_QueueIndicesRx.reserve(RTE_MAX_QUEUES_PER_PORT);
     m_QueueIndicesTx.reserve(RTE_MAX_QUEUES_PER_PORT);
 }
