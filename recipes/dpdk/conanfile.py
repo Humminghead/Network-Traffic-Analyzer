@@ -67,7 +67,7 @@ class DPDKConan(ConanFile):
     def package_info(self):
         # Only the necessary libraries for project were added
         # Same libs as in {build_path}/generators/dpdk-{build_type}-x86_64-data.cmake
-        self.cpp_info.libs = ["rte_ethdev","rte_mbuf","rte_eal","rte_telemetry","rte_argparse","rte_kvargs","rte_log","rte_acl","rte_mempool","rte_net","rte_bus_vdev","librte_net_pcap", "rte_ring"]                    
+        self.cpp_info.libs = ["rte_ethdev","rte_mbuf","rte_eal","rte_telemetry","rte_argparse","rte_kvargs","rte_log","rte_acl","rte_stack","rte_mempool","rte_mempool_bucket","rte_mempool_ring","rte_mempool_stack","rte_net","rte_bus_vdev","librte_net_pcap", "rte_ring"]                    
         self.cpp_info.includedirs = ["include"]
         self.cpp_info.libdirs = ["lib"]
         self.buildenv_info.define_path(
