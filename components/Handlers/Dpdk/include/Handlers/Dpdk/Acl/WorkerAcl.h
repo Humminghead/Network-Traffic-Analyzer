@@ -38,12 +38,14 @@ class WorkerAcl : public AbstractWorker {
     std::vector<int> m_QueueIndicesRx{};
     std::vector<int> m_QueueIndicesTx{};
     RuntimeVariable m_Rv{};
+    bool m_stopAtEmptyRx{false};
 
   public:
     WorkerAcl(
         std::shared_ptr<DpdkDevice> rxDevice,
         std::shared_ptr<DpdkDevice> txDevice,
         std::shared_ptr<RteAclContext> context,
+        const bool stopAtEmptyRx = false,
         const uint32_t core = RTE_MAX_LCORE,
         const uint16_t nbPkts = 64);
 
