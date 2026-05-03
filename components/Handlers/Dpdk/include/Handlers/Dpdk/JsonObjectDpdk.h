@@ -8,6 +8,55 @@
 namespace Nta::Json::Objects {
 
 //-----------------------------------------------------------------------------------
+struct MemPoolOpt
+{
+    uint16_t m_Socket{0};
+    uint16_t m_MbufSize{2048};
+    uint16_t m_PrivSize{0};
+    uint32_t m_MbufCacheSize{512};
+    uint32_t m_TotalMbufNum{32000};
+};
+[[maybe_unused]] static void to_json(nlohmann::json &j, const MemPoolOpt &p) {
+    ///\todo
+    (void)p;
+}
+
+[[maybe_unused]] static void from_json(const nlohmann::json &j, MemPoolOpt &p) {
+    Util::Json::GetTo(j,"socket", p.m_Socket);
+    Util::Json::GetTo(j,"priv_size", p.m_Socket);
+    Util::Json::GetTo(j,"mbuf_size", p.m_MbufSize);
+    Util::Json::GetTo(j,"mbuf_cache_size", p.m_MbufCacheSize);
+    Util::Json::GetTo(j,"total_mbuf_num", p.m_TotalMbufNum);
+}
+
+//-----------------------------------------------------------------------------------
+struct MemPoolOptions
+{
+    std::vector<MemPoolOpt> parameters;
+
+    auto Get(const uint16_t socket) const {
+        auto it = std::ranges::find_if(parameters, [&socket](const auto& p){
+            return p.m_Socket == socket;
+        });
+
+        if(it != parameters.end())
+            return *it;
+
+        // If mempool parameters not found return defaul values
+        return MemPoolOpt{};
+    }
+};
+
+[[maybe_unused]] static void to_json(nlohmann::json &j, const MemPoolOptions &p) {
+    ///\todo
+    (void)p;
+}
+
+[[maybe_unused]] static void from_json(const nlohmann::json &j, MemPoolOptions &p) {
+    j.get_to(p.parameters);
+}
+
+//-----------------------------------------------------------------------------------
 struct DpdkEalCmdLineArg {
     std::string key;
     std::string value;
@@ -27,7 +76,9 @@ struct DpdkEalCmdLine {
     std::vector<DpdkEalCmdLineArg> args;
 };
 
-[[maybe_unused]] static void to_json(nlohmann::json &j, const DpdkEalCmdLine &p) {}
+[[maybe_unused]] static void to_json(nlohmann::json &j, const DpdkEalCmdLine &p) {
+    ///\todo
+}
 
 [[maybe_unused]] static void from_json(const nlohmann::json &j, DpdkEalCmdLine &p) {
     j.get_to(p.args);
@@ -39,7 +90,9 @@ struct InputPacketClassification {
     std::vector<std::string> tupleFiveIp4Rules{};
 };
 
-[[maybe_unused]] static void to_json(nlohmann::json &j, const InputPacketClassification &p) {}
+[[maybe_unused]] static void to_json(nlohmann::json &j, const InputPacketClassification &p) {
+    ///\todo
+}
 
 [[maybe_unused]] static void from_json(const nlohmann::json &j, InputPacketClassification &p) {
     j.at("type").get_to(p.type);
@@ -51,10 +104,14 @@ struct InputPacketClassification {
 //-----------------------------------------------------------------------------------
 struct WorkerQueueRange {
     std::vector<int> queueIdxs;
+
+    // Iterartor support
+    constexpr auto begin() const noexcept { return std::begin(queueIdxs); }
+    constexpr auto end() const noexcept { return std::end(queueIdxs); }
 };
 
 [[maybe_unused]] static void to_json(nlohmann::json &j, const WorkerQueueRange &p) {
-
+    ///\todo
 }
 
 [[maybe_unused]] static void from_json(const nlohmann::json &j, WorkerQueueRange &p) {
@@ -109,7 +166,8 @@ struct Worker {
 struct DpdkObject : HandlerObject {
     uint32_t m_BufPoolSizePerDevice{0};
     uint32_t m_HeadRoomSize{0};
-    DpdkEalCmdLine m_EalCmdLine{};    
+    DpdkEalCmdLine m_EalCmdLine{};
+    MemPoolOptions m_MemPoolsOpts{};
     bool m_PromiscuousMode{false};
     bool m_NoPci{false};
     bool m_InMemory{false};
@@ -121,7 +179,7 @@ struct DpdkObject : HandlerObject {
     bool m_NoHpet{false};
     bool m_LegacyMem{false};
     bool m_MatchAllocations{false};
-    std::vector<Worker> workers{};
+    std::vector<Worker> m_Workers{};
 
     [[maybe_unused]] static auto ToJson(const DpdkObject &p) -> nlohmann::json {
         // clang-format off
@@ -138,14 +196,37 @@ struct DpdkObject : HandlerObject {
              {"match-allocations", p.m_MatchAllocations},
              {"eal_mbuf_size", p.m_BufPoolSizePerDevice},             
              {"eal_mbuf_headroom_size",p.m_HeadRoomSize},
-             {"eal_cmd_line_arguments", p.m_EalCmdLine},             
+             {"eal_cmd_line_arguments", p.m_EalCmdLine},
+             {"mempools", p.m_MemPoolsOpts},
              {"promiscuous", p.m_PromiscuousMode},
-             {"workers", p.workers}
+             {"workers", p.m_Workers}
         };
         // clang-format on
-    }
+    }    
 
     [[maybe_unused]] static void FromJson(const nlohmann::json &j, DpdkObject &p) {
+
+        // Converts all integers values in the JSON string to std::string
+        auto convertNumbers = [](const nlohmann::json &j, const std::string &name, DpdkEalCmdLine &value) {
+            if (j.contains(name)) {
+                for (auto item : j.at(name)) {
+                    using ValueType = nlohmann::detail::value_t;
+                    for (auto obj : item.items()) {
+                        auto k = obj.key();
+                        if (auto type = obj.value().type();
+                            type == ValueType::number_integer || type == ValueType::number_unsigned) {
+                            value.args.push_back(DpdkEalCmdLineArg{k, std::to_string(obj.value().get<size_t>())});
+                        } else if (type == ValueType::string) {
+                            value.args.push_back(DpdkEalCmdLineArg{k, obj.value().get<std::string>()});
+                        } else {
+                            throw std::runtime_error("Unsupported conversion!");
+                        }
+                    }
+                }
+            }
+            return value;
+        };
+
         Util::Json::GetTo(j,"no-pci", p.m_NoPci);
         Util::Json::GetTo(j,"in-memory", p.m_InMemory);
         Util::Json::GetTo(j,"no-shconf", p.m_NoShconf);
@@ -156,11 +237,12 @@ struct DpdkObject : HandlerObject {
         Util::Json::GetTo(j,"no-hpet", p.m_NoHpet);
         Util::Json::GetTo(j,"legacy-mem", p.m_LegacyMem);
         Util::Json::GetTo(j,"match-allocations", p.m_MatchAllocations);
-        Util::Json::GetTo(j, "eal_cmd_line_arguments", p.m_EalCmdLine);
+        Util::Json::GetTo(j, "eal_cmd_line_arguments", p.m_EalCmdLine, convertNumbers);
         Util::Json::GetTo(j, "promiscuous", p.m_PromiscuousMode);
         j.at("eal_mbuf_size").get_to(p.m_BufPoolSizePerDevice);
         Util::Json::GetTo(j, "eal_mbuf_headroom_size", p.m_HeadRoomSize);
-        j.at("workers").get_to(p.workers);
+        Util::Json::GetTo(j, "mempools", p.m_MemPoolsOpts);
+        j.at("workers").get_to(p.m_Workers);
     }
 
     constexpr auto GetEalAdditionalOptions() const -> std::vector<std::string_view> {
