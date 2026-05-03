@@ -23,6 +23,8 @@
 
 namespace Nta::Network {
 
+using DpdkDeviceList = std::list<std::shared_ptr<DpdkDevice>>;
+
 auto printSockWarn = [](auto dev, auto id) {
     std::println(
         "{}: device {} has {} socket!",
@@ -37,6 +39,17 @@ auto printMemPoolWarn = []<typename... S>(auto mp, S... s) {
         std::println("{}: set {} instead of {}", "APP", s...);
         std::fflush(stdout);
     }
+};
+
+// Function does the search for a DPDK device
+auto findDpdkDev = [](const DpdkDeviceList &devices, const std::string &pci) {
+    auto it = std::find_if(std::begin(devices), std::end(devices), [&pci](auto &&dev) {
+        if (!dev)
+            return false;
+        return std::strcmp(pci.c_str(), dev->GetDeviceName().data()) == 0;
+    });
+
+    return *it;
 };
 
 template <typename Tuple, size_t N>
@@ -58,6 +71,7 @@ struct HandlerDpdk::Impl {
     std::vector<DpdkWorkerPtr> workers;
     std::map<int, RteCpuSocket> cpuSockets;
     std::map<int, RteMemPool> memPools;
+    DpdkDeviceList devices;
 };
 
 HandlerDpdk::HandlerDpdk(const Json::Objects::DpdkObject &config)
@@ -133,12 +147,9 @@ void HandlerDpdk::Open() {
         throw std::runtime_error("DPDK device list is empty!");
     }
 
-    // List of DPDK devices
-    std::list<std::shared_ptr<DpdkDevice>> devices;
-
     Device::DpdkDeviceFactory factory;
     for (uint16_t port = 0; port < devCount; port++) {
-        devices.emplace_back(factory.CreateEthDevDpdk(port, m_Impl->config.m_PromiscuousMode));
+        m_Impl->devices.emplace_back(factory.CreateEthDevDpdk(port, m_Impl->config.m_PromiscuousMode));
     }
 
     // Setup the workers
@@ -203,22 +214,11 @@ void HandlerDpdk::Open() {
                 // Add rules in context
                 tupleFiveIp4Context->AddRules(tupleFiveRteRulesIp4);
 
-                // Function does the search for a DPDK device
-                auto findDpdkDev = [&devices](const std::string &pci) {
-                    auto it = std::find_if(std::begin(devices), std::end(devices), [&pci](auto &&dev) {
-                        if (!dev)
-                            return false;
-                        return std::strcmp(pci.c_str(), dev->GetDeviceName().data()) == 0;
-                    });
-
-                    return *it;
-                };
-
-                auto rxDevPtr = findDpdkDev(worker.rxDevicePciAddr);
+                auto rxDevPtr = findDpdkDev(m_Impl->devices, worker.rxDevicePciAddr);
                 if (!rxDevPtr)
                     throw std::runtime_error("Device " + worker.rxDevicePciAddr + " doesn't exist!");
 
-                auto txDevPtr = findDpdkDev(worker.txDevicePciAddr);
+                auto txDevPtr = findDpdkDev(m_Impl->devices, worker.txDevicePciAddr);
                 if (!txDevPtr)
                     throw std::runtime_error("Device " + worker.txDevicePciAddr + " doesn't exist!");
 
@@ -343,7 +343,7 @@ auto HandlerDpdk::GetCallback() -> std::function<CallBackFunctionType> {
 }
 bool HandlerDpdk::StartDpdkWorkerThreads(std::vector<DpdkWorkerPtr> &workerThreadsVec) {
     auto f = [](void *arg) {
-        auto self = reinterpret_cast<AbstractWorker*>(arg);
+        auto self = reinterpret_cast<AbstractWorker *>(arg);
         return self->Run(nullptr);
     };
 
@@ -356,19 +356,28 @@ bool HandlerDpdk::StartDpdkWorkerThreads(std::vector<DpdkWorkerPtr> &workerThrea
 }
 
 void HandlerDpdk::StopDpdkWorkerThreads() {
-     if (m_Impl->workers.empty()) {
-         return;
-     }
+    if (m_Impl->workers.empty()) {
+        return;
+    }
 
-     for (const auto &worker : m_Impl->workers) {
-         worker->Stop();
-         rte_eal_wait_lcore(worker->GetCoreId());
-         // PCPP_LOG_DEBUG("Thread on core [" << worker->getCoreId() << "] stopped");
-     }
+    // Stop workers
+    for (const auto &worker : m_Impl->workers) {
+        worker->Stop();
+        rte_eal_wait_lcore(worker->GetCoreId());
+        // PCPP_LOG_DEBUG("Thread on core [" << worker->getCoreId() << "] stopped");
+    }
+    m_Impl->workers.clear();
+    // PCPP_LOG_DEBUG("All worker threads stopped");*/
 
-     m_Impl->workers.clear();
-     // PCPP_LOG_DEBUG("All worker threads stopped");*/
+    // Close devices
+    for (auto &dev : m_Impl->devices) {
+        dev->Close();
+    }
 
+    // Free buffers
+    for (auto &mp : m_Impl->memPools) {
+        mp.second.Free();
+    }
 }
 
 void HandlerDpdk::Loop() {
