@@ -1,3 +1,5 @@
+#pragma once
+
 namespace Nta::Network::Device {
 /*!
  * \brief An enum describing all RSS (Receive Side Scaling) hash functions supported in DPDK. Notice not all  PMDs
