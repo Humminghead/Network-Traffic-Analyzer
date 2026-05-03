@@ -4,7 +4,7 @@
 #include <memory>
 
 namespace Nta::Network {
-class DpdkWorker;
+class AbstractWorker;
 }
 
 namespace Nta::Json::Objects {
@@ -13,7 +13,7 @@ struct DpdkObject;
 
 namespace Nta::Network {
 
-using DpdkWorkerPtr = std::unique_ptr<DpdkWorker>;
+using DpdkWorkerPtr = std::unique_ptr<AbstractWorker>;
 
 class HandlerDpdk : public HandlerAbstract {
 public:

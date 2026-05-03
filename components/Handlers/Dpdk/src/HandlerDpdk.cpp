@@ -2,9 +2,10 @@
 
 #include "Handlers/Dpdk/Acl/LookupAcl.h"
 #include "Handlers/Dpdk/Acl/WorkerAcl.h"
+#include "Handlers/Dpdk/DpdkDevice.h"
 #include "Handlers/Dpdk/DpdkDeviceFactory.h"
 #include "Handlers/Dpdk/DpdkEal.h"
-#include "Handlers/Dpdk/DpdkDevice.h"
+#include "Handlers/Dpdk/DummyWorker.h"
 #include "Handlers/Dpdk/JsonObjectDpdk.h"
 #include "Handlers/Dpdk/RteMemPool.h"
 #include "Handlers/Dpdk/RteSocket.h"
@@ -295,7 +296,7 @@ void HandlerDpdk::Open() {
                 throw std::runtime_error("Unknown socket id: " + std::to_string(rte_lcore_to_socket_id(coreId)) + "!");
             }
         } else if (worker.type == "dummy") {
-            // m_Impl->workers.push_back(new Dummy());
+            m_Impl->workers.push_back(std::make_unique<Dummy>(coreId));
         } else {
             throw std::runtime_error("Unsupported worker type: " + worker.type + "!");
         }
@@ -342,7 +343,7 @@ auto HandlerDpdk::GetCallback() -> std::function<CallBackFunctionType> {
 }
 bool HandlerDpdk::StartDpdkWorkerThreads(std::vector<DpdkWorkerPtr> &workerThreadsVec) {
     auto f = [](void *arg) {
-        auto self = reinterpret_cast<DpdkWorker*>(arg);
+        auto self = reinterpret_cast<AbstractWorker*>(arg);
         return self->Run(nullptr);
     };
 

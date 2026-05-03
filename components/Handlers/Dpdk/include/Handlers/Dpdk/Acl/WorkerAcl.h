@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Handlers/Dpdk/Acl/AbstractWorker.h"
 #include "Handlers/Dpdk/Acl/LookupAcl.h"
 #include "Handlers/Dpdk/DpdkDevice.h"
 #include <NetDecoder/Decoder.h>
@@ -8,29 +9,7 @@
 
 namespace Nta::Network {
 
-class DpdkWorker {
-  public:
-    virtual ~DpdkWorker() = default;
-    /*!
-     * \brief start running the worker thread
-     * \param args
-     * \return
-     */
-    virtual int Run(void *args) = 0; //{return false;}
-
-    /*!
-     * \brief ask the worker thread to Stop
-     */
-    virtual auto Stop() -> void = 0; //{}
-
-    /*!
-     * \brief GetCoreId
-     * \return
-     */
-    virtual auto GetCoreId() const -> uint32_t = 0; //{ return {};}
-};
-
-class WorkerAcl : public DpdkWorker {
+class WorkerAcl : public AbstractWorker {
   private:
     struct RuntimeVariable {
         uint16_t numRxPackets{0};
