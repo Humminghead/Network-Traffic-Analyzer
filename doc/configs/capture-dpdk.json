@@ -1,59 +1,59 @@
 {
    "app_core":27,
-   "handler":{
-      "eal_core_mask":"0b1000000111",
+   "handler":{      
+      "no-pci": true,
+      "no-telemetry": true,
       "eal_mbuf_size":65535,
-      "eal_mbuf_headroom_size":0,
-      "eal_memory_channels":4,
-      "eal_memory_ranks":"auto",
-      "eal_main_lcore":9,
+      "eal_mbuf_headroom_size":0,                  
       "type":"dpdk",
       "promiscuous":true,
       "eal_cmd_line_arguments":[
          {
-            "--vdev":"net_memif"
+            "--main-lcore": 0
+         },
+         {
+            "--lcores":"0,1,10"
          },     
          {
             "--vdev":"net_pcap0,rx_iface=wlx340a33e0dd2e,tx_pcap=/mnt/ramdisk/net_pcap0-tx.pcap"
          },
          {
             "--vdev":"net_pcap1,rx_pcap=/media/user/other/Pcap/rnd-pcaps/gtpu/gtpu_part_0.pcap,tx_pcap=/mnt/ramdisk/net_pcap1-tx.pcap"
-         },
-         {
-            "--vdev":"net_pcap2,rx_pcap=/tmp/mpls-basic2.pcap,tx_pcap=/mnt/ramdisk/net_pcap1-tx.pcap"
-         },
-         {
-         	"--no-telemetry":""
-         },
-         {
-         	"--proc-type":"primary"
-         },
+         },         
          {  
-         	"--file-prefix":"pmd2" 
+         	"--file-prefix":"capture-app" 
+         },
+         {
+            "--socket-mem": "1024,1024"
+         },         
+         {
+            "--log-level":"lib.eal:debug"            
+         },
+         {
+            "--log-level":"lib.mempool:debug"         
          }
-         // ,
-         // {
-         //    "--trace":"memif"
-         // },
-         // {
-         //    "--log-level":"lib.eal:debug"            
-         // },
-         // {
-         //    "--log-level":"lib.pmd.*:debug"         
-         // }
 
+      ],
+      "mempools":[
+         {
+           "socket":0,
+           "mbuf_size":32000,
+           "mbuf_cache_size":256,
+           "total_mbuf_num":2048
+         },
+         {
+           "socket":1,
+           "mbuf_size":32000,
+           "mbuf_cache_size":256,
+           "total_mbuf_num":2048
+         }
       ],
       "workers":[
          {
             "type":"acl",
-            "eal_core":0,
-            "rx_device":"net_pcap2",
-            "tx_device":"net_pcap0",
-            // "rx_queues_idxs":{
-            //    "type":"range",
-            //    "min":0,
-            //    "max":0
-            // },
+            "eal_core":1,
+            "rx_device":"net_pcap1",
+            "tx_device":"net_pcap1",            
             "rx_queues_idxs":{
                "type":"id",
                "indices":[
@@ -70,8 +70,8 @@
                {
                   "type":"route",
                   "tuple-five-rules":[
-                     // "R10.12.133.105/32 0.0.0.0/0 2152 : 2152 2152 : 2152 17/0xFF 0"
-                     "R0.0.0.0/0 0.0.0.0/0 1080 : 1080 0 : 65535 6/0xFF 0"
+                     "R10.12.133.105/32 0.0.0.0/0 2152 : 2152 2152 : 2152 17/0xFF 0"
+                     // "R0.0.0.0/0 0.0.0.0/0 1080 : 1080 0 : 65535 6/0xFF 0"
                   ]
                }
             ]
