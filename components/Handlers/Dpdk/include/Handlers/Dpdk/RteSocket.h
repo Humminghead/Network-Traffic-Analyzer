@@ -32,8 +32,7 @@ class RteCpuSocket {
         return m_TupleFiveIp6Context;
     }
 
-  private:
-    // int m_SocketId{SOCKET_ID_ANY};
+  private:    
     std::map<int, std::shared_ptr<RteAclContext>> m_TupleFiveIp4Context{};
     std::map<int, std::shared_ptr<RteAclContext>> m_TupleFiveIp6Context{};
 };
