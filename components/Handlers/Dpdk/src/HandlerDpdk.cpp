@@ -277,7 +277,8 @@ void HandlerDpdk::Open() {
                 txDevPtr->Configure();
 
                 // Create worker
-                auto workerAcl = std::make_unique<WorkerAcl>(rxDevPtr, txDevPtr, tupleFiveIp4Context, coreId, true);
+                auto workerAcl =
+                    std::make_unique<WorkerAcl>(rxDevPtr, txDevPtr, tupleFiveIp4Context, coreId, worker.stopAtEmptyRx);
 
                 for (auto q : worker.rxQueuesIdxs) {
                     rxDevPtr->SetupRxQueue(q);

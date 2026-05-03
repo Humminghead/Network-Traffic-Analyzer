@@ -140,6 +140,7 @@ struct WorkerQueueRange {
 struct Worker {
     std::string type{};
     int ealCore{-1};
+    bool stopAtEmptyRx{false};
     std::string rxDevicePciAddr{};
     std::string txDevicePciAddr{};
     WorkerQueueRange rxQueuesIdxs{};
@@ -161,6 +162,7 @@ struct Worker {
     Util::Json::GetTo(j, "rx_queues_idxs", p.rxQueuesIdxs);
     Util::Json::GetTo(j, "tx_queues_idxs", p.txQueuesIdxs);
     Util::Json::GetTo(j, "input_packet_classification", p.packetCx);
+    Util::Json::GetTo(j, "stop_at_empty_rx", p.stopAtEmptyRx);
 }
 //-----------------------------------------------------------------------------------
 struct DpdkObject : HandlerObject {
