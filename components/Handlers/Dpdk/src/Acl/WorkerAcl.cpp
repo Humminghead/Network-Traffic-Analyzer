@@ -151,4 +151,12 @@ void WorkerAcl::SetQueueIdxsTx(const std::vector<int> &idxs) {
     m_QueueIndicesTx = idxs;
 }
 
+void WorkerAcl::SetQueueIdxRx(const int &idx){
+    m_QueueIndicesRx.push_back(idx);
+}
+
+void WorkerAcl::SetQueueIdxTx(const int &idx){
+    m_QueueIndicesTx.push_back(idx);
+}
+
 } // namespace Nta::Network

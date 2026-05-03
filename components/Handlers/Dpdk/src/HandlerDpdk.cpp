@@ -276,21 +276,21 @@ void HandlerDpdk::Open() {
                 txDevPtr->SetRteMemPool(mpTx);
                 txDevPtr->Configure();
 
+                // Create worker
+                auto workerAcl = std::make_unique<WorkerAcl>(rxDevPtr, txDevPtr, tupleFiveIp4Context, coreId, true);
+
                 for (auto q : worker.rxQueuesIdxs) {
                     rxDevPtr->SetupRxQueue(q);
+                    workerAcl->SetQueueIdxRx(q);
                 }
 
                 for (auto q : worker.txQueuesIdxs) {
                     txDevPtr->SetupTxQueue(q);
+                    workerAcl->SetQueueIdxTx(q);
                 }
 
-                ///\todo LOG CFG_OK
-
-                // Create worker
-                auto workerAcl = std::make_unique<WorkerAcl>(rxDevPtr, txDevPtr, tupleFiveIp4Context, coreId);
-                workerAcl->SetQueueIdxsRx(worker.rxQueuesIdxs.queueIdxs);
-                workerAcl->SetQueueIdxsTx(worker.txQueuesIdxs.queueIdxs);
                 m_Impl->workers.push_back(std::move(workerAcl));
+                ///\todo LOG CFG_OK
             } else {
                 // Never throw
                 throw std::runtime_error("Unknown socket id: " + std::to_string(rte_lcore_to_socket_id(coreId)) + "!");
@@ -373,11 +373,13 @@ void HandlerDpdk::StopDpdkWorkerThreads() {
     for (auto &dev : m_Impl->devices) {
         dev->Close();
     }
+    m_Impl->devices.clear();
 
     // Free buffers
     for (auto &mp : m_Impl->memPools) {
         mp.second.Free();
     }
+    m_Impl->memPools.clear();
 }
 
 void HandlerDpdk::Loop() {

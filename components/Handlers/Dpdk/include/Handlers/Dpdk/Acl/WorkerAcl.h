@@ -86,5 +86,17 @@ class WorkerAcl : public AbstractWorker {
      * \param idxs
      */
     void SetQueueIdxsTx(const std::vector<int> &idxs);
+
+    /*!
+     * \brief SetQueueIdxRx
+     * \param idx
+     */
+    void SetQueueIdxRx(const int &idx);
+
+    /*!
+     * \brief SetQueueIdxTx
+     * \param idx
+     */
+    void SetQueueIdxTx(const int &idx);
 };
 } // namespace Nta::Network
