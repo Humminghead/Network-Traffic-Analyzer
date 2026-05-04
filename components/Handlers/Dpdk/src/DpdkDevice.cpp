@@ -46,7 +46,7 @@ auto DpdkDevice::SetupRxQueue(const uint16_t queueId) -> void {
 
     if (auto ret =
             rte_eth_rx_queue_setup(portId, queueId, m_Impl->m_NbRxDesc, m_Impl->m_SocketId, &rxqConf, m_Impl->m_MbPool);
-        ret < 0) {
+        ret != 0) {
         throw std::runtime_error("Device(" + std::to_string(portId) + ") RX queue setup failed!");
     }
 }
@@ -55,7 +55,7 @@ auto DpdkDevice::SetupTxQueue(const uint16_t queueId) -> void {
     const auto portId = m_Impl->m_PortId;
     const auto txqConf = m_Impl->m_DevInfo.default_txconf;
 
-    if (auto ret = rte_eth_tx_queue_setup(portId, queueId, m_Impl->m_NbTxDesc, m_Impl->m_SocketId, &txqConf); ret < 0)
+    if (auto ret = rte_eth_tx_queue_setup(portId, queueId, m_Impl->m_NbTxDesc, m_Impl->m_SocketId, &txqConf); ret != 0)
         throw std::runtime_error("Device(" + std::to_string(portId) + ") TX queue setup failed!");
 }
 
