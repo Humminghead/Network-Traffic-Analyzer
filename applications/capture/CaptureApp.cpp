@@ -6,8 +6,6 @@
 
 namespace Nta::Network {
 
-struct HandlerAbstract;
-
 int CaptureApp::main(const std::vector<std::string> &args) {
     if (m_HelpRequested || m_ConfigPath.empty()) {
         DisplayHelp();
@@ -56,8 +54,14 @@ int CaptureApp::Run() {
     if (m_AppCore >= 0)
         Util::Thread::Stick2Core(m_AppCore);
 
-    m_Capture->GetHandler()->Open();
-    m_Capture->GetHandler()->Loop();
+    try {
+        m_Capture->GetHandler()->Open();
+        m_Capture->GetHandler()->Loop();
+    } catch (const std::exception &e) {
+        ///\todo LOG
+        std::cerr << e.what() << std::endl;
+        return Application::EXIT_SOFTWARE;
+    }
     m_Capture->GetHandler()->Close();
 
     return Application::EXIT_OK;

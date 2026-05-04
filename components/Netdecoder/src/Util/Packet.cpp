@@ -44,4 +44,20 @@ bool IsIp6Icmp(const Packet &p) {
     return p.ip6Header ? p.ip6Header->ip6_nxt == IPPROTO_ICMPV6 : false;
 }
 
+uint32_t GetPacketType(const Packet &p){
+    return (static_cast<uint32_t>(GetL2Type(p)) | static_cast<uint32_t>(GetL3Type(p)) | static_cast<uint32_t>(GetL4Type(p)));
+}
+
+LinkLayerProto GetL2Type(const Packet &p) {
+    return GetOsiLayer<OsiLevel::Data>(*p.protoList).Get();
+}
+
+LinkLayerProto GetL3Type(const Packet &p){
+    return GetOsiLayer<OsiLevel::Network>(*p.protoList).Get();
+}
+
+LinkLayerProto GetL4Type(const Packet &p){
+    return GetOsiLayer<OsiLevel::Transport>(*p.protoList).Get();
+}
+
 } // namespace Nta::Network::Util

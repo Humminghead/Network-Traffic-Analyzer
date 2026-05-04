@@ -1,7 +1,6 @@
 #pragma once
 
 #include "DecoderBase.h"
-#include "LinkLayer.h"
 #include "Result.h"
 
 #include <memory>
@@ -25,7 +24,7 @@ class NetDecoder : protected NetDecoderBase {
     virtual bool HandleUdp(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept;
     virtual bool HandleSctp(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept;
     virtual bool HandleGtp(const uint8_t *&d, size_t &sz, const GtpHeader *& hdr) noexcept;
-    virtual bool FullProcessing(const LinkLayer layer, const uint8_t *&d, size_t &sz, Packet &packet) noexcept;
+    virtual bool FullProcessing(const uint16_t layer, const uint8_t *&d, size_t &sz, Packet &packet) noexcept;
     virtual bool ProcessTransportLayers(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept;
 
     virtual Result HandleEth(const uint8_t *&d, size_t &size) noexcept;
@@ -36,8 +35,8 @@ class NetDecoder : protected NetDecoderBase {
     virtual Result HandleIp6(const uint8_t *&d, size_t &size) noexcept;
     virtual Result HandleTcp(const uint8_t *&d, size_t &size) noexcept;
     virtual Result HandleUdp(const uint8_t *&d, size_t &size) noexcept;
-    virtual Result HandleSctp(const uint8_t *&d, size_t &size) noexcept;    
-    virtual Result FullProcessing(const LinkLayer type, const uint8_t *&d, size_t &size) noexcept;
+    virtual Result HandleSctp(const uint8_t *&d, size_t &size) noexcept;
+    virtual Result FullProcessing(const uint16_t type, const uint8_t *&d, size_t &size) noexcept;
     virtual Result ProcessTransportLayers(const uint8_t *&d, size_t &size) noexcept;
 
     size_t GetHandledBytesTotal() const noexcept;
@@ -47,9 +46,11 @@ class NetDecoder : protected NetDecoderBase {
     size_t GetHandledBytesL5() const noexcept;
     size_t GetHandledBytesL6() const noexcept;
     size_t GetHandledBytesL7() const noexcept;
-    void ResetHandledBytes() const noexcept;
+    void ResetHandledBytes() noexcept;
 
   private:
+    void ResetProtocolList(Packet &packet) noexcept;
+
     struct Impl;
     struct ImplPointer : std::unique_ptr<Impl> {
         ~ImplPointer();

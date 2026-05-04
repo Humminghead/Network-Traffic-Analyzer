@@ -8,10 +8,14 @@ struct ip6_frag;
 namespace Nta::Network {
 struct GtpHeader;
 struct Packet;
+enum class LinkLayerProto : uint32_t;
 } // namespace Nta::Network
 
 namespace Nta::Network::Util {
-
+uint32_t GetPacketType(const Packet& p);
+LinkLayerProto GetL2Type(const Packet &p);
+LinkLayerProto GetL3Type(const Packet &p);
+LinkLayerProto GetL4Type(const Packet &p);
 uint16_t GetIpProtocol(const Packet &p);
 int8_t GetIpVersion(const Packet &p);
 bool IsGtpv1HdrExt(const GtpHeader *p);

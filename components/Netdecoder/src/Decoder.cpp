@@ -3,9 +3,12 @@
 #include <NetDecoder/PppOe/PPPoELayer.h>
 #include <NetDecoder/PppOe/PppTypes.h>
 #include <NetDecoder/PppOe/PppoeHeader.h>
-#include <linux/mpls.h>
+#include <algorithm>
+#include <array>
 
+#include "NetDecoder/EtherType.h"
 #include "NetDecoder/Gtp/GtpHeader.h"
+#include "NetDecoder/LinkLayer.h"
 #include "NetDecoder/PacketBase.h"
 #include "NetDecoder/Sctp/Sctp.h"
 #include "NetDecoder/Shift.h"
@@ -27,10 +30,20 @@ struct BytesCount {
     size_t m_CounterL5{0}; // Session layer(ADSP,ASP,SCP,SOCKS5...)
     size_t m_CounterL6{0}; // Presentation layer(VT,RDA,FTAM...)
     size_t m_CounterL7{0}; // Application layer(BitTorent,NFS,RTP,SMTP...)
+
+    void Reset() {
+        m_CounterL2 = 0;
+        m_CounterL3 = 0;
+        m_CounterL4 = 0;
+        m_CounterL5 = 0;
+        m_CounterL6 = 0;
+        m_CounterL7 = 0;
+    }
 };
 
 struct NetDecoder::Impl {
     BytesCount m_Bytes{};
+    OsiLevelArr m_OsiLevels{};
 };
 
 NetDecoder::ImplPointer::~ImplPointer() {}
@@ -42,6 +55,7 @@ bool NetDecoder::HandleEth(const uint8_t *&d, size_t &sz, Packet &packet) noexce
         return false;
 
     m_Impl->m_Bytes.m_CounterL2 += sizeof(ether_header);
+    GetOsiLayer<OsiLevel::Data>(m_Impl->m_OsiLevels).Reset().Set(LinkLayerProto::Eth);
     return true;
 }
 
@@ -52,13 +66,16 @@ bool NetDecoder::HandleVlan(const uint8_t *&d, size_t &sz, Packet &pkt, size_t &
     if (pkt.vlansTags.size() == 0)
         return false;
 
+    GetOsiLayer<OsiLevel::Data>(m_Impl->m_OsiLevels).Set(LinkLayerProto::Vlan);
+
     const uint8_t *tData = d;
 
     for (auto &tag : pkt.vlansTags) {
         if (!DecodeVlan(tData, sz, tag))
             break;
 
-        m_Impl->m_Bytes.m_CounterL2 += sizeof(vlan_tag);
+        m_Impl->m_Bytes.m_CounterL2 += sizeof(vlan_tag);        
+
         tData += m_Impl->m_Bytes.m_CounterL2;
 
         if (auto next = ntohs(tag->vlan_tci); next != ETHERTYPE_VLAN)
@@ -81,8 +98,8 @@ bool NetDecoder::HandlePPPoE(const uint8_t *&d, size_t &sz, Packet &packet) noex
         return false;
     }
 
-    if (uint16_t ppp_proto = htobe16(*(uint16_t *)layer.getLayerPayload());
-        ppp_proto == PCPP_PPP_IP || ppp_proto == PCPP_PPP_IPV6) {
+    uint16_t protoNext = htobe16(*(uint16_t *)layer.getLayerPayload());
+    if (protoNext == PCPP_PPP_IP || protoNext == PCPP_PPP_IPV6) {
         packet.pppoeHeader = layer.getPPPoEHeader();
     } else {
         shift_left(sz, layer.getLayerPayloadSize());
@@ -91,6 +108,7 @@ bool NetDecoder::HandlePPPoE(const uint8_t *&d, size_t &sz, Packet &packet) noex
 
     shift_left(sz, layer.getHeaderLen());
     m_Impl->m_Bytes.m_CounterL2 += layer.getHeaderLen();
+    GetOsiLayer<OsiLevel::Data>(m_Impl->m_OsiLevels).Set(LinkLayerProto::PPPoEs);
 
     return true;
 }
@@ -102,6 +120,11 @@ bool NetDecoder::HandleMpls(const uint8_t *&d, size_t &sz, Packet &packet, size_
     if (idx > (packet.mplsLabels.size() > 0 ? packet.mplsLabels.size() - 1 : 0))
         return false;
 
+    // Register protocol in layer
+    auto &curLayer = GetOsiLayer<OsiLevel::Data>(m_Impl->m_OsiLevels);
+    curLayer.Reset();
+    curLayer.Set(LinkLayerProto::Mpls);
+
     for (size_t dShift = 0;; dShift += sizeof(mpls_label), idx++) {
         if (sz < sizeof(mpls_label) || idx == packet.mplsLabels.size()) {
             return false;
@@ -111,12 +134,19 @@ bool NetDecoder::HandleMpls(const uint8_t *&d, size_t &sz, Packet &packet, size_
         if (mpls_label *lbl = (mpls_label *)(d + dShift);
             ((lbl->entry >> MPLS_LS_S_SHIFT) & MPLS_LS_S_MASK) == MPLS_LS_S_MASK) {
             dShift += sizeof(mpls_label);
-            dShift += 4; // PW Ethernet Control Word
+
+            // PW Ethernet Control Word (rfc4448 4.6.  The Control Word)
+            uint8_t isPw = *((uint8_t *)d + dShift) & 0xF0;
+            if (isPw == 0) {
+                dShift += 4;
+            }
+
             m_Impl->m_Bytes.m_CounterL2 += dShift;
+
             idx++;
             shift_left(sz, dShift);
             break;
-        }
+        }        
     }
 
     return true;
@@ -126,7 +156,7 @@ bool NetDecoder::HandleIp4(const uint8_t *&d, size_t &sz, Packet &packet) noexce
     if (!d)
         return false;
 
-    if (const uint8_t ipVersion = d[0] >> 4; ipVersion != 4) {        
+    if (const uint8_t ipVersion = d[0] >> 4; ipVersion != 4) {
         return false;
     }
 
@@ -134,6 +164,7 @@ bool NetDecoder::HandleIp4(const uint8_t *&d, size_t &sz, Packet &packet) noexce
         return false;
 
     m_Impl->m_Bytes.m_CounterL3 += sizeof(iphdr);
+    GetOsiLayer<OsiLevel::Network>(m_Impl->m_OsiLevels).Set(LinkLayerProto::Ip4);
 
     return true;
 }
@@ -142,7 +173,7 @@ bool NetDecoder::HandleIp6(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept 
     if (!d)
         return false;
 
-    if (const uint8_t ipVersion = d[0] >> 4; ipVersion != 6) {        
+    if (const uint8_t ipVersion = d[0] >> 4; ipVersion != 6) {
         return false;
     }
 
@@ -151,6 +182,7 @@ bool NetDecoder::HandleIp6(const uint8_t *&d, size_t &sz, Packet &pkt) noexcept 
         return false;
 
     m_Impl->m_Bytes.m_CounterL3 += sTmp - sz;
+    GetOsiLayer<OsiLevel::Network>(m_Impl->m_OsiLevels).Set(LinkLayerProto::Ip6);
 
     return true;
 }
@@ -161,7 +193,7 @@ bool NetDecoder::HandleTcp(const uint8_t *&d, size_t &sz, Packet &packet) noexce
     if (!DecodeTcp(d, sz, packet.tcpHeader))
         return false;
     m_Impl->m_Bytes.m_CounterL4 += packet.tcpHeader->doff * 4; // doff:4 i.e. count_doff's * 4;
-
+    GetOsiLayer<OsiLevel::Transport>(m_Impl->m_OsiLevels).Set(LinkLayerProto::Tcp);
     return true;
 }
 
@@ -172,6 +204,7 @@ bool NetDecoder::HandleUdp(const uint8_t *&d, size_t &sz, Packet &packet) noexce
     if (!DecodeUdp(d, sz, packet.udpHeader))
         return false;
     m_Impl->m_Bytes.m_CounterL4 += sizeof(udphdr);
+    GetOsiLayer<OsiLevel::Transport>(m_Impl->m_OsiLevels).Set(LinkLayerProto::Udp);
 
     if (const auto dLen = htobe16(packet.udpHeader->len); dLen >= sizeof(udphdr)) {
         m_Impl->m_Bytes.m_CounterL7 = dLen - sizeof(udphdr);
@@ -191,14 +224,16 @@ bool NetDecoder::HandleSctp(const uint8_t *&d, size_t &sz, Packet &packet) noexc
     if (!DecodeSctp(d, sz, packet.sctpHeader))
         return false;
     m_Impl->m_Bytes.m_CounterL4 += sizeof(SctpHdr);
+    GetOsiLayer<OsiLevel::Transport>(m_Impl->m_OsiLevels).Set(LinkLayerProto::Sctp);
     m_Impl->m_Bytes.m_CounterL7 += sz;
 
     return true;
 }
 
 ///\todo move it in segregated handler
-bool NetDecoder::HandleGtp(const uint8_t *&d, size_t &sz, const GtpHeader *& hdr) noexcept {
+bool NetDecoder::HandleGtp(const uint8_t *&d, size_t &sz, const GtpHeader *&hdr) noexcept {
     m_Impl->m_Bytes.m_CounterL7 = sz;
+    GetOsiLayer<OsiLevel::Transport>(m_Impl->m_OsiLevels).Set(LinkLayerProto::Gtp);
 
     if (!d)
         return false;
@@ -219,28 +254,28 @@ bool NetDecoder::HandleGtp(const uint8_t *&d, size_t &sz, const GtpHeader *& hdr
     return true;
 }
 
-bool NetDecoder::FullProcessing(const LinkLayer linkLayer, const uint8_t *&d, size_t &sz, Packet &packet) noexcept {
+bool NetDecoder::FullProcessing(const uint16_t linkLayer, const uint8_t *&d, size_t &sz, Packet &packet) noexcept {
     if (!d)
         return false;
 
     const uint8_t *tData = d + m_Impl->m_Bytes.m_CounterL2;
 
     switch (static_cast<uint16_t>(linkLayer)) {
-        case 0x4788: // MPLS
+        case ETHERTYPE_MPLS_SWP: // MPLS
             if (size_t idx = 0; !HandleMpls(tData, sz, packet, idx))
                 return false;
-            if (!FullProcessing(LinkLayer::Eth, d, sz, packet))
+            if (!FullProcessing(ETHER_HDR, d, sz, packet))
                 return false;
             break;
-        case 0x0081: // VLAN
-            if (size_t pos = 0; HandleVlan(tData, sz, packet, pos) &&
-                                FullProcessing(static_cast<LinkLayer>(packet.vlansTags[pos]->vlan_tci), d, sz, packet))
+        case ETHERTYPE_VLAN_SWP: // VLAN
+            if (size_t pos = 0;
+                HandleVlan(tData, sz, packet, pos) && FullProcessing(packet.vlansTags[pos]->vlan_tci, d, sz, packet))
                 return true;
             else
                 return false;
             break;
-        case 0x6488:   // PPPoE PPP Session Stage
-        case 0x6388: { // PPPoE Discovery Stage
+        case ETHERTYPE_PPPOES_SWP:   // PPPoE PPP Session Stage
+        case ETHERTYPE_PPPOED_SWP: { // PPPoE Discovery Stage
             if (!HandlePPPoE(tData, sz, packet))
                 return false;
             tData += sizeof(struct PppoeHeader);
@@ -254,11 +289,11 @@ bool NetDecoder::FullProcessing(const LinkLayer linkLayer, const uint8_t *&d, si
             }
             if (const auto *id = (const uint16_t *)tData; *id != 0x2100)
                 return false;
-            if (!FullProcessing(LinkLayer::Ip4, d, sz, packet))
+            if (!FullProcessing(ETHERTYPE_IP_SWP, d, sz, packet))
                 return false;
         } break;
         // https://techhub.hpe.com/eginfolib/networking/docs/switches/5120si/cg/5998-8489_l2-lan_cg/content/436042676.htm
-        case 0x0008: // IpV4
+        case ETHERTYPE_IP_SWP: // IpV4
             if (!HandleIp4(tData, sz, packet))
                 return false;
             if (Util::IsIp4Fragment(packet)) {
@@ -270,7 +305,7 @@ bool NetDecoder::FullProcessing(const LinkLayer linkLayer, const uint8_t *&d, si
             if (!ProcessTransportLayers(tData, sz, packet))
                 return false;
             break;
-        case 0xDD86: // Ipv6
+        case ETHERTYPE_IPV6_SWP: // Ipv6
             if (!HandleIp6(tData, sz, packet))
                 return false;
 
@@ -282,10 +317,10 @@ bool NetDecoder::FullProcessing(const LinkLayer linkLayer, const uint8_t *&d, si
                 return false;
             }
             break;
-        case 0x0000:
+        case ETHER_HDR:
             if (!HandleEth(tData, sz, packet))
                 return false;
-            if (!FullProcessing(static_cast<LinkLayer>(packet.ethHeader->ether_type), d, sz, packet))
+            if (!FullProcessing(packet.ethHeader->ether_type, d, sz, packet))
                 return false;
             break;
         default:
@@ -303,18 +338,22 @@ bool NetDecoder::ProcessTransportLayers(const uint8_t *&d, size_t &sz, Packet &p
     if (proto == IPPROTO_TCP) {
         if (!HandleTcp(d, sz, pkt))
             return false;
-        m_Impl->m_Bytes.m_CounterL7 = sz;        
+        m_Impl->m_Bytes.m_CounterL7 = sz;
+        GetOsiLayer<OsiLevel::Transport>(m_Impl->m_OsiLevels).Set(LinkLayerProto::Tcp);
         return true;
     } else if (proto == IPPROTO_UDP) {
         if (!HandleUdp(d, sz, pkt))
             return false;
         m_Impl->m_Bytes.m_CounterL7 = sz;
+        GetOsiLayer<OsiLevel::Transport>(m_Impl->m_OsiLevels).Set(LinkLayerProto::Udp);
         return true;
     } else if (proto == IPPROTO_ICMP) {
         pkt.icmpHeader = reinterpret_cast<const struct icmphdr *>(d);
 
         if (!ICMP_INFOTYPE(pkt.icmpHeader->type))
             return false;
+
+        GetOsiLayer<OsiLevel::Transport>(m_Impl->m_OsiLevels).Set(LinkLayerProto::Icmp);
 
         if (sz -= IcmpShift; sz) { // Create payload. Writes all after icmphdr
             pkt.payload.data = d + IcmpShift;
@@ -331,14 +370,17 @@ bool NetDecoder::ProcessTransportLayers(const uint8_t *&d, size_t &sz, Packet &p
     } else if (proto == IPPROTO_ICMPV6) {
         pkt.icmp6Header = reinterpret_cast<const struct icmp6_hdr *>(d);
 
-        if (sz < Icmp6Shift) return false;
+        if (sz < Icmp6Shift)
+            return false;
 
-        //ICMPv6 message in general format
+        GetOsiLayer<OsiLevel::Transport>(m_Impl->m_OsiLevels).Set(LinkLayerProto::Icmp);
+
+        // ICMPv6 message in general format
         sz -= Icmp6Shift;
         m_Impl->m_Bytes.m_CounterL4 = Icmp6Shift;
         m_Impl->m_Bytes.m_CounterL7 = sz;
 
-        //Message Body
+        // Message Body
         pkt.payload.data = d + Icmp6Shift;
         pkt.payload.size = sz;
         return true;
@@ -404,8 +446,9 @@ Result NetDecoder::HandleSctp(const uint8_t *&d, size_t &sz) noexcept {
     return std::make_tuple(ok, packet);
 }
 
-Result NetDecoder::FullProcessing(const LinkLayer linkLayer, const uint8_t *&d, size_t &sz) noexcept {
+Result NetDecoder::FullProcessing(const uint16_t linkLayer, const uint8_t *&d, size_t &sz) noexcept {
     Packet packet{};
+    ResetProtocolList(packet);
     bool ok = FullProcessing(linkLayer, d, sz, packet);
     return std::make_tuple(ok, packet);
 }
@@ -417,21 +460,28 @@ Result NetDecoder::ProcessTransportLayers(const uint8_t *&d, size_t &sz) noexcep
 }
 
 size_t NetDecoder::GetHandledBytesTotal() const noexcept {
-    return m_Impl->m_Bytes.m_CounterL2 + m_Impl->m_Bytes.m_CounterL3 + m_Impl->m_Bytes.m_CounterL4 + m_Impl->m_Bytes.m_CounterL5 + m_Impl->m_Bytes.m_CounterL6 +
-           m_Impl->m_Bytes.m_CounterL7;
+    return m_Impl->m_Bytes.m_CounterL2 + m_Impl->m_Bytes.m_CounterL3 + m_Impl->m_Bytes.m_CounterL4 +
+           m_Impl->m_Bytes.m_CounterL5 + m_Impl->m_Bytes.m_CounterL6 + m_Impl->m_Bytes.m_CounterL7;
 }
 
 size_t NetDecoder::GetHandledBytesL7() const noexcept {
     return m_Impl->m_Bytes.m_CounterL7;
 }
 
-void NetDecoder::ResetHandledBytes() const noexcept {
-    m_Impl->m_Bytes.m_CounterL2 = 0;
-    m_Impl->m_Bytes.m_CounterL3 = 0;
-    m_Impl->m_Bytes.m_CounterL4 = 0;
-    m_Impl->m_Bytes.m_CounterL5 = 0;
-    m_Impl->m_Bytes.m_CounterL6 = 0;
-    m_Impl->m_Bytes.m_CounterL7 = 0;
+void NetDecoder::ResetHandledBytes() noexcept {
+    m_Impl->m_Bytes.Reset();
+    ///\todo Reset layers
+}
+
+void NetDecoder::ResetProtocolList(Packet &packet) noexcept {
+    // Reset pointer
+    packet.protoList = nullptr;
+
+    // Reset previous packet data
+    std::for_each(std::begin(m_Impl->m_OsiLevels), std::end(m_Impl->m_OsiLevels), [](auto &level) { level.Reset(); });
+
+    // Set pointer to packet's protocol list
+    packet.protoList = &m_Impl->m_OsiLevels;
 }
 
 size_t NetDecoder::GetHandledBytesL6() const noexcept {

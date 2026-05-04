@@ -12,6 +12,7 @@
 
 #include <fcntl.h>
 #include <thread>
+#include <iostream>
 
 #include <thrift/TConfiguration.h>
 

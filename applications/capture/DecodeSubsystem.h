@@ -21,7 +21,7 @@ class DecodeSubsystem : public Poco::Util::Subsystem {
     bool Decode(const struct timeval time, const uint8_t *d, const size_t s);
     void SetLinkedSubSystem(CaptureSubsystem *);
     void SetLinkedSubSystem(TransportSubsystemBase *);
-    void SetLinkLayer(const LinkLayer &layer);
+    void SetLinkLayer(const uint16_t &layer);
 
     const char *name() const override;
 

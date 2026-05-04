@@ -8,6 +8,7 @@
 #include <Poco/Util/ServerApplication.h>
 #include <filesystem>
 #include <memory>
+#include <iostream>
 
 namespace Nta::Network {
 

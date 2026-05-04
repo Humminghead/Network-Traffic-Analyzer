@@ -84,13 +84,14 @@ bool HandlerPcap::SingleShot() {
             [](u_char *user, const pcap_pkthdr *pkth, const uint8_t *data) {
                 auto sniffer = reinterpret_cast<HandlerPcap *>(user);
 
-                if (auto &cb = sniffer->m_Impl->m_Callback; cb)
+                if (auto &cb = sniffer->m_Impl->m_Callback; cb) {
                     cb(
-                        timeval{
-                            pkth->ts.tv_sec,                //
-                            pkth->ts.tv_usec},              //
-                        data,                               //
-                        static_cast<size_t>(pkth->caplen)); //
+                        ::timeval{
+                            pkth->ts.tv_sec,                      //
+                            pkth->ts.tv_usec},                    //
+                        static_cast<const uint8_t *>(data),       //
+                        static_cast<const size_t>(pkth->caplen)); //
+                }
 
                 struct pcap_stat ps {};
                 pcap_stats(sniffer->m_Impl->m_PcapFdPtr, &ps);

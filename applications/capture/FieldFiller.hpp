@@ -231,4 +231,11 @@ template <> struct FieldFiller<Nta::Network::Payload, FlowModel> {
            m.m_Payload.SetValue({p.data, p.data + p.size});
        }
 };
+
+template <> struct FieldFiller<OsiLevelArr, FlowModel> {
+    static void Fill(const OsiLevelArr *, FlowModel &) {
+        return;
+    }
+};
+
 } // namespace Nta::Network

@@ -2,13 +2,14 @@
 
 #include <functional>
 #include <stdint.h>
+#include <bits/types/struct_timeval.h>
 
 namespace Nta::Network {
 
 enum class HandlerIfaces { Pcap, Unknown };
 
 struct HandlerAbstract {
-    using CallBackFunctionType = bool(const struct timeval, const uint8_t *, const size_t);
+    using CallBackFunctionType = bool(::timeval&&, const uint8_t *, const size_t);
 
     virtual ~HandlerAbstract() = default;
 
