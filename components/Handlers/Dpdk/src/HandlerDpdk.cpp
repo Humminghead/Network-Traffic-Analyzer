@@ -153,10 +153,10 @@ void HandlerDpdk::Open() {
     }
 
     // Setup the workers
-    for (const auto &worker : m_Impl->config.m_Workers) {
+    for (const auto &workerCfg : m_Impl->config.m_Workers) {
 
         // Get workers core id
-        auto coreId = worker.ealCore;
+        auto coreId = workerCfg.ealCore;
 
         if (!rte_lcore_is_enabled(coreId)) {
             throw std::runtime_error(
@@ -166,11 +166,11 @@ void HandlerDpdk::Open() {
         // Create temporary rules vector
         std::vector<RteAclLookupRule<FiveTupleIp4Defs.size()>> tupleFiveRteRulesIp4{};
 
-        if (worker.type == "acl") {
+        if (workerCfg.type == "acl") {
             tupleFiveRteRulesIp4.clear();
 
             // Process input_packet_classification array
-            for (const auto &cx : worker.packetCx) {
+            for (const auto &cx : workerCfg.packetCx) {
                 if (cx.type == "route") {
                     auto routeRules = CreateRteRules<FiveTupleIp4>(cx.tupleFiveIp4Rules, FiveTupleIp4Defs);
                     tupleFiveRteRulesIp4.insert(
@@ -198,7 +198,7 @@ void HandlerDpdk::Open() {
                         FiveTupleIp4Defs.size(),
                         8,
                         wCoreSockId,
-                        worker.type + "_tuple_five_ip4_worker_" + std::to_string(coreId));
+                        workerCfg.type + "_tuple_five_ip4_worker_" + std::to_string(coreId));
                     tupleFiveIp4Context->SetCfgDefs(FiveTupleIp4Defs);
                     tupleFiveIp4Context->SetNumCategories(1);                     ///\todo move in config
                     if (!tupleFiveIp4Context->SetClassify(RTE_ACL_CLASSIFY_AVX2)) ///\todo add in config
@@ -214,13 +214,13 @@ void HandlerDpdk::Open() {
                 // Add rules in context
                 tupleFiveIp4Context->AddRules(tupleFiveRteRulesIp4);
 
-                auto rxDevPtr = findDpdkDev(m_Impl->devices, worker.rxDevicePciAddr);
+                auto rxDevPtr = findDpdkDev(m_Impl->devices, workerCfg.rxDevicePciAddr);
                 if (!rxDevPtr)
-                    throw std::runtime_error("Device " + worker.rxDevicePciAddr + " doesn't exist!");
+                    throw std::runtime_error("Device " + workerCfg.rxDevicePciAddr + " doesn't exist!");
 
-                auto txDevPtr = findDpdkDev(m_Impl->devices, worker.txDevicePciAddr);
+                auto txDevPtr = findDpdkDev(m_Impl->devices, workerCfg.txDevicePciAddr);
                 if (!txDevPtr)
-                    throw std::runtime_error("Device " + worker.txDevicePciAddr + " doesn't exist!");
+                    throw std::runtime_error("Device " + workerCfg.txDevicePciAddr + " doesn't exist!");
 
                 // Try to find device's socket id
                 auto mpRxSockId = rxDevPtr->GetSocketId();
@@ -280,12 +280,12 @@ void HandlerDpdk::Open() {
                 auto workerAcl =
                     std::make_unique<WorkerAcl>(rxDevPtr, txDevPtr, tupleFiveIp4Context, coreId, worker.stopAtEmptyRx);
 
-                for (auto q : worker.rxQueuesIdxs) {
+                for (auto q : workerCfg.rxQueuesIdxs) {
                     rxDevPtr->SetupRxQueue(q);
                     workerAcl->SetQueueIdxRx(q);
                 }
 
-                for (auto q : worker.txQueuesIdxs) {
+                for (auto q : workerCfg.txQueuesIdxs) {
                     txDevPtr->SetupTxQueue(q);
                     workerAcl->SetQueueIdxTx(q);
                 }
@@ -296,10 +296,10 @@ void HandlerDpdk::Open() {
                 // Never throw
                 throw std::runtime_error("Unknown socket id: " + std::to_string(rte_lcore_to_socket_id(coreId)) + "!");
             }
-        } else if (worker.type == "dummy") {
+        } else if (workerCfg.type == "dummy") {
             m_Impl->workers.push_back(std::make_unique<Dummy>(coreId));
         } else {
-            throw std::runtime_error("Unsupported worker type: " + worker.type + "!");
+            throw std::runtime_error("Unsupported worker type: " + workerCfg.type + "!");
         }
     }
 
@@ -335,6 +335,7 @@ void HandlerDpdk::Close() {
     // #ifdef RTE_LIB_METRICS
     //     rte_metrics_deinit();
     // #endif
+    std::println("----------------->>Stoped");
 }
 
 void HandlerDpdk::SetCallback(std::function<CallBackFunctionType> &&f) {
@@ -345,7 +346,9 @@ auto HandlerDpdk::GetCallback() -> std::function<CallBackFunctionType> {
     return {};
 }
 bool HandlerDpdk::StartDpdkWorkerThreads(std::vector<DpdkWorkerPtr> &workerThreadsVec) {
-    auto f = [](void *arg) {
+    constexpr auto trampoline = [](void *arg) {
+        if(arg == nullptr)
+            return -1;
         auto self = reinterpret_cast<AbstractWorker *>(arg);
         return self->Run(nullptr);
     };
@@ -353,7 +356,8 @@ bool HandlerDpdk::StartDpdkWorkerThreads(std::vector<DpdkWorkerPtr> &workerThrea
     bool isOk{false};
 
     for (auto &worker : workerThreadsVec) {
-        isOk = rte_eal_remote_launch(f, worker.get(), worker->GetCoreId()) == 0;
+        auto ret = rte_eal_remote_launch(trampoline, worker.get(), worker->GetCoreId());
+        isOk = (ret == 0);
     }
     return isOk;
 }
