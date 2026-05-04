@@ -12,13 +12,12 @@ WorkerAcl::WorkerAcl(
     std::shared_ptr<DpdkDevice> rxDevice,
     std::shared_ptr<DpdkDevice> txDevice,
     std::shared_ptr<RteAclContext> context,
-    const bool stopAtEmptyRx,
     const uint32_t core,
     const uint16_t nbPkts)
     : m_RxDevice{rxDevice}, m_TxDevice{txDevice}, m_AclContext{context}, m_CoreId{core},
       m_PacketBuffers{RTE_MAX_LCORE, MbufArray{nbPkts, nullptr}},
       m_MatchPackets{RTE_MAX_LCORE, MbufArray{nbPkts, nullptr}}, m_AclDataPtrs{nbPkts, nullptr},
-      m_stopAtEmptyRx{stopAtEmptyRx} {
+      m_StopAtEmptyRx{false} {
     m_QueueIndicesRx.reserve(RTE_MAX_QUEUES_PER_PORT);
     m_QueueIndicesTx.reserve(RTE_MAX_QUEUES_PER_PORT);
 }
@@ -119,10 +118,10 @@ int WorkerAcl::Run(void*) {
                     }
                 }
             } else {
-                if (m_stopAtEmptyRx)
+                if (m_StopAtEmptyRx)
                     Stop();
             }
-        }
+        }        
     }
 
     // Close
@@ -160,5 +159,7 @@ void WorkerAcl::SetQueueIdxRx(const int &idx){
 void WorkerAcl::SetQueueIdxTx(const int &idx){
     m_QueueIndicesTx.push_back(idx);
 }
+
+void WorkerAcl::StopAtEmptyRxEnable(const bool enable) noexcept { m_StopAtEmptyRx = enable; }
 
 } // namespace Nta::Network
