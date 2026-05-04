@@ -22,13 +22,13 @@ class DpdkDevice : public Device::AbstractDevice {
      * \brief SetupRxQueue
      * \param queueId
      */
-    auto SetupRxQueue(const uint16_t queueId) -> void override;
+    auto SetupRxQueue(const uint16_t queueId) -> void;
 
     /*!
      * \brief SetupTxQueue
      * \param queueId
      */
-    auto SetupTxQueue(const uint16_t queueId) -> void override;
+    auto SetupTxQueue(const uint16_t queueId) -> void;
 
     /*!
      * \brief Open the device

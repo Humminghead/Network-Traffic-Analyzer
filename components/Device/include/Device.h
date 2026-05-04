@@ -23,8 +23,8 @@ class AbstractDevice {
     AbstractDevice &operator=(const AbstractDevice &) = delete;
     AbstractDevice(const AbstractDevice &) = delete;
 
-    virtual void SetupRxQueue(const uint16_t queueId) = 0;
-    virtual void SetupTxQueue(const uint16_t queueId) = 0;
+    // virtual void SetupRxQueue(const uint16_t queueId) = 0;
+    // virtual void SetupTxQueue(const uint16_t queueId) = 0;
     virtual void Open() = 0;
     virtual void Close() = 0;
     virtual bool IsOpen() const = 0;
