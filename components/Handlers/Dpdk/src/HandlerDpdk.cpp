@@ -336,8 +336,7 @@ void HandlerDpdk::Close() {
     StopDpdkWorkerThreads();
     // #ifdef RTE_LIB_METRICS
     //     rte_metrics_deinit();
-    // #endif
-    std::println("----------------->>Stoped");
+    // #endif    
 }
 
 void HandlerDpdk::SetCallback(std::function<CallBackFunctionType> &&f) {
