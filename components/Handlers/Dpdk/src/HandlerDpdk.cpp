@@ -324,12 +324,7 @@ void HandlerDpdk::Open() {
                     ctxIp6->Build();
                 }
             });
-    }
-
-    // Start capture in async mode
-    if (!StartDpdkWorkerThreads(m_Impl->workers)) {
-        throw std::runtime_error("Couldn't start worker threads!");
-    }
+    }   
 }
 
 void HandlerDpdk::Close() {
@@ -391,7 +386,13 @@ void HandlerDpdk::StopDpdkWorkerThreads() {
 }
 
 void HandlerDpdk::Loop() {
-    auto lcoreId = RTE_MAX_LCORE;
+    // Start capture in async mode
+    if (!StartDpdkWorkerThreads(m_Impl->workers)) {
+        throw std::runtime_error("Couldn't start worker threads!");
+    }
+
+    // Wait for threads
+    auto lcoreId{RTE_MAX_LCORE};
     RTE_LCORE_FOREACH_WORKER(lcoreId) {
         if (rte_eal_wait_lcore(lcoreId) < 0)
             return;
