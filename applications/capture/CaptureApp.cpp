@@ -3,58 +3,10 @@
 #include "Util/Filesystem.h"
 #include "Util/Misc.h"
 #include <csignal>
-#include <functional>
 #include <iostream>
 #include <print>
 
 namespace Nta::Network {
-
-namespace SigHandler {
-
-class Storage {
-  private:
-    using func_t = std::function<int(int)>;
-
-    template <typename F> using is_function = std::enable_if<std::is_function_v<std::remove_reference_t<F>>>;
-
-    std::vector<func_t> m_StopFunctions{};
-
-  public:
-    constexpr auto operator()(int signal) -> void {
-        for (auto &f : m_StopFunctions) {
-            f(signal);
-        }
-    };
-
-    template <typename... F, is_function<F>...> constexpr Storage(F &&...f) {
-        (m_StopFunctions.push_back(func_t{std::move(f)}), ...);
-    }
-
-    template <typename... F, is_function<F>...> constexpr auto Add(F &&...f) {
-        return (m_StopFunctions.push_back(func_t{std::move(f)}), ...);
-    }
-};
-
-namespace {
-thread_local static std::unique_ptr<Storage> storage;
-}
-
-template <class T> static constexpr auto Add(T &&f) {
-    if (storage == nullptr) {
-        storage = std::make_unique<Storage>(std::move(f));
-        return;
-    }
-    storage->Add(std::move(f));
-}
-
-static auto HandlerFunc(int s) {
-    if (!storage)
-        return;
-
-    (*storage)(s);
-}
-
-} // namespace SigHandler
 
 auto stopWarn = [](int sig) {
     std::println("{}: stopped because signal {} has been catched!", "APP", sig);
@@ -68,7 +20,7 @@ CaptureApp::CaptureApp()
       m_Decode{std::make_unique<DecodeSubsystem>(m_Configure.get())},      //
       m_Transport{std::make_unique<TransportSubsystem>(m_Configure.get())} //
 {
-    SigHandler::Add([this](int signal) {
+    Util::PosixSignal::AddHandler([this](int signal) {
         stopWarn(signal);
         return this->Stop();
     });
@@ -86,12 +38,10 @@ CaptureApp::~CaptureApp() {
 }
 
 int CaptureApp::main(const std::vector<std::string> &args) {
-    std::signal(SIGINT, SigHandler::HandlerFunc);
-    std::signal(SIGTERM, SigHandler::HandlerFunc);
-    std::signal(SIGQUIT, SigHandler::HandlerFunc);
-    std::signal(SIGABRT, SigHandler::HandlerFunc);
-    std::signal(SIGHUP, SigHandler::HandlerFunc);
-    std::signal(SIGKILL, SigHandler::HandlerFunc);
+    // Intercept signals
+    std::signal(SIGINT, Util::PosixSignal::SyncHandler);
+    std::signal(SIGTERM, Util::PosixSignal::SyncHandler);
+    std::signal(SIGQUIT, Util::PosixSignal::SyncHandler);
 
     if (m_HelpRequested || m_ConfigPath.empty()) {
         DisplayHelp();
