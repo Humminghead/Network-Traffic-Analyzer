@@ -6,6 +6,7 @@
 #include <memory>
 #include <mutex>
 #include <stdexcept>
+#include <thread>
 
 namespace Poco::Util {
 class Application;
@@ -71,10 +72,13 @@ class Storage {
      * \param signal
      */
     void CallAll(int signal) {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        for (auto &f : m_funcs) {
-            if (f)
-                f(signal); // return value ignored
+        if (auto lock = std::unique_lock<decltype(m_mutex)>(m_mutex, std::try_to_lock); !lock) {
+            return;
+        } else {
+            for (auto &f : m_funcs) {
+                if (f)
+                    f(signal); // return value ignored
+            }
         }
     }
 
@@ -87,55 +91,58 @@ class Storage {
 // Global state (process‑wide) – an atomic flag and a pointer to the storage
 // -----------------------------------------------------------------------------
 namespace Detail {
-inline std::atomic<int> g_pendingSignal{0};
-inline std::unique_ptr<Storage> g_storage; // process‑wide, not thread‑local
-inline std::mutex g_storageMutex;          // protects creation of g_storage
+inline std::atomic<int> g_PendingSignal{0};
+inline std::atomic<int> g_TerminateFlag{0};
+inline std::unique_ptr<Storage> g_Storage; // process‑wide, not thread‑local
+inline std::mutex g_StorageMutex;          // protects creation of g_storage
 } // namespace Detail
 
 // Add one or more callbacks to the global storage.
 // Safe to call from multiple threads before or after setting up the signal handler.
 template <typename... F> void AddHandler(F &&...f) {
     // Lazy initialisation of the global storage – mutex‑protected.
-    std::lock_guard<std::mutex> lock(Detail::g_storageMutex);
+    std::lock_guard<std::mutex> lock(Detail::g_StorageMutex);
 
-    if (!Detail::g_storage) {
-        Detail::g_storage = std::make_unique<Storage>();
+    if (!Detail::g_Storage) {
+        Detail::g_Storage = std::make_unique<Storage>();
     }
 
-    Detail::g_storage->Add(std::forward<F>(f)...);
+    Detail::g_Storage->Add(std::forward<F>(f)...);
 }
 
 // Signal handler – async‑signal‑safe because it only writes to an atomic.
 // Install it with std::signal() or sigaction().
 inline void AsyncHandler(int signal) {
-    Detail::g_pendingSignal.store(signal, std::memory_order_relaxed);
-}
-
-// Signal handler – non async, unsafe
-inline void SyncHandler(int signal) {
-    if (Detail::g_storage) {
-        Detail::g_storage->CallAll(signal);
-    }
+    Detail::g_PendingSignal.store(signal, std::memory_order_relaxed);
 }
 
 // Call this from your main loop (normal context) to process any pending signals.
 // Returns true if a signal was processed, false otherwise.
 inline bool AsyncProcess() {
-    int sig = Detail::g_pendingSignal.exchange(0, std::memory_order_relaxed);
+    int sig = Detail::g_PendingSignal.exchange(0, std::memory_order_relaxed);
 
     if (sig == 0)
         return false;
 
-    if (Detail::g_storage) {
-        Detail::g_storage->CallAll(sig);
+    if (Detail::g_Storage) {
+        Detail::g_Storage->CallAll(sig);
     }
     return true;
 }
 
 // Wait for the moment when the signal will be caught
 inline auto AsyncWait() {
-    while (!AsyncProcess()) {
+    while (!Detail::g_TerminateFlag && !AsyncProcess()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
+
+    // Process any signal that arrived before termination
+    while (AsyncProcess()) {
+    }
+}
+
+inline auto Terminate(){
+    Detail::g_TerminateFlag.store(1);
 }
 
 } // namespace PosixSignal
