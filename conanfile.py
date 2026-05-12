@@ -30,6 +30,5 @@ class NetworkAnalyzer(ConanFile):
         cmake.configure()
         cmake.build()
 
-    def configure(self):
-        self.options["pcapplusplus"].with_dpdk = True        
+    def configure(self):       
         self.options["boost"].without_cobalt = True
