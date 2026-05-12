@@ -36,7 +36,7 @@ class CaptureApp : public Poco::Util::ServerApplication {
 
     int Run();
 
-    int Stop();
+    int Stop() noexcept;
 
     void initialize(Application& self) override;
 };

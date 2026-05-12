@@ -3,6 +3,7 @@
 #include "Util/Filesystem.h"
 #include "Util/Misc.h"
 #include <csignal>
+#include <future>
 #include <iostream>
 #include <print>
 
@@ -39,9 +40,9 @@ CaptureApp::~CaptureApp() {
 
 int CaptureApp::main(const std::vector<std::string> &args) {
     // Intercept signals
-    std::signal(SIGINT, Util::PosixSignal::SyncHandler);
-    std::signal(SIGTERM, Util::PosixSignal::SyncHandler);
-    std::signal(SIGQUIT, Util::PosixSignal::SyncHandler);
+    std::signal(SIGINT, Util::PosixSignal::AsyncHandler);
+    std::signal(SIGTERM, Util::PosixSignal::AsyncHandler);
+    std::signal(SIGQUIT, Util::PosixSignal::AsyncHandler);
 
     if (m_HelpRequested || m_ConfigPath.empty()) {
         DisplayHelp();
@@ -87,25 +88,43 @@ void CaptureApp::DisplayHelp() {
 }
 
 int CaptureApp::Run() {
+    constexpr auto waitInterval = std::chrono::seconds{1};
+    int exitCode = Application::ExitCode::EXIT_OK;
+
+    // Stick to core main thread
     if (m_AppCore >= 0)
         Util::Thread::Stick2Core(m_AppCore);
+
+    // Create task for monitoring the system signals
+    auto task = std::async(std::launch::async, [&] {
+        if (m_AppCore >= 0) // Stick it to the same core
+            Util::Thread::Stick2Core(m_AppCore);
+        // Wait an event
+        Util::PosixSignal::AsyncWait();
+    });
 
     try {
         m_Capture->GetHandler()->Open();
         m_Capture->GetHandler()->Loop();
     } catch (const std::exception &e) {
+        // Emergency app stop
         Stop();
+        Util::PosixSignal::Terminate();
+        task.wait_for(waitInterval);
         ///\todo LOG
         std::cerr << e.what() << std::endl;
-        return Application::EXIT_SOFTWARE;
+        exitCode = Application::EXIT_SOFTWARE;
+        return exitCode;
     }
 
-    Stop();
-
-    return Application::EXIT_OK;
+    // Normal app stop
+    exitCode = Stop();
+    Util::PosixSignal::Terminate();
+    task.wait_for(waitInterval);
+    return exitCode;
 }
 
-int CaptureApp::Stop() {
+int CaptureApp::Stop() noexcept {
     try {
         m_Capture->GetHandler()->Close();
     } catch (const std::exception &e) {
