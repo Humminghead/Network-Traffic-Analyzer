@@ -3,6 +3,7 @@
 #include "NetDecoder/EtherType.h"
 #include <NetDecoder/PacketBase.h>
 #include <NetDecoder/Util/Packet.h>
+#include <algorithm>
 #include <rte_ethdev.h>
 
 namespace Nta::Network {
