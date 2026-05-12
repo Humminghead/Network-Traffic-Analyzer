@@ -1,6 +1,7 @@
 #pragma once
 
 #include <nlohmann/json.hpp>
+#include <string>
 
 namespace Nta::Util::Json {
 template <typename ValueType> auto GetTo(const std::string &name, const nlohmann::json &j) noexcept -> ValueType {

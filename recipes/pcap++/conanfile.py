@@ -15,12 +15,10 @@ class PcapPlusPlusConan(ConanFile):
     options = {
         "shared": [True, False],
         "fPIC": [True, False],
-        "with_dpdk": [True, False],
     }
     default_options = {
         "shared": False,
         "fPIC": True,
-        "with_dpdk": True,
     }
     generators = "CMakeDeps"
 
@@ -41,7 +39,9 @@ class PcapPlusPlusConan(ConanFile):
             strip_root=True, destination=self.source_folder)        
 
     def generate(self):
-        tc = CMakeToolchain(self)       
+        tc = CMakeToolchain(self)
+        tc.variables["PCAPPP_BUILD_TESTS"] = False 
+        tc.variables["PCAPPP_BUILD_EXAMPLES"] = False
         tc.generate()
 
     def build(self):

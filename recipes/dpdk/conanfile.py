@@ -26,6 +26,7 @@ class DPDKConan(ConanFile):
         "mbuf_refcnt_atomic": True,
         "enable_stdatomic": False,
     }
+    no_copy_source = True 
     generators = "PkgConfigDeps"
 
     def layout(self):
@@ -47,6 +48,11 @@ class DPDKConan(ConanFile):
         tc.project_options["enable_docs"] = self.options.enable_docs
         tc.project_options["mbuf_refcnt_atomic"] = self.options.mbuf_refcnt_atomic
         tc.project_options["enable_stdatomic"] = self.options.enable_stdatomic
+        tc.project_options["disable_apps"] = (
+        "dumpcap,graph,pdump,proc-info,"
+        "test-acl,test-bbdev,test-cmdline,test-compress-perf,test-crypto-perf,"
+        "test-dma-perf,test-eventdev,test-fib,test-flow-perf,test-gpudev,"
+        "test-mldev,test-pipeline,test-pmd,test-regex,test-sad,test-security-perf")
         tc.generate()
 
     def build(self):
@@ -67,7 +73,7 @@ class DPDKConan(ConanFile):
     def package_info(self):
         # Only the necessary libraries for project were added
         # Same libs as in {build_path}/generators/dpdk-{build_type}-x86_64-data.cmake
-        self.cpp_info.libs = ["rte_ethdev","rte_mbuf","rte_eal","rte_telemetry","rte_argparse","rte_kvargs","rte_log","rte_acl","rte_stack","rte_mempool","rte_mempool_bucket","rte_mempool_ring","rte_mempool_stack","rte_net","rte_bus_vdev","librte_net_pcap", "rte_ring"]                    
+        self.cpp_info.libs = ["rte_ethdev","rte_mbuf","rte_eal","rte_telemetry","rte_argparse","rte_kvargs","rte_log","rte_acl","rte_stack","rte_mempool","rte_mempool_bucket","rte_mempool_ring","rte_mempool_stack","rte_net","rte_bus_vdev","rte_net_pcap", "rte_ring"]                    
         self.cpp_info.includedirs = ["include"]
         self.cpp_info.libdirs = ["lib"]
         self.buildenv_info.define_path(

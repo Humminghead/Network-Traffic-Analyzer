@@ -8,11 +8,12 @@ project(NtaHandlerDpdk LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# PcapPlusPlus
-find_package(PcapPlusPlus REQUIRED)
-
 # Nlohmann
 find_package(nlohmann_json REQUIRED)
+
+if(NOT nlohmann_json_FOUND)
+  message(FATAL_ERROR "${PROJECT_NAME}: nlohmann_json library not found!")
+endif()
 
 # DPDK
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
@@ -29,9 +30,6 @@ target_link_libraries(
           NtaNetDecoder
           NtaDevice
           nlohmann_json::nlohmann_json
-          pcapplusplus::pcapplusplus
-          -lbsd
-          -lelf
           -lnuma
           -Wl,--whole-archive
           dpdk::dpdk
@@ -39,7 +37,6 @@ target_link_libraries(
 
 target_include_directories(
   ${PROJECT_NAME}
-  PRIVATE ${PcapPlusPlus_INCLUDE_DIR}
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
          $<INSTALL_INTERFACE:include/${PROJECT_NAME}>)
 
