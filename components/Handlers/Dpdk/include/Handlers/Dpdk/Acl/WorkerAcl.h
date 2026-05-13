@@ -39,12 +39,14 @@ class WorkerAcl : public AbstractWorker {
     std::vector<int> m_QueueIndicesTx{};
     RuntimeVariable m_Rv{};
     bool m_StopAtEmptyRx{false};
+    uint16_t m_LinkLayer{};
 
   public:
     WorkerAcl(
         std::shared_ptr<DpdkDevice> rxDevice,
         std::shared_ptr<DpdkDevice> txDevice,
-        std::shared_ptr<RteAclContext> context,        
+        std::shared_ptr<RteAclContext> context,
+        const uint16_t linkLayer = 0, // ETHER_HDR
         const uint32_t core = RTE_MAX_LCORE,
         const uint16_t nbPkts = 64);
 
