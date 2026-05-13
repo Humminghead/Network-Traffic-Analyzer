@@ -10,6 +10,7 @@
 #include "Handlers/Dpdk/RteMemPool.h"
 #include "Handlers/Dpdk/RteSocket.h"
 #include "Handlers/Dpdk/RuleMaker.h"
+#include "NetDecoder/EtherType.h"
 
 // dpdk
 #include <rte_ethdev.h>
@@ -24,6 +25,15 @@
 namespace Nta::Network {
 
 using DpdkDeviceList = std::list<std::shared_ptr<DpdkDevice>>;
+
+static const std::unordered_map<std::string_view, uint16_t> EthertypePairs{
+    {"eth", ETHER_HDR},
+    {"vlan", ETHERTYPE_VLAN_SWP},
+    {"ip", ETHERTYPE_IP_SWP},
+    {"ipv6", ETHERTYPE_IPV6_SWP},
+    {"mpls", ETHERTYPE_MPLS_SWP},
+    {"ppoed", ETHERTYPE_PPPOED_SWP},
+    {"ppoes", ETHERTYPE_PPPOES_SWP}};
 
 auto printSockWarn = [](auto dev, auto id) {
     std::println(
@@ -277,9 +287,10 @@ void HandlerDpdk::Open() {
                 txDevPtr->Configure();
 
                 // Create worker
+                auto linkLayer =
+                    EthertypePairs.contains(workerCfg.linkLayer) ? EthertypePairs.at(workerCfg.linkLayer) : 0;
                 auto workerAcl =
-                    std::make_unique<WorkerAcl>(rxDevPtr, txDevPtr, tupleFiveIp4Context, coreId);
-
+                    std::make_unique<WorkerAcl>(rxDevPtr, txDevPtr, tupleFiveIp4Context, linkLayer, coreId);
                 workerAcl->StopAtEmptyRxEnable(workerCfg.stopAtEmptyRx);
 
                 for (auto q : workerCfg.rxQueuesIdxs) {
@@ -324,14 +335,14 @@ void HandlerDpdk::Open() {
                     ctxIp6->Build();
                 }
             });
-    }   
+    }
 }
 
 void HandlerDpdk::Close() {
     StopDpdkWorkerThreads();
     // #ifdef RTE_LIB_METRICS
     //     rte_metrics_deinit();
-    // #endif    
+    // #endif
 }
 
 void HandlerDpdk::SetCallback(std::function<CallBackFunctionType> &&f) {
@@ -343,7 +354,7 @@ auto HandlerDpdk::GetCallback() -> std::function<CallBackFunctionType> {
 }
 bool HandlerDpdk::StartDpdkWorkerThreads(std::vector<DpdkWorkerPtr> &workerThreadsVec) {
     constexpr auto trampoline = [](void *arg) {
-        if(arg == nullptr)
+        if (arg == nullptr)
             return -1;
         auto self = reinterpret_cast<AbstractWorker *>(arg);
         return self->Run(nullptr);
