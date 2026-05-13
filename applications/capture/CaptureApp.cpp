@@ -96,7 +96,7 @@ int CaptureApp::Run() {
         Util::Thread::Stick2Core(m_AppCore);
 
     // Create task for monitoring the system signals
-    auto task = std::async(std::launch::async, [&] {
+    auto sigMonTask = std::async(std::launch::async, [&] {
         if (m_AppCore >= 0) // Stick it to the same core
             Util::Thread::Stick2Core(m_AppCore);
         // Wait an event
@@ -110,7 +110,7 @@ int CaptureApp::Run() {
         // Emergency app stop
         Stop();
         Util::PosixSignal::Terminate();
-        task.wait_for(waitInterval);
+        sigMonTask.wait_for(waitInterval);
         ///\todo LOG
         std::cerr << e.what() << std::endl;
         exitCode = Application::EXIT_SOFTWARE;
@@ -120,7 +120,7 @@ int CaptureApp::Run() {
     // Normal app stop
     exitCode = Stop();
     Util::PosixSignal::Terminate();
-    task.wait_for(waitInterval);
+    sigMonTask.wait_for(waitInterval);
     return exitCode;
 }
 
