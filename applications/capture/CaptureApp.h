@@ -8,7 +8,6 @@
 #include <Poco/Util/ServerApplication.h>
 #include <filesystem>
 #include <memory>
-#include <iostream>
 
 namespace Nta::Network {
 
@@ -36,6 +35,8 @@ class CaptureApp : public Poco::Util::ServerApplication {
     void DisplayHelp();
 
     int Run();
+
+    int Stop() noexcept;
 
     void initialize(Application& self) override;
 };
