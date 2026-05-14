@@ -288,10 +288,13 @@ void HandlerDpdk::Open() {
 
                 // Create worker
                 auto linkLayer =
-                    EthertypePairs.contains(workerCfg.linkLayer) ? EthertypePairs.at(workerCfg.linkLayer) : 0;
+                    EthertypePairs.contains(workerCfg.linkLayer) ? EthertypePairs.at(workerCfg.linkLayer) : ETHER_HDR;
                 auto workerAcl =
                     std::make_unique<WorkerAcl>(rxDevPtr, txDevPtr, tupleFiveIp4Context, linkLayer, coreId);
                 workerAcl->StopAtEmptyRxEnable(workerCfg.stopAtEmptyRx);
+
+                std::println(
+                    "{}: link layer: {} is set for worker at core: {}.", "APP", linkLayer, workerAcl->GetCoreId());
 
                 for (auto q : workerCfg.rxQueuesIdxs) {
                     rxDevPtr->SetupRxQueue(q);
