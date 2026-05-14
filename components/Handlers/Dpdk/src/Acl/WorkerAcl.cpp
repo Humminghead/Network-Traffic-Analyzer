@@ -1,29 +1,11 @@
 #include "Handlers/Dpdk/Acl/WorkerAcl.h"
 #include "Handlers/Dpdk/Acl/Util/Offset.h"
-#include "NetDecoder/EtherType.h"
 #include <NetDecoder/PacketBase.h>
 #include <NetDecoder/Util/Packet.h>
 #include <algorithm>
 #include <rte_ethdev.h>
 
 namespace Nta::Network {
-
-struct OsiLevelChecker {
-    constexpr static std::array<uint16_t, 7> m_OsiLevTypes{
-        ETHERTYPE_VLAN_SWP,
-        ETHERTYPE_IP_SWP,
-        ETHERTYPE_IPV6_SWP,
-        ETHERTYPE_MPLS_SWP,
-        ETHERTYPE_PPPOES_SWP,
-        ETHERTYPE_PPPOED_SWP,
-        ETHER_HDR};
-
-    /*!
-     * \brief Checks whether is 'level' is one of OSI level types.
-     * \param level
-     */
-    constexpr static auto Check(const uint16_t level) { return std::ranges::contains(m_OsiLevTypes, level); }
-};
 
 WorkerAcl::WorkerAcl(
     std::shared_ptr<DpdkDevice> rxDevice,
@@ -35,7 +17,7 @@ WorkerAcl::WorkerAcl(
     : m_RxDevice{rxDevice}, m_TxDevice{txDevice}, m_AclContext{context}, m_CoreId{core},
       m_PacketBuffers{RTE_MAX_LCORE, MbufArray{nbPkts, nullptr}},
       m_MatchPackets{RTE_MAX_LCORE, MbufArray{nbPkts, nullptr}}, m_AclDataPtrs{nbPkts, nullptr}, m_StopAtEmptyRx{false},
-      m_LinkLayer{OsiLevelChecker::Check(linkLayer) ? linkLayer : ETHER_HDR} {
+      m_LinkLayer{linkLayer} {
     m_QueueIndicesRx.reserve(RTE_MAX_QUEUES_PER_PORT);
     m_QueueIndicesTx.reserve(RTE_MAX_QUEUES_PER_PORT);
 }
