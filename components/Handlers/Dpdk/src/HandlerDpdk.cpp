@@ -13,6 +13,7 @@
 #include "NetDecoder/EtherType.h"
 
 // dpdk
+#include <iostream>
 #include <rte_ethdev.h>
 #include <rte_metrics.h>
 
@@ -34,6 +35,29 @@ static const std::unordered_map<std::string_view, uint16_t> EthertypePairs{
     {"mpls", ETHERTYPE_MPLS_SWP},
     {"ppoed", ETHERTYPE_PPPOED_SWP},
     {"ppoes", ETHERTYPE_PPPOES_SWP}};
+
+auto RegexWordSearch = [](const std::string &regex, const std::string &line) {
+    return std::regex_search(line, std::regex(regex));
+};
+
+auto IsValidLinkLayer = [](const std::string &linkLayer) -> std::pair<std::string_view, bool> {
+    for (const auto &elem : EthertypePairs) {
+        auto regex = std::string{"^"}.append(elem.first);
+        if (RegexWordSearch(regex, linkLayer))
+            return {elem.first, true};
+    }
+    return {{}, false};
+};
+
+auto GetLinkLayer = [](const Json::Objects::Worker &cfg) {
+    // Create worker
+    if (auto [name, valid] = IsValidLinkLayer(cfg.linkLayer); !valid) {
+        std::println(std::cerr, "{}: link layer: \"{}\" invalid!", "APP", cfg.linkLayer);
+    } else {
+        return EthertypePairs.at(name);
+    }
+    return ETHER_HDR;
+};
 
 auto printSockWarn = [](auto dev, auto id) {
     std::println(
@@ -287,8 +311,8 @@ void HandlerDpdk::Open() {
                 txDevPtr->Configure();
 
                 // Create worker
-                auto linkLayer =
-                    EthertypePairs.contains(workerCfg.linkLayer) ? EthertypePairs.at(workerCfg.linkLayer) : ETHER_HDR;
+                auto linkLayer = GetLinkLayer(workerCfg);
+
                 auto workerAcl =
                     std::make_unique<WorkerAcl>(rxDevPtr, txDevPtr, tupleFiveIp4Context, linkLayer, coreId);
                 workerAcl->StopAtEmptyRxEnable(workerCfg.stopAtEmptyRx);
