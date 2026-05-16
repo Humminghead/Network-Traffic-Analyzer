@@ -40,7 +40,7 @@ CaptureApp::~CaptureApp() {
 
 int CaptureApp::main(const std::vector<std::string> &args) {
     // Intercept signals
-    std::signal(SIGINT, Util::PosixSignal::AsyncHandler);
+    std::signal(SIGINT, Util::PosixSignal::AsyncHandler); // CTRL+C
     std::signal(SIGTERM, Util::PosixSignal::AsyncHandler);
     std::signal(SIGQUIT, Util::PosixSignal::AsyncHandler);
 
