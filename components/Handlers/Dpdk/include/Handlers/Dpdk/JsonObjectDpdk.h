@@ -139,6 +139,7 @@ struct WorkerQueueRange {
 //-----------------------------------------------------------------------------------
 struct Worker {
     std::string type{};
+    std::string linkLayer{"eth"};
     int ealCore{-1};
     bool stopAtEmptyRx{false};
     std::string rxDevicePciAddr{};
@@ -161,6 +162,12 @@ struct Worker {
     Util::Json::GetTo(j, "tx_device", p.txDevicePciAddr);
     Util::Json::GetTo(j, "rx_queues_idxs", p.rxQueuesIdxs);
     Util::Json::GetTo(j, "tx_queues_idxs", p.txQueuesIdxs);
+    Util::Json::GetTo(j, "link_layer", p.linkLayer);
+    std::transform( // to lower conversion
+        std::begin(p.linkLayer),
+        std::end(p.linkLayer),
+        std::begin(p.linkLayer),
+        [](auto c) { return std::tolower(c); });
     Util::Json::GetTo(j, "input_packet_classification", p.packetCx);
     Util::Json::GetTo(j, "stop_at_empty_rx", p.stopAtEmptyRx);
 }

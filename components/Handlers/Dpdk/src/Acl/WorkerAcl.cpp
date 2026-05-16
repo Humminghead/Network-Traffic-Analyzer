@@ -1,6 +1,5 @@
 #include "Handlers/Dpdk/Acl/WorkerAcl.h"
 #include "Handlers/Dpdk/Acl/Util/Offset.h"
-#include "NetDecoder/EtherType.h"
 #include <NetDecoder/PacketBase.h>
 #include <NetDecoder/Util/Packet.h>
 #include <algorithm>
@@ -12,19 +11,20 @@ WorkerAcl::WorkerAcl(
     std::shared_ptr<DpdkDevice> rxDevice,
     std::shared_ptr<DpdkDevice> txDevice,
     std::shared_ptr<RteAclContext> context,
+    const uint16_t linkLayer,
     const uint32_t core,
     const uint16_t nbPkts)
     : m_RxDevice{rxDevice}, m_TxDevice{txDevice}, m_AclContext{context}, m_CoreId{core},
       m_PacketBuffers{RTE_MAX_LCORE, MbufArray{nbPkts, nullptr}},
-      m_MatchPackets{RTE_MAX_LCORE, MbufArray{nbPkts, nullptr}}, m_AclDataPtrs{nbPkts, nullptr},
-      m_StopAtEmptyRx{false} {
+      m_MatchPackets{RTE_MAX_LCORE, MbufArray{nbPkts, nullptr}}, m_AclDataPtrs{nbPkts, nullptr}, m_StopAtEmptyRx{false},
+      m_LinkLayer{linkLayer} {
     m_QueueIndicesRx.reserve(RTE_MAX_QUEUES_PER_PORT);
     m_QueueIndicesTx.reserve(RTE_MAX_QUEUES_PER_PORT);
 }
 
-int WorkerAcl::Run(void*) {
+int WorkerAcl::Run(void *) {
     if (!m_RxDevice)
-        return false;    
+        return false;
 
     if (m_QueueIndicesRx.empty()) {
         for (auto n = 0; n < m_RxDevice->GetTotalNumOfRxQueues(); n++) {
@@ -47,14 +47,14 @@ int WorkerAcl::Run(void*) {
 
     // Get packet buffer
     MbufArray pktBuf = m_PacketBuffers.at(m_CoreId);
-    if(pktBuf.size()==0)
-        throw std::runtime_error("ACL: The number of packets actually retrieved is 0 for core: " + std::to_string(m_CoreId));
+    if (pktBuf.size() == 0)
+        throw std::runtime_error(
+            "ACL: The number of packets actually retrieved is 0 for core: " + std::to_string(m_CoreId));
 
     // Get match buffer
     MbufArray matchPkts = m_MatchPackets.at(m_CoreId);
     if (pktBuf.size() == 0)
-        throw std::runtime_error(
-            "ACL: The number of match-packets is 0 for core: " + std::to_string(m_CoreId));
+        throw std::runtime_error("ACL: The number of match-packets is 0 for core: " + std::to_string(m_CoreId));
 
     m_Stop.exchange(false);
 
@@ -63,15 +63,13 @@ int WorkerAcl::Run(void*) {
             // Reset all runtime variables
             m_Rv.Reset();
 
-            // Receive packets from RX device            
+            // Receive packets from RX device
             if (m_Rv.numRxPackets = m_RxDevice->RecivePackets(queueIdRx, pktBuf); m_Rv.numRxPackets > 0) {
                 std::for_each_n(
-                    std::begin(pktBuf),
-                    std::min<uint16_t>(m_Rv.numRxPackets, pktBuf.size()),
-                    [&](rte_mbuf *pktMbuf) {
+                    std::begin(pktBuf), std::min<uint16_t>(m_Rv.numRxPackets, pktBuf.size()), [&](rte_mbuf *pktMbuf) {
                         auto data = rte_pktmbuf_mtod_offset(pktMbuf, const uint8_t *, 0);
                         auto len = static_cast<size_t>(rte_pktmbuf_pkt_len(pktMbuf));
-                        auto [ok, packet] = m_Decoder.FullProcessing(ETHER_HDR, data, len);
+                        auto [ok, packet] = m_Decoder.FullProcessing(m_LinkLayer, data, len);
 
                         (void)ok;
                         (void)packet;
@@ -121,7 +119,7 @@ int WorkerAcl::Run(void*) {
                 if (m_StopAtEmptyRx)
                     Stop();
             }
-        }        
+        }
     }
 
     // Close
@@ -152,14 +150,16 @@ void WorkerAcl::SetQueueIdxsTx(const std::vector<int> &idxs) {
     m_QueueIndicesTx = idxs;
 }
 
-void WorkerAcl::SetQueueIdxRx(const int &idx){
+void WorkerAcl::SetQueueIdxRx(const int &idx) {
     m_QueueIndicesRx.push_back(idx);
 }
 
-void WorkerAcl::SetQueueIdxTx(const int &idx){
+void WorkerAcl::SetQueueIdxTx(const int &idx) {
     m_QueueIndicesTx.push_back(idx);
 }
 
-void WorkerAcl::StopAtEmptyRxEnable(const bool enable) noexcept { m_StopAtEmptyRx = enable; }
+void WorkerAcl::StopAtEmptyRxEnable(const bool enable) noexcept {
+    m_StopAtEmptyRx = enable;
+}
 
 } // namespace Nta::Network

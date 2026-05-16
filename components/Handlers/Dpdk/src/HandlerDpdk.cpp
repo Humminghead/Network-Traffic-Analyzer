@@ -10,8 +10,10 @@
 #include "Handlers/Dpdk/RteMemPool.h"
 #include "Handlers/Dpdk/RteSocket.h"
 #include "Handlers/Dpdk/RuleMaker.h"
+#include "NetDecoder/EtherType.h"
 
 // dpdk
+#include <iostream>
 #include <rte_ethdev.h>
 #include <rte_metrics.h>
 
@@ -24,6 +26,38 @@
 namespace Nta::Network {
 
 using DpdkDeviceList = std::list<std::shared_ptr<DpdkDevice>>;
+
+static const std::unordered_map<std::string_view, uint16_t> EthertypePairs{
+    {"eth", ETHER_HDR},
+    {"vlan", ETHERTYPE_VLAN_SWP},
+    {"ip", ETHERTYPE_IP_SWP},
+    {"ipv6", ETHERTYPE_IPV6_SWP},
+    {"mpls", ETHERTYPE_MPLS_SWP},
+    {"ppoed", ETHERTYPE_PPPOED_SWP},
+    {"ppoes", ETHERTYPE_PPPOES_SWP}};
+
+auto RegexWordSearch = [](const std::string &regex, const std::string &line) {
+    return std::regex_search(line, std::regex(regex));
+};
+
+auto IsValidLinkLayer = [](const std::string &linkLayer) -> std::pair<std::string_view, bool> {
+    for (const auto &elem : EthertypePairs) {
+        auto regex = std::string{"^"}.append(elem.first);
+        if (RegexWordSearch(regex, linkLayer))
+            return {elem.first, true};
+    }
+    return {{}, false};
+};
+
+auto GetLinkLayer = [](const Json::Objects::Worker &cfg) {
+    // Create worker
+    if (auto [name, valid] = IsValidLinkLayer(cfg.linkLayer); !valid) {
+        std::println(std::cerr, "{}: link layer: \"{}\" invalid!", "APP", cfg.linkLayer);
+    } else {
+        return EthertypePairs.at(name);
+    }
+    return ETHER_HDR;
+};
 
 auto printSockWarn = [](auto dev, auto id) {
     std::println(
@@ -277,10 +311,14 @@ void HandlerDpdk::Open() {
                 txDevPtr->Configure();
 
                 // Create worker
-                auto workerAcl =
-                    std::make_unique<WorkerAcl>(rxDevPtr, txDevPtr, tupleFiveIp4Context, coreId);
+                auto linkLayer = GetLinkLayer(workerCfg);
 
+                auto workerAcl =
+                    std::make_unique<WorkerAcl>(rxDevPtr, txDevPtr, tupleFiveIp4Context, linkLayer, coreId);
                 workerAcl->StopAtEmptyRxEnable(workerCfg.stopAtEmptyRx);
+
+                std::println(
+                    "{}: link layer: {} is set for worker at core: {}.", "APP", linkLayer, workerAcl->GetCoreId());
 
                 for (auto q : workerCfg.rxQueuesIdxs) {
                     rxDevPtr->SetupRxQueue(q);
@@ -324,14 +362,14 @@ void HandlerDpdk::Open() {
                     ctxIp6->Build();
                 }
             });
-    }   
+    }
 }
 
 void HandlerDpdk::Close() {
     StopDpdkWorkerThreads();
     // #ifdef RTE_LIB_METRICS
     //     rte_metrics_deinit();
-    // #endif    
+    // #endif
 }
 
 void HandlerDpdk::SetCallback(std::function<CallBackFunctionType> &&f) {
@@ -343,7 +381,7 @@ auto HandlerDpdk::GetCallback() -> std::function<CallBackFunctionType> {
 }
 bool HandlerDpdk::StartDpdkWorkerThreads(std::vector<DpdkWorkerPtr> &workerThreadsVec) {
     constexpr auto trampoline = [](void *arg) {
-        if(arg == nullptr)
+        if (arg == nullptr)
             return -1;
         auto self = reinterpret_cast<AbstractWorker *>(arg);
         return self->Run(nullptr);
