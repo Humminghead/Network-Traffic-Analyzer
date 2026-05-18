@@ -1,0 +1,35 @@
+{
+	"app_core":0,
+	"handler":
+		{
+			"device":"/media/user/experemental/Pcap/rnd-pcaps/gtpu/gtpu_part_0.pcap",
+			// "device":"/home/user/Desktop/MTS/NF/pppoe-story/pcap/1.pcap",
+			// "device":"/home/user/Desktop/MTS/GTPU/mpls/pcap/0.pcap",
+			// "device":"/tmp/pkt.ICMP.largeempty.pcap",
+			// "device":"/tmp/router.pcap",
+			// "device":"/tmp/ipv6-neighbor-discovery.pcap",
+			// "device":"/tmp/ipv6-udp-fragmented.pcap",
+			"type":"pcap"
+		},	
+	"transport":{
+		"type":"socket_ssl",
+		"workdir":"/mnt/ramdisk",
+		"host":"127.0.0.1",
+		"port":9199,
+		"use_zlib":false,
+		"multiplexed":false,
+		"buffer_type": "framed",
+		"protocol": "compact",
+		// "max_message_size": 1024,
+        // "max_frame_size":999,
+        // "recursion_limit": 10,
+        "message_queue_size": 2750000,
+        "frames_count": 750000,
+        
+        "ciphers":"ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH",
+        "ca_file_path":"/tmp/thrift/test/keys/CA.pem",
+        "server_cert_path":"/tmp/thrift/test/keys/client.crt",
+        "private_key_path":"/tmp/thrift/test/keys/client.key",
+        "authentication":true
+	}
+}

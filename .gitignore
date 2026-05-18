@@ -30,3 +30,13 @@
 *.exe
 *.out
 *.app
+
+build/*
+
+*.user
+
+CMakeCache.txt
+
+CMakeFiles/
+
+recipes/dpdk/build-release/

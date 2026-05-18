@@ -1,0 +1,30 @@
+#include "NetDecoder/PacketBase.h"
+
+#include <algorithm>
+#include <netinet/ip.h>
+#include <netinet/ip6.h>
+
+namespace Nta::Network {
+
+void Packet::Reset() {    
+    ethHeader = nullptr;
+    pppoeHeader = nullptr;
+    std::for_each(std::begin(vlansTags), std::end(vlansTags), [](auto *&p) { p = nullptr; });
+    std::for_each(std::begin(mplsLabels), std::end(mplsLabels), [](auto *&p) { p = nullptr; });
+    ip4Header = nullptr;
+    ip6Header = nullptr;    
+    udpHeader = nullptr;
+    icmpHeader = nullptr;    
+    sctpHeader = nullptr;
+    payload.Reset();
+    protoList = nullptr;
+}
+
+void Packet::ResetLowerLevels() {
+    tcpHeader = nullptr;
+    sctpHeader = nullptr;    
+    payload.Reset();
+    protoList = nullptr;
+}
+
+} // namespace Nta::Network
