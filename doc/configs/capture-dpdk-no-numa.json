@@ -1,0 +1,83 @@
+{
+   "app_core":0,
+   "handler":{      
+      "no-pci": true,
+      "no-telemetry": true,
+      "eal_mbuf_size":65535,
+      "eal_mbuf_headroom_size":0,                  
+      "type":"dpdk",
+      "promiscuous":true,
+      "eal_cmd_line_arguments":[
+         {
+            "--main-lcore": 0
+         },
+         {
+            "--lcores":"0,1,2"
+         },     
+         {
+            "--vdev":"net_pcap0,rx_iface=wlp0s20f3,tx_pcap=/tmp/net_pcap0-tx.pcap"
+         },         
+         {  
+         	"--file-prefix":"capture-app" 
+         },
+         {
+            "--socket-mem": "42,0"
+         },         
+         {
+            "--log-level":"lib.eal:debug"            
+         },
+         {
+            "--log-level":"lib.mempool:debug"         
+         }
+
+      ],
+      "mempools":[
+         {
+           "socket":0,
+           "mbuf_size":1024,
+           "mbuf_cache_size":256,
+           "total_mbuf_num":512
+         }
+      ],
+      "workers":[
+         {
+            "type":"acl",
+            "eal_core":1,
+            "rx_device":"net_pcap0",
+            "tx_device":"net_pcap0",
+            "link_layer":"ethernet",            
+            "rx_queues_idxs":{
+               "type":"id",
+               "indices":[
+                  0
+               ]
+            },
+            "tx_queues_idxs":{
+               "type":"id",
+               "indices":[
+                  0
+               ]
+            },
+            "input_packet_classification":[
+               {
+                  "type":"route",
+                  "tuple-five-rules":[                     
+                     "R192.168.2.0/24 77.247.181.211/32 0 : 65535 0 : 65535 17/0xFF 0",
+                     "R77.247.181.211/32 192.168.2.0/24 0 : 65535 0 : 65535 17/0xFF 0"
+                  ]
+               }
+            ]
+         }
+      ]
+   },
+   "transport":{
+      "type":"file",
+      "workdir":"/tmp",
+      "use_zlib":false,
+      "multiplexed":false,
+      "buffer_type":"buffered",
+      "protocol":"debug",
+      "message_queue_size":3000000,
+      "frames_count":500
+   }
+}
