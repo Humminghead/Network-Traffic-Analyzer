@@ -88,7 +88,7 @@ auto findDpdkDev = [](const DpdkDeviceList &devices, const std::string &pci) {
 
 template <typename Tuple, size_t N>
 auto CreateRteRules(const std::vector<std::string> &rules, const std::array<rte_acl_field_def, N> &) {
-    RteRuleMaker<Tuple> maker;
+    RteRuleMaker<Tuple, N> maker;
 
     std::vector<RteAclLookupRule<N>> rteRules{};
     rteRules.reserve(rules.size());
@@ -99,7 +99,7 @@ auto CreateRteRules(const std::vector<std::string> &rules, const std::array<rte_
 }
 
 template <typename T> auto CreateRteRule(const std::string &rule) {
-    return RteRuleMaker<typename T::tuple_type>{}.Make(rule);
+    return RteRuleMaker<typename T::tuple_type, T::tuple_defs_size>{}.Make(rule);
 }
 
 struct HandlerDpdk::Impl {
