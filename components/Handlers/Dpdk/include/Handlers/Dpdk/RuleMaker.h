@@ -13,12 +13,15 @@ struct FiveTupleIp4;
 template <typename T>
 concept IsFiveTupleIp4 = std::is_same<T, FiveTupleIp4>::value;
 
-template <typename Rule> class RteRuleMaker;
+template <typename Rule, size_t N> class RteRuleMaker;
 
-template <IsFiveTupleIp4 Rule> class RteRuleMaker<Rule> {
+template <IsFiveTupleIp4 Rule, size_t N> class RteRuleMaker<Rule, N> {
   public:
     [[nodiscard("Rule was generated, but not used")]] auto Make(const std::string &rule, const uint32_t categoryMask = (uint32_t)-1, const int32_t  priority = RTE_ACL_MAX_PRIORITY, const uint32_t userData = 1) {
-        using EmptyRule = RteAclLookupRule<FiveTupleIp4Defs.size()>;
+        using EmptyRule = RteAclLookupRule<N>;
+
+        static_assert(N > 0, "Rule array should be greater than 0!");
+
         if (rule.empty())
             return EmptyRule{};
 
@@ -50,7 +53,7 @@ template <IsFiveTupleIp4 Rule> class RteRuleMaker<Rule> {
                 throw std::runtime_error("Wrong rule string format!");
 
             // clang-format off
-            return RteAclLookupRule<FiveTupleIp4Defs.size()>{
+            return RteAclLookupRule<N>{
                 .data =
                     {
                         .category_mask = categoryMask,//0x01, // Number of categories (num_categories)
