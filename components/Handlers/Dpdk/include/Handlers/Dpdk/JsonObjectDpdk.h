@@ -6,6 +6,44 @@
 #include <nlohmann/json.hpp>
 
 namespace Nta::Json::Objects {
+//-----------------------------------------------------------------------------------
+struct PacketRule{    
+    std::string type{};
+    std::string action{};
+    std::string rule{};
+    uint16_t priority{0};    
+
+    virtual ~PacketRule() = default;
+
+    [[maybe_unused]] static auto ToJson(const PacketRule &r) -> nlohmann::json{
+        // clang-format off
+        return
+            {
+                {"type", r.type},
+                {"action", r.action},
+                {"priority", r.priority},
+                {"rule", r.rule}
+            };
+        // clang-format on
+    }
+
+    [[maybe_unused]] static void FromJson(const nlohmann::json &j, PacketRule &r) {
+        Util::Json::GetTo(j, "type", r.type);
+        Util::Json::GetTo(j, "action", r.action);
+        Util::Json::GetTo(j, "priority", r.priority);
+        Util::Json::GetTo(j, "rule", r.rule);
+    }
+};
+
+//PacketRule
+[[maybe_unused]] static void to_json(nlohmann::json &j, const PacketRule &r) {
+    r.ToJson(r);
+}
+
+[[maybe_unused]] static void from_json(const nlohmann::json &j, PacketRule &r) {
+    r.FromJson(j, r);
+    ///\todo add other rules (ex. Tuple2)
+}
 
 //-----------------------------------------------------------------------------------
 struct MemPoolOpt
@@ -147,6 +185,7 @@ struct Worker {
     WorkerQueueRange rxQueuesIdxs{};
     WorkerQueueRange txQueuesIdxs{};
     std::vector<InputPacketClassification> packetCx{};
+    std::vector<PacketRule> packetRules{};
 };
 [[maybe_unused]] static void to_json(nlohmann::json &j, const Worker &p) {
     j =  {
@@ -170,6 +209,7 @@ struct Worker {
         [](auto c) { return std::tolower(c); });
     Util::Json::GetTo(j, "input_packet_classification", p.packetCx);
     Util::Json::GetTo(j, "stop_at_empty_rx", p.stopAtEmptyRx);
+    Util::Json::GetTo(j, "rules", p.packetRules);
 }
 //-----------------------------------------------------------------------------------
 struct DpdkObject : HandlerObject {

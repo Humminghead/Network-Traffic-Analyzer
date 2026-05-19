@@ -1,6 +1,6 @@
 #include "Handlers/Dpdk/HandlerDpdk.h"
 
-#include "Handlers/Dpdk/Acl/LookupAcl.h"
+#include "Handlers/Dpdk/Acl/Classification/Rules.h"
 #include "Handlers/Dpdk/Acl/WorkerAcl.h"
 #include "Handlers/Dpdk/DpdkDevice.h"
 #include "Handlers/Dpdk/DpdkDeviceFactory.h"
@@ -96,6 +96,10 @@ auto CreateRteRules(const std::vector<std::string> &rules, const std::array<rte_
     std::for_each(std::begin(rules), std::end(rules), [&](const auto &rule) { rteRules.push_back(maker.Make(rule)); });
 
     return rteRules;
+}
+
+template <typename T> auto CreateRteRule(const std::string &rule) {
+    return RteRuleMaker<typename T::tuple_type>{}.Make(rule);
 }
 
 struct HandlerDpdk::Impl {
@@ -217,6 +221,15 @@ void HandlerDpdk::Open() {
                     return;
                 }
             }
+
+            std::for_each(
+                std::begin(workerCfg.packetRules), std::end(workerCfg.packetRules), [&tupleFiveRteRulesIp4](auto &obj) {
+                    if (obj.type == "tuple5") {
+                        tupleFiveRteRulesIp4.push_back(CreateRteRule<Rules::Tuple5>(obj.rule));
+                    } else {
+                        throw std::runtime_error(std::format("Unsupported rule type: {}!", obj.type));
+                    }
+                });
 
             // Try to find lcore's socket id
             auto wCoreSockId = rte_lcore_to_socket_id(coreId);
