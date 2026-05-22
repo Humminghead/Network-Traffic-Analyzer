@@ -68,11 +68,16 @@
             },
             "input_packet_classification":[
                {
-                  "type":"route",
-                  "tuple-five-rules":[
-                     "R10.12.133.105/32 0.0.0.0/0 2152 : 2152 2152 : 2152 17/0xFF 0"
-                     // "R0.0.0.0/0 0.0.0.0/0 1080 : 1080 0 : 65535 6/0xFF 0"
-                  ]
+                  "type":"tuple5",
+                  "action":"route",
+                  "priority":1,
+                  "rule":"R192.168.2.0/24 77.247.181.211/32 0 : 65535 0 : 65535 17/0xFF 0"
+               },
+               {
+                  "type":"tuple5",
+                  "action":"route",
+                  "priority":2,
+                  "rule":"R77.247.181.211/32 192.168.2.0/24 0 : 65535 0 : 65535 17/0xFF 0"
                }
             ]
          }
