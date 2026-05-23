@@ -170,9 +170,12 @@ class RteAclContext {
 };
 
 class RteLookupAcl {
+    const size_t m_CategoriesCount{1};
   public:
     using Result = std::pair<bool, std::vector<uint32_t>>;
     using PacketPointers = std::vector<const uint8_t *>;
+
+    RteLookupAcl(const size_t categories) : m_CategoriesCount{categories} {}
 
     /*!
      * \brief Classify
@@ -181,7 +184,17 @@ class RteLookupAcl {
      * \param categories
      * \return
      */
-    Result Classify(const RteAclContext &ctx, PacketPointers &packets, const size_t packetsSize, const uint32_t categories = 1);
+    Result Classify(const RteAclContext &ctx, PacketPointers &packets, const size_t packetsSize, const uint32_t categories);
+
+    /*!
+     * \brief Classify
+     * \param ctx
+     * \param packets
+     * \param packetsSize
+     * \return
+     */
+    Result Classify(const RteAclContext &ctx, PacketPointers &packets, const size_t packetsSize);
+
 };
 
 } // namespace Nta::Network

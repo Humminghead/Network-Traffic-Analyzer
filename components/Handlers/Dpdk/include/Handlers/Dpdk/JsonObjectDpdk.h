@@ -6,7 +6,6 @@
 #include <nlohmann/json.hpp>
 
 namespace Nta::Json::Objects {
-
 //-----------------------------------------------------------------------------------
 struct MemPoolOpt
 {
@@ -85,20 +84,89 @@ struct DpdkEalCmdLine {
 }
 
 //-----------------------------------------------------------------------------------
-struct InputPacketClassification {
-    std::string type{};
-    std::vector<std::string> tupleFiveIp4Rules{};
+enum class Category : uint32_t {
+    Invalid = 0,
+    Firewall,
+    QoS,
+    Routing,
 };
 
-[[maybe_unused]] static void to_json(nlohmann::json &j, const InputPacketClassification &p) {
-    ///\todo
+enum class FirewallAction : uint32_t { Allow = 1, Deny = 0 };
+
+inline auto FirewallActionFromString(const std::string_view s){
+        if (s == "allow") {
+            return FirewallAction::Allow;
+        }
+
+        return FirewallAction::Deny;
+};
+
+struct InputPacketClassification{
+    uint32_t userData{0};
+    std::string type{};
+    std::string action{};
+    std::string rule{};
+    Category category{Category::Invalid};
+    int32_t priority{1}; // RTE_ACL_MIN_PRIORITY
+
+    [[maybe_unused]] static auto ToJson(const InputPacketClassification &r) -> nlohmann::json{
+        // clang-format off
+        return
+            {
+                {"type", r.type},
+                {"action", r.action},
+                ///\todo category
+                {"priority", r.priority},
+                {"rule", r.rule}
+            };
+        // clang-format on
+    }
+
+    [[maybe_unused]] static void FromJson(const nlohmann::json &j, InputPacketClassification &r) {
+        Util::Json::GetTo(j, "type", r.type);
+        Util::Json::GetTo(j, "category", r.category, [](auto j, auto n, auto) {
+            std::string v{j.at(n)};
+            std::transform(std::begin(v), std::end(v), std::begin(v), [](auto c) { return std::tolower(c); });
+
+            if ("firewall" == v) {
+                return Category::Firewall;
+            } else if ("qos" == v) {
+                return Category::QoS;
+            } else if ("routing" == v) {
+                return Category::Routing;
+            }
+            return Category::Invalid;
+        });
+        Util::Json::GetTo(j, "action", r.action, [&category = r.category, &ud = r.userData](auto j, auto n, auto) {
+            std::string v{j.at(n)};
+            std::transform(std::begin(v), std::end(v), std::begin(v), [](auto c) { return std::tolower(c); });
+
+            if(Category::Firewall == category){
+                if("allow"==v)
+                    ud = static_cast<decltype(userData)>(FirewallAction::Allow);
+            }
+            if(Category::QoS == category){
+                ///\todo
+            }
+            if(Category::Routing == category){
+                ///\todo
+            }
+
+            return v;
+        });
+        Util::Json::GetTo(j, "priority", r.priority);
+        Util::Json::GetTo(j, "rule", r.rule);
+    }
+};
+
+//InputPacketClassification
+[[maybe_unused]] static void to_json(nlohmann::json &j, const InputPacketClassification &r) {
+    r.ToJson(r);
 }
 
-[[maybe_unused]] static void from_json(const nlohmann::json &j, InputPacketClassification &p) {
-    j.at("type").get_to(p.type);
-    std::transform(
-        std::begin(p.type), std::end(p.type), std::begin(p.type), [](const char c) { return std::tolower(c); });
-    j.at("tuple-five-rules").get_to(p.tupleFiveIp4Rules);
+[[maybe_unused]] static void from_json(const nlohmann::json &j, InputPacketClassification &r) {
+    r.FromJson(j, r);
+    ///\todo add other rules (ex. Tuple2)
 }
 
 //-----------------------------------------------------------------------------------
@@ -146,12 +214,9 @@ struct Worker {
     std::string txDevicePciAddr{};
     WorkerQueueRange rxQueuesIdxs{};
     WorkerQueueRange txQueuesIdxs{};
-    std::vector<InputPacketClassification> packetCx{};
+    std::vector<InputPacketClassification> packetRules{};
 };
-[[maybe_unused]] static void to_json(nlohmann::json &j, const Worker &p) {
-    j =  {
-         {"input_packet_classification", p.packetCx}
-    };
+[[maybe_unused]] static void to_json(nlohmann::json &j, const Worker &) {
 }
 
 [[maybe_unused]] static void from_json(const nlohmann::json &j, Worker &p) {
@@ -168,7 +233,7 @@ struct Worker {
         std::end(p.linkLayer),
         std::begin(p.linkLayer),
         [](auto c) { return std::tolower(c); });
-    Util::Json::GetTo(j, "input_packet_classification", p.packetCx);
+    Util::Json::GetTo(j, "input_packet_classification", p.packetRules);
     Util::Json::GetTo(j, "stop_at_empty_rx", p.stopAtEmptyRx);
 }
 //-----------------------------------------------------------------------------------

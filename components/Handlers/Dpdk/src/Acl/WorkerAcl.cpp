@@ -11,10 +11,11 @@ WorkerAcl::WorkerAcl(
     std::shared_ptr<DpdkDevice> rxDevice,
     std::shared_ptr<DpdkDevice> txDevice,
     std::shared_ptr<RteAclContext> context,
+    const size_t categories,
     const uint16_t linkLayer,
     const uint32_t core,
     const uint16_t nbPkts)
-    : m_RxDevice{rxDevice}, m_TxDevice{txDevice}, m_AclContext{context}, m_CoreId{core},
+    : m_RxDevice{rxDevice}, m_TxDevice{txDevice}, m_CoreId{core}, m_AclContext{context}, m_AclLookUp{categories},
       m_PacketBuffers{RTE_MAX_LCORE, MbufArray{nbPkts, nullptr}},
       m_MatchPackets{RTE_MAX_LCORE, MbufArray{nbPkts, nullptr}}, m_AclDataPtrs{nbPkts, nullptr}, m_StopAtEmptyRx{false},
       m_LinkLayer{linkLayer} {
@@ -95,10 +96,10 @@ int WorkerAcl::Run(void *) {
                         std::begin(matchedRuleIdxs),
                         std::min<uint16_t>(m_Rv.numRxPackets, pktBuf.size()),
                         [&, pktIndex = size_t{}](auto &ruleIdx) mutable {
-                            if (ruleIdx != 0) {
+                            if (ruleIdx != 0) { // Alow
                                 matchPkts[m_Rv.matchPacketsCounter] = nullptr;
                                 matchPkts[m_Rv.matchPacketsCounter++] = pktBuf[pktIndex];
-                            } else {
+                            } else { // Deny
                                 rte_pktmbuf_free(pktBuf[pktIndex]);
                             }
                             pktBuf[pktIndex++] = nullptr;

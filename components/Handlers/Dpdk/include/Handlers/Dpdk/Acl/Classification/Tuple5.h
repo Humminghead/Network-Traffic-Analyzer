@@ -3,12 +3,11 @@
 // 7.1.1. Rule definition
 // https://doc.dpdk.org/guides/prog_guide/packet_classif_access_ctrl.html#overview
 
+#include "Handlers/Dpdk/Acl/Classification/Rules.h"
 #include <array>
 #include <cstdint>
-#include <rte_acl.h>
-#include <rte_ip.h>
 
-namespace Nta::Network {
+namespace Nta::Network::Acl::Rules {
 
 /*!
  * \brief defines order of IPV4VLAN classifications
@@ -22,13 +21,17 @@ namespace Nta::Network {
  */
 enum class FiveTupleIp4InputIndex : uint8_t { Proto = 0, Vlan, IpSrc, IpDst, Ports, Num };
 
-struct FiveTupleIp4 {
-    uint8_t proto;
-    uint32_t ipSrc;
-    uint32_t ipDst;
-    uint16_t portSrc;
-    uint16_t portDst;
-};
+// Component positions in the rule text string
+using Proto = Acl::Rules::Detail::RteAclField<Acl::Rules::Detail::IpProto, uint32_t, std::index_sequence<14>, 15>;
+using IpSrc =
+    Acl::Rules::Detail::RteAclField<Acl::Rules::Detail::RteIpV4, uint32_t, std::index_sequence<0, 1, 2, 3>, 4>;
+using IpDst =
+    Acl::Rules::Detail::RteAclField<Acl::Rules::Detail::RteIpV4, uint32_t, std::index_sequence<5, 6, 7, 8>, 9>;
+using SrcPort = Acl::Rules::Detail::RteAclField<Acl::Rules::Detail::Port, uint16_t, std::index_sequence<10>, 11>;
+using DstPort = Acl::Rules::Detail::RteAclField<Acl::Rules::Detail::Port, uint16_t, std::index_sequence<12>, 13>;
+
+// Tuple-5
+using Tuple5 = Acl::Rules::RteAclFieldArray<Proto, IpSrc, IpDst, SrcPort, DstPort>;
 
 constexpr static std::array<rte_acl_field_def, 5> FiveTupleIp4Defs = {
     {/* first input field - always one byte long. */
@@ -37,7 +40,7 @@ constexpr static std::array<rte_acl_field_def, 5> FiveTupleIp4Defs = {
          .size = sizeof(uint8_t),
          .field_index = 0,
          .input_index = static_cast<decltype(rte_acl_field_def::input_index)>(FiveTupleIp4InputIndex::Proto),
-         .offset = offsetof(struct FiveTupleIp4, proto),
+         .offset = 0 /*offsetof(struct FiveTupleIp4, proto)*/,
      },
 
      /* next input field (IPv4 source address) - 4 consecutive bytes. */
@@ -77,4 +80,4 @@ constexpr static std::array<rte_acl_field_def, 5> FiveTupleIp4Defs = {
          .input_index = static_cast<decltype(rte_acl_field_def::input_index)>(FiveTupleIp4InputIndex::Ports),
          .offset = sizeof(struct rte_ipv4_hdr) - offsetof(struct rte_ipv4_hdr, next_proto_id) + sizeof(uint16_t),
      }}};
-} // namespace Nta::Network
+} // namespace Nta::Network::Acl::Rules

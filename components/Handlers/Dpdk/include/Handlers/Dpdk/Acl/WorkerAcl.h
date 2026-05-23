@@ -30,7 +30,7 @@ class WorkerAcl : public AbstractWorker {
     std::atomic_bool m_Stop{true};
     uint32_t m_CoreId{RTE_MAX_LCORE};
     std::shared_ptr<RteAclContext> m_AclContext{nullptr};
-    RteLookupAcl m_AclLookUp{};
+    RteLookupAcl m_AclLookUp;
     std::vector<MbufArray> m_PacketBuffers{};
     std::vector<MbufArray> m_MatchPackets{};
     NetDecoder m_Decoder{};
@@ -46,9 +46,10 @@ class WorkerAcl : public AbstractWorker {
         std::shared_ptr<DpdkDevice> rxDevice,
         std::shared_ptr<DpdkDevice> txDevice,
         std::shared_ptr<RteAclContext> context,
-        const uint16_t linkLayer = 0, // ETHER_HDR
-        const uint32_t core = RTE_MAX_LCORE,
-        const uint16_t nbPkts = 64);
+        const size_t categories,
+        const uint16_t linkLayer,
+        const uint32_t core,
+        const uint16_t nbPkts);
 
     virtual ~WorkerAcl() = default;
 
