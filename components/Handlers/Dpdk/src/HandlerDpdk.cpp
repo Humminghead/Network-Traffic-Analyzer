@@ -201,8 +201,15 @@ void HandlerDpdk::Open() {
             tupleFiveRteRulesIp4.clear();
 
             // Process input_packet_classification array
+            std::vector<Json::Objects::Category> cCount;
             std::for_each(
-                std::begin(workerCfg.packetRules), std::end(workerCfg.packetRules), [&tupleFiveRteRulesIp4](auto &obj) {
+                std::begin(workerCfg.packetRules),
+                std::end(workerCfg.packetRules),
+                [&tupleFiveRteRulesIp4, &cCount](auto &obj) {
+                    if (auto it = std::find(std::begin(cCount), std::end(cCount), obj.category);
+                        std::end(cCount) == it) {
+                        cCount.push_back(obj.category);
+                    }
                     if (obj.type == "tuple5") {
                         tupleFiveRteRulesIp4.push_back(CreateRteRule<Acl::Rules::Tuple5>(obj));
                     } else {
@@ -222,7 +229,7 @@ void HandlerDpdk::Open() {
                     // Create ACL context
                     tupleFiveIp4Context = std::make_shared<RteAclContext>(
                         Acl::Rules::FiveTupleIp4Defs.size(),
-                        8,
+                        8, ///\todo Fix it
                         wCoreSockId,
                         workerCfg.type + "_tuple_five_ip4_worker_" + std::to_string(coreId));
                     tupleFiveIp4Context->SetCfgDefs(Acl::Rules::FiveTupleIp4Defs);
@@ -305,8 +312,8 @@ void HandlerDpdk::Open() {
                 // Create worker
                 auto linkLayer = GetLinkLayer(workerCfg);
 
-                auto workerAcl =
-                    std::make_unique<WorkerAcl>(rxDevPtr, txDevPtr, tupleFiveIp4Context, linkLayer, coreId);
+                auto workerAcl = std::make_unique<WorkerAcl>(
+                    rxDevPtr, txDevPtr, tupleFiveIp4Context, cCount.size(), linkLayer, coreId, 64);
                 workerAcl->StopAtEmptyRxEnable(workerCfg.stopAtEmptyRx);
 
                 std::println(

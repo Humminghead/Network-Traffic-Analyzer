@@ -28,8 +28,15 @@ Nta::Network::RteLookupAcl::Result Nta::Network::RteLookupAcl::Classify(
     PacketPointers &packets,
     const size_t packetsNum,
     const uint32_t categories) {
-    std::vector<uint32_t> searchResult(packetsNum, uint32_t{0});
+    std::vector<uint32_t> searchResult(packetsNum * categories, uint32_t{0});
     return {
         0 == rte_acl_classify(ctx.RawPointer(), packets.data(), searchResult.data(), packetsNum, categories),
         searchResult};
+}
+
+Nta::Network::RteLookupAcl::Result Nta::Network::RteLookupAcl::Classify(
+    const RteAclContext &ctx,
+    PacketPointers &packets,
+    const size_t packetsSize) {
+    return Classify(ctx, packets, packetsSize, m_CategoriesCount);
 }
