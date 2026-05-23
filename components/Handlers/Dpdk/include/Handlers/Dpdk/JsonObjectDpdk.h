@@ -84,13 +84,30 @@ struct DpdkEalCmdLine {
 }
 
 //-----------------------------------------------------------------------------------
+enum class Category : uint32_t {
+    Invalid = 0,
+    Firewall,
+    QoS,
+    Routing,
+};
+
+enum class FirewallAction : uint32_t { Allow = 1, Deny = 0 };
+
+inline auto FirewallActionFromString(const std::string_view s){
+        if (s == "allow") {
+            return FirewallAction::Allow;
+        }
+
+        return FirewallAction::Deny;
+};
+
 struct InputPacketClassification{
+    uint32_t userData{0};
     std::string type{};
     std::string action{};
     std::string rule{};
-    uint16_t priority{0};
-
-    virtual ~InputPacketClassification() = default;
+    Category category{Category::Invalid};
+    int32_t priority{1}; // RTE_ACL_MIN_PRIORITY
 
     [[maybe_unused]] static auto ToJson(const InputPacketClassification &r) -> nlohmann::json{
         // clang-format off
@@ -98,6 +115,7 @@ struct InputPacketClassification{
             {
                 {"type", r.type},
                 {"action", r.action},
+                ///\todo category
                 {"priority", r.priority},
                 {"rule", r.rule}
             };
@@ -106,7 +124,36 @@ struct InputPacketClassification{
 
     [[maybe_unused]] static void FromJson(const nlohmann::json &j, InputPacketClassification &r) {
         Util::Json::GetTo(j, "type", r.type);
-        Util::Json::GetTo(j, "action", r.action);
+        Util::Json::GetTo(j, "category", r.category, [](auto j, auto n, auto) {
+            std::string v{j.at(n)};
+            std::transform(std::begin(v), std::end(v), std::begin(v), [](auto c) { return std::tolower(c); });
+
+            if ("firewall" == v) {
+                return Category::Firewall;
+            } else if ("qos" == v) {
+                return Category::QoS;
+            } else if ("routing" == v) {
+                return Category::Routing;
+            }
+            return Category::Invalid;
+        });
+        Util::Json::GetTo(j, "action", r.action, [&category = r.category, &ud = r.userData](auto j, auto n, auto) {
+            std::string v{j.at(n)};
+            std::transform(std::begin(v), std::end(v), std::begin(v), [](auto c) { return std::tolower(c); });
+
+            if(Category::Firewall == category){
+                if("allow"==v)
+                    ud = static_cast<decltype(userData)>(FirewallAction::Allow);
+            }
+            if(Category::QoS == category){
+                ///\todo
+            }
+            if(Category::Routing == category){
+                ///\todo
+            }
+
+            return v;
+        });
         Util::Json::GetTo(j, "priority", r.priority);
         Util::Json::GetTo(j, "rule", r.rule);
     }

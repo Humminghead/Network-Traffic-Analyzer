@@ -14,12 +14,13 @@
 #include "NetDecoder/EtherType.h"
 
 // dpdk
-#include <iostream>
 #include <rte_ethdev.h>
 #include <rte_metrics.h>
 
 // std
+#include <algorithm>
 #include <atomic>
+#include <iostream>
 #include <list>
 #include <memory>
 #include <print>
@@ -87,8 +88,11 @@ auto findDpdkDev = [](const DpdkDeviceList &devices, const std::string &pci) {
     return *it;
 };
 
-template <typename T> auto CreateRteRule(const std::string &rule) {
-    return RteRuleMaker<T>{}.Make(rule);
+template <typename T> auto CreateRteRule(const Json::Objects::InputPacketClassification &jConf) {
+    const uint32_t categoryMask = static_cast<uint32_t>(jConf.category);
+    const int32_t priority = std::max(static_cast<int32_t>(RTE_ACL_MIN_PRIORITY), jConf.priority);
+    const uint32_t userData = jConf.userData;
+    return RteRuleMaker<T>{}.Make(jConf.rule, categoryMask, priority, userData);
 }
 
 struct HandlerDpdk::Impl {
@@ -200,7 +204,7 @@ void HandlerDpdk::Open() {
             std::for_each(
                 std::begin(workerCfg.packetRules), std::end(workerCfg.packetRules), [&tupleFiveRteRulesIp4](auto &obj) {
                     if (obj.type == "tuple5") {
-                        tupleFiveRteRulesIp4.push_back(CreateRteRule<Acl::Rules::Tuple5>(obj.rule));
+                        tupleFiveRteRulesIp4.push_back(CreateRteRule<Acl::Rules::Tuple5>(obj));
                     } else {
                         throw std::runtime_error(std::format("Unsupported rule type: {}!", obj.type));
                     }
