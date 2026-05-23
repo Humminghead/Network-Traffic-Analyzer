@@ -60,11 +60,18 @@
             },
             "input_packet_classification":[
                {
-                  "type":"route",
-                  "tuple-five-rules":[                     
-                     "R192.168.2.0/24 77.247.181.211/32 0 : 65535 0 : 65535 17/0xFF 0",
-                     "R77.247.181.211/32 192.168.2.0/24 0 : 65535 0 : 65535 17/0xFF 0"
-                  ]
+                  "type":"tuple5",
+                  "category":"firewall",
+                  "action":"deny",
+                  "priority":1,
+                  "rule":"R192.168.2.0/24 77.247.181.211/32 0 : 65535 0 : 65535 17/0xFF 0"
+               },
+               {
+                  "type":"tuple5",
+                  "category":"firewall",
+                  "action":"allow",
+                  "priority":2,
+                  "rule":"R77.247.181.211/32 192.168.2.0/24 0 : 65535 0 : 65535 17/0xFF 0"
                }
             ]
          }
