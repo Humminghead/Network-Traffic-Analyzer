@@ -233,7 +233,7 @@ void HandlerDpdk::Open() {
                         wCoreSockId,
                         workerCfg.type + "_tuple_five_ip4_worker_" + std::to_string(coreId));
                     tupleFiveIp4Context->SetCfgDefs(Acl::Rules::FiveTupleIp4Defs);
-                    tupleFiveIp4Context->SetNumCategories(1);                     ///\todo move in config
+                    tupleFiveIp4Context->SetNumCategories(cCount.size());
                     if (!tupleFiveIp4Context->SetClassify(RTE_ACL_CLASSIFY_AVX2)) ///\todo add in config
                     {
                         if (!tupleFiveIp4Context->SetClassify(RTE_ACL_CLASSIFY_SCALAR)) {
