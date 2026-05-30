@@ -1,7 +1,5 @@
 #include "Handlers/Dpdk/Acl/WorkerAcl.h"
 #include "Handlers/Dpdk/Acl/Util/Offset.h"
-#include "Handlers/Dpdk/Power/Legacy.h"
-#include "Handlers/Dpdk/Power/Pmd.h"
 #include "Handlers/Dpdk/Power/RtePower.h"
 #include <NetDecoder/PacketBase.h>
 #include <NetDecoder/Util/Packet.h>
@@ -146,7 +144,6 @@ int WorkerAcl::Run(void *) {
             m_PowerManagment->Disable(port, q, m_CoreId);
         }
     }
-    m_PowerManagment.reset();
 
     // Close
     m_RxDevice->Close();

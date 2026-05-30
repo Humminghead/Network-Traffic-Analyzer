@@ -16,9 +16,7 @@ struct MemPoolOpt
     uint32_t m_MbufCacheSize{512};
     uint32_t m_TotalMbufNum{32000};
 };
-[[maybe_unused]] static void to_json(nlohmann::json &j, const MemPoolOpt &p) {
-    ///\todo
-    (void)p;
+[[maybe_unused]] static void to_json(nlohmann::json &j, const MemPoolOpt &) {
 }
 
 [[maybe_unused]] static void from_json(const nlohmann::json &j, MemPoolOpt &p) {
@@ -334,7 +332,7 @@ struct DpdkObject : HandlerObject {
             if (j.contains(name)) {
                 for (auto item : j.at(name)) {
                     using ValueType = nlohmann::detail::value_t;
-                    for (auto obj : item.items()) {
+                    for (const auto &obj : item.items()) {
                         auto k = obj.key();
                         if (auto type = obj.value().type();
                             type == ValueType::number_integer || type == ValueType::number_unsigned) {

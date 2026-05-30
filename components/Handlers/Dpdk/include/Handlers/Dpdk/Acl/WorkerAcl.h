@@ -6,7 +6,6 @@
 #include "Handlers/Dpdk/Power/RtePower.h"
 #include <NetDecoder/Decoder.h>
 #include <atomic>
-// #include <pcapplusplus/DpdkDeviceList.h>
 
 namespace Nta::Network {
 
