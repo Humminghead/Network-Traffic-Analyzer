@@ -113,6 +113,7 @@ int CaptureApp::Run() {
         sigMonTask.wait_for(waitInterval);
         ///\todo LOG
         std::cerr << e.what() << std::endl;
+        std::fflush(stderr);
         exitCode = Application::EXIT_SOFTWARE;
         return exitCode;
     }

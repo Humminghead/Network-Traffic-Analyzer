@@ -1,5 +1,8 @@
 #include "Handlers/Dpdk/Acl/WorkerAcl.h"
 #include "Handlers/Dpdk/Acl/Util/Offset.h"
+#include "Handlers/Dpdk/Power/Legacy.h"
+#include "Handlers/Dpdk/Power/Pmd.h"
+#include "Handlers/Dpdk/Power/RtePower.h"
 #include <NetDecoder/PacketBase.h>
 #include <NetDecoder/Util/Packet.h>
 #include <algorithm>
@@ -39,6 +42,14 @@ int WorkerAcl::Run(void *) {
         }
     }
 
+
+    // Enable power policy for RX dev
+    if (m_PowerManagment) {
+        for (auto port = m_RxDevice->GetDeviceId(); auto q : m_QueueIndicesRx) {
+            m_PowerManagment->Enable(port, q, m_CoreId);
+        }
+    }
+
     // Open rx-device
     m_RxDevice->Open();
 
@@ -65,7 +76,13 @@ int WorkerAcl::Run(void *) {
             m_Rv.Reset();
 
             // Receive packets from RX device
-            if (m_Rv.numRxPackets = m_RxDevice->RecivePackets(queueIdRx, pktBuf); m_Rv.numRxPackets > 0) {
+            m_Rv.numRxPackets = m_RxDevice->RecivePackets(queueIdRx, pktBuf);
+
+            // Busy-loop prevention
+            if (m_PowerManagment && m_PowerManagment->Idle(m_Rv.numRxPackets))
+                continue;
+
+            if (m_Rv.numRxPackets > 0) {
                 std::for_each_n(
                     std::begin(pktBuf), std::min<uint16_t>(m_Rv.numRxPackets, pktBuf.size()), [&](rte_mbuf *pktMbuf) {
                         auto data = rte_pktmbuf_mtod_offset(pktMbuf, const uint8_t *, 0);
@@ -123,6 +140,14 @@ int WorkerAcl::Run(void *) {
         }
     }
 
+    // Reset power managment settings
+    if (m_PowerManagment) {
+        for (auto port = m_RxDevice->GetDeviceId(); auto q : m_QueueIndicesRx) {
+            m_PowerManagment->Disable(port, q, m_CoreId);
+        }
+    }
+    m_PowerManagment.reset();
+
     // Close
     m_RxDevice->Close();
     if (m_TxDevice)
@@ -162,5 +187,7 @@ void WorkerAcl::SetQueueIdxTx(const int &idx) {
 void WorkerAcl::StopAtEmptyRxEnable(const bool enable) noexcept {
     m_StopAtEmptyRx = enable;
 }
+
+void WorkerAcl::SetPowerMgmt(decltype(m_PowerManagment)&& mgmt) { m_PowerManagment = std::move(mgmt); }
 
 } // namespace Nta::Network

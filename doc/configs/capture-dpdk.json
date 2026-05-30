@@ -1,11 +1,11 @@
 {
-   "app_core":27,
+   "app_core":0,
    "handler":{      
+      "type":"dpdk",
       "no-pci": true,
       "no-telemetry": true,
       "eal_mbuf_size":65535,
       "eal_mbuf_headroom_size":0,                  
-      "type":"dpdk",
       "promiscuous":true,
       "eal_cmd_line_arguments":[
          {
@@ -19,6 +19,9 @@
          },
          {
             "--vdev":"net_pcap1,rx_pcap=/media/user/other/Pcap/rnd-pcaps/gtpu/gtpu_part_0.pcap,tx_pcap=/mnt/ramdisk/net_pcap1-tx.pcap"
+         },
+         {
+            "--vdev":"net_pcap2,rx_iface=enp6s0,tx_pcap=/mnt/ramdisk/net_pcap2-tx.pcap"
          },         
          {  
          	"--file-prefix":"capture-app" 
@@ -52,8 +55,8 @@
          {
             "type":"acl",
             "eal_core":1,
-            "rx_device":"net_pcap1",
-            "tx_device":"net_pcap1",            
+            "rx_device":"net_pcap2",
+            "tx_device":"net_pcap2",            
             "rx_queues_idxs":{
                "type":"id",
                "indices":[
@@ -66,18 +69,26 @@
                   0
                ]
             },
+            "power_managment":{
+               "mode":"legacy",
+               "pmd_managment_type": "monitor",
+               "polls":100,
+               "duration_us":10
+            },
             "input_packet_classification":[
                {
                   "type":"tuple5",
-                  "action":"route",
+                  "category":"firewall",
+                  "action":"deny",
                   "priority":1,
-                  "rule":"R192.168.2.0/24 77.247.181.211/32 0 : 65535 0 : 65535 17/0xFF 0"
+                  "rule":"R192.168.2.0/24 77.247.181.0/24 0 : 65535 0 : 65535 17/0xFF 0"
                },
                {
                   "type":"tuple5",
-                  "action":"route",
+                  "category":"firewall",
+                  "action":"allow",
                   "priority":2,
-                  "rule":"R77.247.181.211/32 192.168.2.0/24 0 : 65535 0 : 65535 17/0xFF 0"
+                  "rule":"R77.247.181.0/24 192.168.2.0/24 0 : 65535 0 : 65535 17/0xFF 0"
                }
             ]
          }

@@ -8,6 +8,8 @@
 #include "Handlers/Dpdk/DpdkEal.h"
 #include "Handlers/Dpdk/DummyWorker.h"
 #include "Handlers/Dpdk/JsonObjectDpdk.h"
+#include "Handlers/Dpdk/Power/Legacy.h"
+#include "Handlers/Dpdk/Power/Pmd.h"
 #include "Handlers/Dpdk/RteMemPool.h"
 #include "Handlers/Dpdk/RteSocket.h"
 #include "Handlers/Dpdk/RuleMaker.h"
@@ -309,12 +311,25 @@ void HandlerDpdk::Open() {
                 txDevPtr->SetRteMemPool(mpTx);
                 txDevPtr->Configure();
 
-                // Create worker
+                // Get first header proto (link layer) for network flow
                 auto linkLayer = GetLinkLayer(workerCfg);
 
+                // Power policy setup
+                std::unique_ptr<Power::PowerManagment> powerManagment{nullptr};
+                if (auto mngmt = workerCfg.powerMngmt; mngmt.mode == Power::Mode::Legacy) {
+                    powerManagment = std::make_unique<Power::Legacy>(mngmt.polls, mngmt.duration);
+                } else if (mngmt.mode == Power::Mode::Pmd) {
+                    powerManagment = std::make_unique<Power::Pmd>(
+                        mngmt.polls, mngmt.duration, static_cast<rte_power_pmd_mgmt_type>(mngmt.pmdMgmtType));
+                } else {
+                    powerManagment = std::make_unique<Power::Dummy>();
+                }
+
+                // Create worker
                 auto workerAcl = std::make_unique<WorkerAcl>(
                     rxDevPtr, txDevPtr, tupleFiveIp4Context, cCount.size(), linkLayer, coreId, 64);
                 workerAcl->StopAtEmptyRxEnable(workerCfg.stopAtEmptyRx);
+                workerAcl->SetPowerMgmt(std::move(powerManagment));
 
                 std::println(
                     "{}: link layer: {} is set for worker at core: {}.", "APP", linkLayer, workerAcl->GetCoreId());
