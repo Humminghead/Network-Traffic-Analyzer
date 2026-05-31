@@ -104,6 +104,7 @@ struct HandlerDpdk::Impl {
     std::map<int, RteCpuSocket> cpuSockets;
     std::map<int, RteMemPool> memPools;
     DpdkDeviceList devices;
+    std::atomic_flag threadsStoppedFlag{true};
 };
 
 HandlerDpdk::HandlerDpdk(const Json::Objects::DpdkObject &config)
@@ -112,7 +113,7 @@ HandlerDpdk::HandlerDpdk(const Json::Objects::DpdkObject &config)
 }
 
 HandlerDpdk::~HandlerDpdk() noexcept {
-    Close();
+    HandlerDpdk::Close();
 }
 
 void HandlerDpdk::Open() {
@@ -380,6 +381,10 @@ void HandlerDpdk::Open() {
 
 void HandlerDpdk::Close() {
     StopDpdkWorkerThreads();
+
+    // Set flag in 'true' and send message in waiting thread
+    m_Impl->threadsStoppedFlag.test_and_set();
+    m_Impl->threadsStoppedFlag.notify_one();
     // #ifdef RTE_LIB_METRICS
     //     rte_metrics_deinit();
     // #endif
@@ -392,21 +397,23 @@ void HandlerDpdk::SetCallback(std::function<CallBackFunctionType> &&f) {
 auto HandlerDpdk::GetCallback() -> std::function<CallBackFunctionType> {
     return {};
 }
-bool HandlerDpdk::StartDpdkWorkerThreads(std::vector<DpdkWorkerPtr> &workerThreadsVec) {
+void HandlerDpdk::StartDpdkWorkerThreads(std::vector<DpdkWorkerPtr> &workerThreadsVec) {
     constexpr auto trampoline = [](void *arg) {
         if (arg == nullptr)
             return -1;
-        auto self = reinterpret_cast<AbstractWorker *>(arg);
+        auto self = reinterpret_cast<AbstractWorker *>(arg);        
         return self->Run(nullptr);
     };
 
-    bool isOk{false};
-
     for (auto &worker : workerThreadsVec) {
-        auto ret = rte_eal_remote_launch(trampoline, worker.get(), worker->GetCoreId());
-        isOk = (ret == 0);
+        if (auto ret = rte_eal_remote_launch(trampoline, worker.get(), worker->GetCoreId()); ret != 0) {
+            m_Impl->threadsStoppedFlag.notify_one();
+            throw std::runtime_error("Couldn't start worker threads!");
+        }
     }
-    return isOk;
+
+    // Set flag tp 'false'.
+    m_Impl->threadsStoppedFlag.clear();
 }
 
 void HandlerDpdk::StopDpdkWorkerThreads() {
@@ -438,11 +445,12 @@ void HandlerDpdk::StopDpdkWorkerThreads() {
 
 void HandlerDpdk::Loop() {
     // Start capture in async mode
-    if (!StartDpdkWorkerThreads(m_Impl->workers)) {
-        throw std::runtime_error("Couldn't start worker threads!");
-    }
+    StartDpdkWorkerThreads(m_Impl->workers);
 
-    // Wait for threads
+    // Wait "stop" message. Becoming 'true' when all workers are stopped.
+    m_Impl->threadsStoppedFlag.wait(false);
+
+    // Wait for all the worker threads to be finished via dpdk's mechanisms.
     auto lcoreId{RTE_MAX_LCORE};
     RTE_LCORE_FOREACH_WORKER(lcoreId) {
         if (rte_eal_wait_lcore(lcoreId) < 0)
