@@ -12,7 +12,7 @@
             "--main-lcore": 0
          },
          {
-            "--lcores":"0,1,10"
+            "--lcores":"0,1"
          },     
          {
             "--vdev":"net_pcap0,rx_iface=wlx340a33e0dd2e,tx_pcap=/mnt/ramdisk/net_pcap0-tx.pcap"
