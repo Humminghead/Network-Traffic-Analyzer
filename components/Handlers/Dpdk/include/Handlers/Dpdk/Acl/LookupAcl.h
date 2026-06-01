@@ -154,7 +154,7 @@ class RteAclContext {
      */
     template <size_t N> void AddRules(const std::vector<RteAclLookupRule<N>> &rules) {
         if (auto ret = rte_acl_add_rules(RawPointer(), (const rte_acl_rule *)rules.data(), rules.size()); ret != 0) {
-            throw std::runtime_error("Handle error at adding ACL rules!");
+            throw std::runtime_error("Error while handling ACL rules!");
         }
     }
 

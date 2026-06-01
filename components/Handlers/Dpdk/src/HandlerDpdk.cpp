@@ -1,6 +1,5 @@
 #include "Handlers/Dpdk/HandlerDpdk.h"
 
-#include "Handlers/Dpdk/Acl/Classification/Rules.h"
 #include "Handlers/Dpdk/Acl/Classification/Tuple5.h"
 #include "Handlers/Dpdk/Acl/WorkerAcl.h"
 #include "Handlers/Dpdk/DpdkDevice.h"
@@ -8,6 +7,8 @@
 #include "Handlers/Dpdk/DpdkEal.h"
 #include "Handlers/Dpdk/DummyWorker.h"
 #include "Handlers/Dpdk/JsonObjectDpdk.h"
+#include "Handlers/Dpdk/Power/Legacy.h"
+#include "Handlers/Dpdk/Power/Pmd.h"
 #include "Handlers/Dpdk/RteMemPool.h"
 #include "Handlers/Dpdk/RteSocket.h"
 #include "Handlers/Dpdk/RuleMaker.h"
@@ -103,6 +104,7 @@ struct HandlerDpdk::Impl {
     std::map<int, RteCpuSocket> cpuSockets;
     std::map<int, RteMemPool> memPools;
     DpdkDeviceList devices;
+    std::atomic_flag threadsStoppedFlag{true};
 };
 
 HandlerDpdk::HandlerDpdk(const Json::Objects::DpdkObject &config)
@@ -111,7 +113,7 @@ HandlerDpdk::HandlerDpdk(const Json::Objects::DpdkObject &config)
 }
 
 HandlerDpdk::~HandlerDpdk() noexcept {
-    Close();
+    HandlerDpdk::Close();
 }
 
 void HandlerDpdk::Open() {
@@ -309,12 +311,25 @@ void HandlerDpdk::Open() {
                 txDevPtr->SetRteMemPool(mpTx);
                 txDevPtr->Configure();
 
-                // Create worker
+                // Get first header proto (link layer) for network flow
                 auto linkLayer = GetLinkLayer(workerCfg);
 
+                // Power policy setup
+                std::unique_ptr<Power::PowerManagment> powerManagment{nullptr};
+                if (auto mngmt = workerCfg.powerMngmt; mngmt.mode == Power::Mode::Legacy) {
+                    powerManagment = std::make_unique<Power::Legacy>(mngmt.polls, mngmt.duration);
+                } else if (mngmt.mode == Power::Mode::Pmd) {
+                    powerManagment = std::make_unique<Power::Pmd>(
+                        mngmt.polls, mngmt.duration, static_cast<rte_power_pmd_mgmt_type>(mngmt.pmdMgmtType));
+                } else {
+                    powerManagment = std::make_unique<Power::Dummy>();
+                }
+
+                // Create worker
                 auto workerAcl = std::make_unique<WorkerAcl>(
                     rxDevPtr, txDevPtr, tupleFiveIp4Context, cCount.size(), linkLayer, coreId, 64);
                 workerAcl->StopAtEmptyRxEnable(workerCfg.stopAtEmptyRx);
+                workerAcl->SetPowerMgmt(std::move(powerManagment));
 
                 std::println(
                     "{}: link layer: {} is set for worker at core: {}.", "APP", linkLayer, workerAcl->GetCoreId());
@@ -366,6 +381,10 @@ void HandlerDpdk::Open() {
 
 void HandlerDpdk::Close() {
     StopDpdkWorkerThreads();
+
+    // Set flag in 'true' and send message in waiting thread
+    m_Impl->threadsStoppedFlag.test_and_set();
+    m_Impl->threadsStoppedFlag.notify_one();
     // #ifdef RTE_LIB_METRICS
     //     rte_metrics_deinit();
     // #endif
@@ -378,21 +397,23 @@ void HandlerDpdk::SetCallback(std::function<CallBackFunctionType> &&f) {
 auto HandlerDpdk::GetCallback() -> std::function<CallBackFunctionType> {
     return {};
 }
-bool HandlerDpdk::StartDpdkWorkerThreads(std::vector<DpdkWorkerPtr> &workerThreadsVec) {
+void HandlerDpdk::StartDpdkWorkerThreads(std::vector<DpdkWorkerPtr> &workerThreadsVec) {
     constexpr auto trampoline = [](void *arg) {
         if (arg == nullptr)
             return -1;
-        auto self = reinterpret_cast<AbstractWorker *>(arg);
+        auto self = reinterpret_cast<AbstractWorker *>(arg);        
         return self->Run(nullptr);
     };
 
-    bool isOk{false};
-
     for (auto &worker : workerThreadsVec) {
-        auto ret = rte_eal_remote_launch(trampoline, worker.get(), worker->GetCoreId());
-        isOk = (ret == 0);
+        if (auto ret = rte_eal_remote_launch(trampoline, worker.get(), worker->GetCoreId()); ret != 0) {
+            m_Impl->threadsStoppedFlag.notify_one();
+            throw std::runtime_error("Couldn't start worker threads!");
+        }
     }
-    return isOk;
+
+    // Set flag tp 'false'.
+    m_Impl->threadsStoppedFlag.clear();
 }
 
 void HandlerDpdk::StopDpdkWorkerThreads() {
@@ -424,11 +445,12 @@ void HandlerDpdk::StopDpdkWorkerThreads() {
 
 void HandlerDpdk::Loop() {
     // Start capture in async mode
-    if (!StartDpdkWorkerThreads(m_Impl->workers)) {
-        throw std::runtime_error("Couldn't start worker threads!");
-    }
+    StartDpdkWorkerThreads(m_Impl->workers);
 
-    // Wait for threads
+    // Wait "stop" message. Becoming 'true' when all workers are stopped.
+    m_Impl->threadsStoppedFlag.wait(false);
+
+    // Wait for all the worker threads to be finished via dpdk's mechanisms.
     auto lcoreId{RTE_MAX_LCORE};
     RTE_LCORE_FOREACH_WORKER(lcoreId) {
         if (rte_eal_wait_lcore(lcoreId) < 0)

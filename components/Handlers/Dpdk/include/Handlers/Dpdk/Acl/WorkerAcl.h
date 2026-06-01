@@ -3,9 +3,9 @@
 #include "Handlers/Dpdk/Acl/AbstractWorker.h"
 #include "Handlers/Dpdk/Acl/LookupAcl.h"
 #include "Handlers/Dpdk/DpdkDevice.h"
+#include "Handlers/Dpdk/Power/RtePower.h"
 #include <NetDecoder/Decoder.h>
 #include <atomic>
-// #include <pcapplusplus/DpdkDeviceList.h>
 
 namespace Nta::Network {
 
@@ -39,7 +39,8 @@ class WorkerAcl : public AbstractWorker {
     std::vector<int> m_QueueIndicesTx{};
     RuntimeVariable m_Rv{};
     bool m_StopAtEmptyRx{false};
-    uint16_t m_LinkLayer{};
+    uint16_t m_LinkLayer{};    
+    std::unique_ptr<Power::PowerManagment> m_PowerManagment{nullptr};
 
   public:
     WorkerAcl(
@@ -69,7 +70,7 @@ class WorkerAcl : public AbstractWorker {
      * \brief GetCoreId
      * \return
      */
-    uint32_t GetCoreId() const override;
+    uint32_t GetCoreId() const override;    
 
     /*!
      * \brief SetCoreId
@@ -106,5 +107,11 @@ class WorkerAcl : public AbstractWorker {
      * \param true or false
      */
     void StopAtEmptyRxEnable(const bool enable) noexcept;
+
+    /*!
+     * \brief Set power mamagment policy
+     * \param managment pointer
+     */
+    void SetPowerMgmt(decltype(m_PowerManagment)&& mgmt);
 };
 } // namespace Nta::Network
