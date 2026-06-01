@@ -3,9 +3,10 @@
 #include <rte_errno.h>
 #include <rte_mbuf.h>
 #include <stdexcept>
+#include <memory>
 
 class RteMemPool {
-    struct rte_mempool *m_mBufPtr{nullptr};
+    std::unique_ptr<rte_mempool, void (*)(rte_mempool *)> m_mBufPtr{nullptr, [](auto p) {}};
 
   public:
     /*!
@@ -26,19 +27,25 @@ class RteMemPool {
         uint16_t dataRoomSize,
         int socketId) {
 
-        m_mBufPtr = rte_pktmbuf_pool_create(name, totalMbufNum, mbufCacheSize, privSize, dataRoomSize, socketId);
-
-        if (m_mBufPtr == nullptr)
+        if (auto mBufPtr = rte_pktmbuf_pool_create(name, totalMbufNum, mbufCacheSize, privSize, dataRoomSize, socketId);
+            mBufPtr == nullptr){
             throw std::runtime_error("Error: can't init mbuf pool: " + std::string{rte_strerror(rte_errno)});
+        }else{
+            m_mBufPtr = decltype(m_mBufPtr)(mBufPtr, [](auto p) {
+                if (p) {
+                    rte_mempool_free(p);
+                }
+            });
+        }
     }
 
     /*!
      * \brief Get a mbuf pool ptr.
      */
-    auto GetRteMemPoolPtr() const { return m_mBufPtr; }
+    auto GetRteMemPoolPtr() const { return m_mBufPtr.get(); }
 
     /*!
      * \brief Free a mempool
      */
-    void Free() noexcept { rte_mempool_free(m_mBufPtr); }
+    void Free() noexcept { m_mBufPtr.reset(); }
 };
