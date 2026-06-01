@@ -1,24 +1,27 @@
 #include "Handlers/Dpdk/HandlerDpdk.h"
 
-#include "Handlers/Dpdk/Acl/LookupAcl.h"
+#include "Handlers/Dpdk/Acl/Classification/Tuple5.h"
 #include "Handlers/Dpdk/Acl/WorkerAcl.h"
 #include "Handlers/Dpdk/DpdkDevice.h"
 #include "Handlers/Dpdk/DpdkDeviceFactory.h"
 #include "Handlers/Dpdk/DpdkEal.h"
 #include "Handlers/Dpdk/DummyWorker.h"
 #include "Handlers/Dpdk/JsonObjectDpdk.h"
+#include "Handlers/Dpdk/Power/Legacy.h"
+#include "Handlers/Dpdk/Power/Pmd.h"
 #include "Handlers/Dpdk/RteMemPool.h"
 #include "Handlers/Dpdk/RteSocket.h"
 #include "Handlers/Dpdk/RuleMaker.h"
 #include "NetDecoder/EtherType.h"
 
 // dpdk
-#include <iostream>
 #include <rte_ethdev.h>
 #include <rte_metrics.h>
 
 // std
+#include <algorithm>
 #include <atomic>
+#include <iostream>
 #include <list>
 #include <memory>
 #include <print>
@@ -86,16 +89,11 @@ auto findDpdkDev = [](const DpdkDeviceList &devices, const std::string &pci) {
     return *it;
 };
 
-template <typename Tuple, size_t N>
-auto CreateRteRules(const std::vector<std::string> &rules, const std::array<rte_acl_field_def, N> &) {
-    RteRuleMaker<Tuple> maker;
-
-    std::vector<RteAclLookupRule<N>> rteRules{};
-    rteRules.reserve(rules.size());
-
-    std::for_each(std::begin(rules), std::end(rules), [&](const auto &rule) { rteRules.push_back(maker.Make(rule)); });
-
-    return rteRules;
+template <typename T> auto CreateRteRule(const Json::Objects::InputPacketClassification &jConf) {
+    const uint32_t categoryMask = static_cast<uint32_t>(jConf.category);
+    const int32_t priority = std::max(static_cast<int32_t>(RTE_ACL_MIN_PRIORITY), jConf.priority);
+    const uint32_t userData = jConf.userData;
+    return RteRuleMaker<T>{}.Make(jConf.rule, categoryMask, priority, userData);
 }
 
 struct HandlerDpdk::Impl {
@@ -106,6 +104,7 @@ struct HandlerDpdk::Impl {
     std::map<int, RteCpuSocket> cpuSockets;
     std::map<int, RteMemPool> memPools;
     DpdkDeviceList devices;
+    std::atomic_flag threadsStoppedFlag{true};
 };
 
 HandlerDpdk::HandlerDpdk(const Json::Objects::DpdkObject &config)
@@ -114,7 +113,7 @@ HandlerDpdk::HandlerDpdk(const Json::Objects::DpdkObject &config)
 }
 
 HandlerDpdk::~HandlerDpdk() noexcept {
-    Close();
+    HandlerDpdk::Close();
 }
 
 void HandlerDpdk::Open() {
@@ -198,25 +197,27 @@ void HandlerDpdk::Open() {
         }
 
         // Create temporary rules vector
-        std::vector<RteAclLookupRule<FiveTupleIp4Defs.size()>> tupleFiveRteRulesIp4{};
+        std::vector<RteAclLookupRule<Acl::Rules::Tuple5::field_count>> tupleFiveRteRulesIp4{};
 
         if (workerCfg.type == "acl") {
             tupleFiveRteRulesIp4.clear();
 
             // Process input_packet_classification array
-            for (const auto &cx : workerCfg.packetCx) {
-                if (cx.type == "route") {
-                    auto routeRules = CreateRteRules<FiveTupleIp4>(cx.tupleFiveIp4Rules, FiveTupleIp4Defs);
-                    tupleFiveRteRulesIp4.insert(
-                        tupleFiveRteRulesIp4.end(), std::begin(routeRules), std::end(routeRules));
-                } else if (cx.type == "drop") {
-                    auto dropRules = CreateRteRules<FiveTupleIp4>(cx.tupleFiveIp4Rules, FiveTupleIp4Defs);
-                    tupleFiveRteRulesIp4.insert(tupleFiveRteRulesIp4.end(), std::begin(dropRules), std::end(dropRules));
-                } else {
-                    throw std::runtime_error("At least one rule should be present in the classification array!");
-                    return;
-                }
-            }
+            std::vector<Json::Objects::Category> cCount;
+            std::for_each(
+                std::begin(workerCfg.packetRules),
+                std::end(workerCfg.packetRules),
+                [&tupleFiveRteRulesIp4, &cCount](auto &obj) {
+                    if (auto it = std::find(std::begin(cCount), std::end(cCount), obj.category);
+                        std::end(cCount) == it) {
+                        cCount.push_back(obj.category);
+                    }
+                    if (obj.type == "tuple5") {
+                        tupleFiveRteRulesIp4.push_back(CreateRteRule<Acl::Rules::Tuple5>(obj));
+                    } else {
+                        throw std::runtime_error(std::format("Unsupported rule type: {}!", obj.type));
+                    }
+                });
 
             // Try to find lcore's socket id
             auto wCoreSockId = rte_lcore_to_socket_id(coreId);
@@ -229,12 +230,12 @@ void HandlerDpdk::Open() {
                 if (!tupleFiveIp4Context) {
                     // Create ACL context
                     tupleFiveIp4Context = std::make_shared<RteAclContext>(
-                        FiveTupleIp4Defs.size(),
-                        8,
+                        Acl::Rules::FiveTupleIp4Defs.size(),
+                        8, ///\todo Fix it
                         wCoreSockId,
                         workerCfg.type + "_tuple_five_ip4_worker_" + std::to_string(coreId));
-                    tupleFiveIp4Context->SetCfgDefs(FiveTupleIp4Defs);
-                    tupleFiveIp4Context->SetNumCategories(1);                     ///\todo move in config
+                    tupleFiveIp4Context->SetCfgDefs(Acl::Rules::FiveTupleIp4Defs);
+                    tupleFiveIp4Context->SetNumCategories(cCount.size());
                     if (!tupleFiveIp4Context->SetClassify(RTE_ACL_CLASSIFY_AVX2)) ///\todo add in config
                     {
                         if (!tupleFiveIp4Context->SetClassify(RTE_ACL_CLASSIFY_SCALAR)) {
@@ -310,12 +311,25 @@ void HandlerDpdk::Open() {
                 txDevPtr->SetRteMemPool(mpTx);
                 txDevPtr->Configure();
 
-                // Create worker
+                // Get first header proto (link layer) for network flow
                 auto linkLayer = GetLinkLayer(workerCfg);
 
-                auto workerAcl =
-                    std::make_unique<WorkerAcl>(rxDevPtr, txDevPtr, tupleFiveIp4Context, linkLayer, coreId);
+                // Power policy setup
+                std::unique_ptr<Power::PowerManagment> powerManagment{nullptr};
+                if (auto mngmt = workerCfg.powerMngmt; mngmt.mode == Power::Mode::Legacy) {
+                    powerManagment = std::make_unique<Power::Legacy>(mngmt.polls, mngmt.duration);
+                } else if (mngmt.mode == Power::Mode::Pmd) {
+                    powerManagment = std::make_unique<Power::Pmd>(
+                        mngmt.polls, mngmt.duration, static_cast<rte_power_pmd_mgmt_type>(mngmt.pmdMgmtType));
+                } else {
+                    powerManagment = std::make_unique<Power::Dummy>();
+                }
+
+                // Create worker
+                auto workerAcl = std::make_unique<WorkerAcl>(
+                    rxDevPtr, txDevPtr, tupleFiveIp4Context, cCount.size(), linkLayer, coreId, 64);
                 workerAcl->StopAtEmptyRxEnable(workerCfg.stopAtEmptyRx);
+                workerAcl->SetPowerMgmt(std::move(powerManagment));
 
                 std::println(
                     "{}: link layer: {} is set for worker at core: {}.", "APP", linkLayer, workerAcl->GetCoreId());
@@ -367,6 +381,10 @@ void HandlerDpdk::Open() {
 
 void HandlerDpdk::Close() {
     StopDpdkWorkerThreads();
+
+    // Set flag in 'true' and send message in waiting thread
+    m_Impl->threadsStoppedFlag.test_and_set();
+    m_Impl->threadsStoppedFlag.notify_one();
     // #ifdef RTE_LIB_METRICS
     //     rte_metrics_deinit();
     // #endif
@@ -379,21 +397,23 @@ void HandlerDpdk::SetCallback(std::function<CallBackFunctionType> &&f) {
 auto HandlerDpdk::GetCallback() -> std::function<CallBackFunctionType> {
     return {};
 }
-bool HandlerDpdk::StartDpdkWorkerThreads(std::vector<DpdkWorkerPtr> &workerThreadsVec) {
+void HandlerDpdk::StartDpdkWorkerThreads(std::vector<DpdkWorkerPtr> &workerThreadsVec) {
     constexpr auto trampoline = [](void *arg) {
         if (arg == nullptr)
             return -1;
-        auto self = reinterpret_cast<AbstractWorker *>(arg);
+        auto self = reinterpret_cast<AbstractWorker *>(arg);        
         return self->Run(nullptr);
     };
 
-    bool isOk{false};
-
     for (auto &worker : workerThreadsVec) {
-        auto ret = rte_eal_remote_launch(trampoline, worker.get(), worker->GetCoreId());
-        isOk = (ret == 0);
+        if (auto ret = rte_eal_remote_launch(trampoline, worker.get(), worker->GetCoreId()); ret != 0) {
+            m_Impl->threadsStoppedFlag.notify_one();
+            throw std::runtime_error("Couldn't start worker threads!");
+        }
     }
-    return isOk;
+
+    // Set flag tp 'false'.
+    m_Impl->threadsStoppedFlag.clear();
 }
 
 void HandlerDpdk::StopDpdkWorkerThreads() {
@@ -425,11 +445,12 @@ void HandlerDpdk::StopDpdkWorkerThreads() {
 
 void HandlerDpdk::Loop() {
     // Start capture in async mode
-    if (!StartDpdkWorkerThreads(m_Impl->workers)) {
-        throw std::runtime_error("Couldn't start worker threads!");
-    }
+    StartDpdkWorkerThreads(m_Impl->workers);
 
-    // Wait for threads
+    // Wait "stop" message. Becoming 'true' when all workers are stopped.
+    m_Impl->threadsStoppedFlag.wait(false);
+
+    // Wait for all the worker threads to be finished via dpdk's mechanisms.
     auto lcoreId{RTE_MAX_LCORE};
     RTE_LCORE_FOREACH_WORKER(lcoreId) {
         if (rte_eal_wait_lcore(lcoreId) < 0)

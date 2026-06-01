@@ -1,12 +1,12 @@
 #pragma once
 
 #include <Handlers/Common/JsonObjectHandler.h>
+#include <Handlers/Dpdk/Power/Policy.h>
 #include <Util/Json.h>
 #include <Util/String.h>
 #include <nlohmann/json.hpp>
 
 namespace Nta::Json::Objects {
-
 //-----------------------------------------------------------------------------------
 struct MemPoolOpt
 {
@@ -16,9 +16,7 @@ struct MemPoolOpt
     uint32_t m_MbufCacheSize{512};
     uint32_t m_TotalMbufNum{32000};
 };
-[[maybe_unused]] static void to_json(nlohmann::json &j, const MemPoolOpt &p) {
-    ///\todo
-    (void)p;
+[[maybe_unused]] static void to_json(nlohmann::json &j, const MemPoolOpt &) {
 }
 
 [[maybe_unused]] static void from_json(const nlohmann::json &j, MemPoolOpt &p) {
@@ -85,20 +83,89 @@ struct DpdkEalCmdLine {
 }
 
 //-----------------------------------------------------------------------------------
-struct InputPacketClassification {
-    std::string type{};
-    std::vector<std::string> tupleFiveIp4Rules{};
+enum class Category : uint32_t {
+    Invalid = 0,
+    Firewall,
+    QoS,
+    Routing,
 };
 
-[[maybe_unused]] static void to_json(nlohmann::json &j, const InputPacketClassification &p) {
-    ///\todo
+enum class FirewallAction : uint32_t { Allow = 1, Deny = 0 };
+
+inline auto FirewallActionFromString(const std::string_view s){
+        if (s == "allow") {
+            return FirewallAction::Allow;
+        }
+
+        return FirewallAction::Deny;
+};
+
+struct InputPacketClassification{
+    uint32_t userData{0};
+    std::string type{};
+    std::string action{};
+    std::string rule{};
+    Category category{Category::Invalid};
+    int32_t priority{1}; // RTE_ACL_MIN_PRIORITY
+
+    [[maybe_unused]] static auto ToJson(const InputPacketClassification &r) -> nlohmann::json{
+        // clang-format off
+        return
+            {
+                {"type", r.type},
+                {"action", r.action},
+                ///\todo category
+                {"priority", r.priority},
+                {"rule", r.rule}
+            };
+        // clang-format on
+    }
+
+    [[maybe_unused]] static void FromJson(const nlohmann::json &j, InputPacketClassification &r) {
+        Util::Json::GetTo(j, "type", r.type);
+        Util::Json::GetTo(j, "category", r.category, [](auto j, auto n, auto) {
+            std::string v{j.at(n)};
+            std::transform(std::begin(v), std::end(v), std::begin(v), [](auto c) { return std::tolower(c); });
+
+            if ("firewall" == v) {
+                return Category::Firewall;
+            } else if ("qos" == v) {
+                return Category::QoS;
+            } else if ("routing" == v) {
+                return Category::Routing;
+            }
+            return Category::Invalid;
+        });
+        Util::Json::GetTo(j, "action", r.action, [&category = r.category, &ud = r.userData](auto j, auto n, auto) {
+            std::string v{j.at(n)};
+            std::transform(std::begin(v), std::end(v), std::begin(v), [](auto c) { return std::tolower(c); });
+
+            if(Category::Firewall == category){
+                if("allow"==v)
+                    ud = static_cast<decltype(userData)>(FirewallAction::Allow);
+            }
+            if(Category::QoS == category){
+                ///\todo
+            }
+            if(Category::Routing == category){
+                ///\todo
+            }
+
+            return v;
+        });
+        Util::Json::GetTo(j, "priority", r.priority);
+        Util::Json::GetTo(j, "rule", r.rule);
+    }
+};
+
+//InputPacketClassification
+[[maybe_unused]] static void to_json(nlohmann::json &j, const InputPacketClassification &r) {
+    r.ToJson(r);
 }
 
-[[maybe_unused]] static void from_json(const nlohmann::json &j, InputPacketClassification &p) {
-    j.at("type").get_to(p.type);
-    std::transform(
-        std::begin(p.type), std::end(p.type), std::begin(p.type), [](const char c) { return std::tolower(c); });
-    j.at("tuple-five-rules").get_to(p.tupleFiveIp4Rules);
+[[maybe_unused]] static void from_json(const nlohmann::json &j, InputPacketClassification &r) {
+    r.FromJson(j, r);
+    ///\todo add other rules (ex. Tuple2)
 }
 
 //-----------------------------------------------------------------------------------
@@ -137,6 +204,51 @@ struct WorkerQueueRange {
 }
 
 //-----------------------------------------------------------------------------------
+struct PowerManagment
+{
+    Network::Power::Mode mode{Network::Power::Mode::Unset};
+    unsigned int pmdMgmtType{};
+    unsigned int polls{0};
+    unsigned int duration{0}; // microseconds
+};
+
+[[maybe_unused]] static void to_json(nlohmann::json &j, const PowerManagment &) {}
+
+[[maybe_unused]] static void from_json(const nlohmann::json &j, PowerManagment &p) {
+    // Mode
+    {
+        std::string mode{};
+        j.at("mode").get_to(mode);
+        std::transform(
+            std::begin(mode), std::end(mode), std::begin(mode), [](const char c) { return std::tolower(c); });
+
+        if ("legacy" == mode) {
+            p.mode = Network::Power::Mode::Legacy;
+        } else if ("pmd" == mode) {
+            p.mode = Network::Power::Mode::Pmd;
+        }
+    }
+
+    // Managment type (see rte_power_pmd_mgmt_type documentation)
+    {
+        std::string type{};
+        Util::Json::GetTo(j, "pmd_managment_type", type);
+        if ("monitor" == type) {
+            p.pmdMgmtType = 1;
+        } else if ("pause" == type) {
+            p.pmdMgmtType = 2;
+        } else if ("scale" == type) {
+            p.pmdMgmtType = 3;
+        } else {
+            p.pmdMgmtType = 2; // Default: RTE_POWER_MGMT_TYPE_PAUSE
+        }
+    }
+
+    Util::Json::GetTo(j, "polls", p.polls);
+    Util::Json::GetTo(j, "duration_us", p.duration);
+}
+
+//-----------------------------------------------------------------------------------
 struct Worker {
     std::string type{};
     std::string linkLayer{"eth"};
@@ -146,12 +258,10 @@ struct Worker {
     std::string txDevicePciAddr{};
     WorkerQueueRange rxQueuesIdxs{};
     WorkerQueueRange txQueuesIdxs{};
-    std::vector<InputPacketClassification> packetCx{};
+    PowerManagment powerMngmt{};
+    std::vector<InputPacketClassification> packetRules{};
 };
-[[maybe_unused]] static void to_json(nlohmann::json &j, const Worker &p) {
-    j =  {
-         {"input_packet_classification", p.packetCx}
-    };
+[[maybe_unused]] static void to_json(nlohmann::json &j, const Worker &) {
 }
 
 [[maybe_unused]] static void from_json(const nlohmann::json &j, Worker &p) {
@@ -168,9 +278,11 @@ struct Worker {
         std::end(p.linkLayer),
         std::begin(p.linkLayer),
         [](auto c) { return std::tolower(c); });
-    Util::Json::GetTo(j, "input_packet_classification", p.packetCx);
+    Util::Json::GetTo(j, "input_packet_classification", p.packetRules);
     Util::Json::GetTo(j, "stop_at_empty_rx", p.stopAtEmptyRx);
+    Util::Json::GetTo(j, "power_managment", p.powerMngmt);
 }
+
 //-----------------------------------------------------------------------------------
 struct DpdkObject : HandlerObject {
     uint32_t m_BufPoolSizePerDevice{0};
@@ -220,7 +332,7 @@ struct DpdkObject : HandlerObject {
             if (j.contains(name)) {
                 for (auto item : j.at(name)) {
                     using ValueType = nlohmann::detail::value_t;
-                    for (auto obj : item.items()) {
+                    for (const auto &obj : item.items()) {
                         auto k = obj.key();
                         if (auto type = obj.value().type();
                             type == ValueType::number_integer || type == ValueType::number_unsigned) {

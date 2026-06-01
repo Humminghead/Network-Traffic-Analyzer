@@ -61,7 +61,7 @@ public:
     auto GetIfaceType() const -> const HandlerIfaces override { return HandlerIfaces::Pcap; }
 
 private:
-    bool StartDpdkWorkerThreads(std::vector<DpdkWorkerPtr>& workerThreadsVec);
+    void StartDpdkWorkerThreads(std::vector<DpdkWorkerPtr>& workerThreadsVec);
     void StopDpdkWorkerThreads();
 
     struct Impl;

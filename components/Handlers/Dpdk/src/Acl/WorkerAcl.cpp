@@ -1,5 +1,6 @@
 #include "Handlers/Dpdk/Acl/WorkerAcl.h"
 #include "Handlers/Dpdk/Acl/Util/Offset.h"
+#include "Handlers/Dpdk/Power/RtePower.h"
 #include <NetDecoder/PacketBase.h>
 #include <NetDecoder/Util/Packet.h>
 #include <algorithm>
@@ -11,10 +12,11 @@ WorkerAcl::WorkerAcl(
     std::shared_ptr<DpdkDevice> rxDevice,
     std::shared_ptr<DpdkDevice> txDevice,
     std::shared_ptr<RteAclContext> context,
+    const size_t categories,
     const uint16_t linkLayer,
     const uint32_t core,
     const uint16_t nbPkts)
-    : m_RxDevice{rxDevice}, m_TxDevice{txDevice}, m_AclContext{context}, m_CoreId{core},
+    : m_RxDevice{rxDevice}, m_TxDevice{txDevice}, m_CoreId{core}, m_AclContext{context}, m_AclLookUp{categories},
       m_PacketBuffers{RTE_MAX_LCORE, MbufArray{nbPkts, nullptr}},
       m_MatchPackets{RTE_MAX_LCORE, MbufArray{nbPkts, nullptr}}, m_AclDataPtrs{nbPkts, nullptr}, m_StopAtEmptyRx{false},
       m_LinkLayer{linkLayer} {
@@ -35,6 +37,14 @@ int WorkerAcl::Run(void *) {
     if (m_TxDevice && m_QueueIndicesTx.empty()) {
         for (auto n = 0; n < m_TxDevice->GetTotalNumOfTxQueues(); n++) {
             m_QueueIndicesTx.push_back(n);
+        }
+    }
+
+
+    // Enable power policy for RX dev
+    if (m_PowerManagment) {
+        for (auto port = m_RxDevice->GetDeviceId(); auto q : m_QueueIndicesRx) {
+            m_PowerManagment->Enable(port, q, m_CoreId);
         }
     }
 
@@ -64,7 +74,13 @@ int WorkerAcl::Run(void *) {
             m_Rv.Reset();
 
             // Receive packets from RX device
-            if (m_Rv.numRxPackets = m_RxDevice->RecivePackets(queueIdRx, pktBuf); m_Rv.numRxPackets > 0) {
+            m_Rv.numRxPackets = m_RxDevice->RecivePackets(queueIdRx, pktBuf);
+
+            // Busy-loop prevention
+            if (m_PowerManagment && m_PowerManagment->Idle(m_Rv.numRxPackets))
+                continue;
+
+            if (m_Rv.numRxPackets > 0) {
                 std::for_each_n(
                     std::begin(pktBuf), std::min<uint16_t>(m_Rv.numRxPackets, pktBuf.size()), [&](rte_mbuf *pktMbuf) {
                         auto data = rte_pktmbuf_mtod_offset(pktMbuf, const uint8_t *, 0);
@@ -95,10 +111,10 @@ int WorkerAcl::Run(void *) {
                         std::begin(matchedRuleIdxs),
                         std::min<uint16_t>(m_Rv.numRxPackets, pktBuf.size()),
                         [&, pktIndex = size_t{}](auto &ruleIdx) mutable {
-                            if (ruleIdx != 0) {
+                            if (ruleIdx != 0) { // Alow
                                 matchPkts[m_Rv.matchPacketsCounter] = nullptr;
                                 matchPkts[m_Rv.matchPacketsCounter++] = pktBuf[pktIndex];
-                            } else {
+                            } else { // Deny
                                 rte_pktmbuf_free(pktBuf[pktIndex]);
                             }
                             pktBuf[pktIndex++] = nullptr;
@@ -119,6 +135,13 @@ int WorkerAcl::Run(void *) {
                 if (m_StopAtEmptyRx)
                     Stop();
             }
+        }
+    }
+
+    // Reset power managment settings
+    if (m_PowerManagment) {
+        for (auto port = m_RxDevice->GetDeviceId(); auto q : m_QueueIndicesRx) {
+            m_PowerManagment->Disable(port, q, m_CoreId);
         }
     }
 
@@ -161,5 +184,7 @@ void WorkerAcl::SetQueueIdxTx(const int &idx) {
 void WorkerAcl::StopAtEmptyRxEnable(const bool enable) noexcept {
     m_StopAtEmptyRx = enable;
 }
+
+void WorkerAcl::SetPowerMgmt(decltype(m_PowerManagment)&& mgmt) { m_PowerManagment = std::move(mgmt); }
 
 } // namespace Nta::Network
