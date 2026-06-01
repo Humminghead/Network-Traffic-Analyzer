@@ -26,6 +26,5 @@ target_link_libraries(
           NtaHandlerPcap
           NtaHandlerDpdk
           NtaNetDecoder
-          models
-          -lbsd
+          models          
         )
