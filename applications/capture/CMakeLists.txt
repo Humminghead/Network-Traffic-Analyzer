@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.11)
 
+include(CheckSymbolExists)
+
 project(nta_capture LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -28,3 +30,11 @@ target_link_libraries(
           NtaNetDecoder
           models          
         )
+
+# libbsd
+check_symbol_exists(strlcpy "string.h" STRLCPY_IN_LIBC)
+
+if(NOT STRLCPY_IN_LIBC)
+  find_library(LBSD_LIBS NAMES bsd REQUIRED)
+  target_link_libraries(${PROJECT_NAME} PRIVATE ${LBSD_LIBS})
+endif()
