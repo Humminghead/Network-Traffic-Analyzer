@@ -10,6 +10,7 @@ file(GLOB_RECURSE CPP_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
 find_package(tpfr REQUIRED)
 find_package(Poco REQUIRED COMPONENTS Util-debug Foundation-debug)
 find_package(nlohmann_json REQUIRED)
+find_library(BSD_LIBS NAMES bsd)
 
 add_executable(${PROJECT_NAME} ${CPP_FILES})
 target_link_libraries(
@@ -26,5 +27,10 @@ target_link_libraries(
           NtaHandlerPcap
           NtaHandlerDpdk
           NtaNetDecoder
-          models          
-        )
+          models)
+
+# libbsd
+if(BSD_LIBS)
+  target_link_libraries(${PROJECT_NAME} PRIVATE ${BSD_LIBS})
+endif()
+
